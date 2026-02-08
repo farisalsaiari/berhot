@@ -1,5 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation, LanguageSwitcher } from '@berhot/i18n';
+
+const STORAGE_KEY = 'berhot_auth';
+const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || 'http://localhost:3000';
 
 const NAV_ITEMS = [
   { key: 'clock', labelKey: 'nav.clock', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
@@ -17,8 +21,32 @@ export function Layout() {
   const navigate = useNavigate();
   const { lang } = useParams<{ lang: string }>();
   const { t } = useTranslation();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.user && parsed.accessToken) {
+          setAuthChecked(true);
+          return;
+        }
+      }
+    } catch { /* ignore */ }
+    window.location.href = `${LANDING_URL}/`;
+  }, []);
+
   const pathSegments = location.pathname.split('/');
   const activeKey = pathSegments[pathSegments.length - 1] || 'clock';
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-[240px_1fr] h-screen">
@@ -43,7 +71,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="px-6 py-4 border-t border-white/10">
-          <a href="http://localhost:3000" className="text-white/40 text-xs hover:text-white/70">{t('nav.backToBerhot')}</a>
+          <a href={LANDING_URL} className="text-white/40 text-xs hover:text-white/70">{t('nav.backToBerhot')}</a>
         </div>
       </aside>
       <main className="flex flex-col overflow-hidden">

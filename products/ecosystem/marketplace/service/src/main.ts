@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1/marketplace');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  const port = process.env.PORT || 3050;
+  const port = process.env.PORT || 4040;
   await app.listen(port);
   console.log(`Marketplace service running on port ${port}`);
 }

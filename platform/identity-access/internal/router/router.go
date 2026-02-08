@@ -54,6 +54,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, cfg *config.Config) {
 		auth.POST("/check-user", authH.HandleCheckUser)
 		auth.POST("/register", authH.HandleRegister)
 		auth.POST("/login", authH.HandleLogin)
+		auth.POST("/otp-login", authH.HandleOTPLogin)
 		auth.POST("/refresh", authH.HandleRefreshToken)
 
 		// OTP

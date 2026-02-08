@@ -11,6 +11,7 @@ export default defineConfig({
   },
   server: {
     port: 3004,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8081',
@@ -20,6 +21,7 @@ export default defineConfig({
   },
   preview: {
     port: 5005,
+    strictPort: true,
   },
   build: {
     rollupOptions: {

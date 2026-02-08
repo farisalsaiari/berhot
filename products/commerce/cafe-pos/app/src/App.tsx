@@ -12,6 +12,7 @@ const QuickOrderPage = lazy(() => import('./pages/QuickOrderPage'));
 const MenuPage = lazy(() => import('./pages/MenuPage'));
 const BaristaPage = lazy(() => import('./pages/BaristaPage'));
 const LoyaltyPage = lazy(() => import('./pages/LoyaltyPage'));
+const ChangeBusinessPage = lazy(() => import('./pages/ChangeBusinessPage'));
 
 function AppRoutes() {
   return (
@@ -24,6 +25,7 @@ function AppRoutes() {
         <Route path="menu" element={<Suspense fallback={<LoadingSpinner />}><MenuPage /></Suspense>} />
         <Route path="barista" element={<Suspense fallback={<LoadingSpinner />}><BaristaPage /></Suspense>} />
         <Route path="loyalty" element={<Suspense fallback={<LoadingSpinner />}><LoyaltyPage /></Suspense>} />
+        <Route path="change-business" element={<Suspense fallback={<LoadingSpinner />}><ChangeBusinessPage /></Suspense>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

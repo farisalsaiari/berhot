@@ -41,6 +41,17 @@ function getStoredAuth(): { accessToken: string; refreshToken: string; user: Use
 }
 
 function storeAuth(accessToken: string, refreshToken: string, user: User) {
+  // Preserve existing fields like posProduct when re-storing auth
+  try {
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, accessToken, refreshToken, user }));
+      return;
+    }
+  } catch {
+    // ignore — fall through to fresh store
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken, refreshToken, user }));
 }
 

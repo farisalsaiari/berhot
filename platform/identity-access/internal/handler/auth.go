@@ -216,9 +216,15 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		h.Cfg.JWTAccessTTL, h.Cfg.JWTRefreshTTL,
 	)
 
+	// Use phone as identifier when no email (for consistency with login endpoints)
+	userIdentifier := email
+	if userIdentifier == "" {
+		userIdentifier = phone
+	}
+
 	c.JSON(201, gin.H{
 		"user": gin.H{
-			"id": userID, "email": email, "phone": phone,
+			"id": userID, "email": userIdentifier, "phone": phone,
 			"firstName": req.FirstName, "lastName": req.LastName,
 			"role": role, "tenantId": tenantID,
 		},
@@ -239,12 +245,12 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	var id, tenantID, firstName, lastName, role, status string
+	var id, tenantID, firstName, lastName, role, status, email string
 	var passwordHash sql.NullString
 	err := h.DB.QueryRow(
-		`SELECT id, tenant_id, password_hash, first_name, last_name, role, status FROM users WHERE email = $1`,
+		`SELECT id, tenant_id, password_hash, first_name, last_name, role, status, COALESCE(email, '') FROM users WHERE email = $1 OR phone = $1`,
 		req.Email,
-	).Scan(&id, &tenantID, &passwordHash, &firstName, &lastName, &role, &status)
+	).Scan(&id, &tenantID, &passwordHash, &firstName, &lastName, &role, &status, &email)
 
 	if err == sql.ErrNoRows {
 		c.JSON(401, gin.H{"error": "Invalid email or password"})
@@ -280,14 +286,85 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 		sessionID, id, tenantID, string(refreshTokenHash), c.GetHeader("User-Agent"), c.ClientIP(),
 	)
 
+	// Use resolved email from DB (or the request identifier for phone users)
+	userIdentifier := email
+	if userIdentifier == "" {
+		userIdentifier = req.Email // phone number was sent in the email field
+	}
+
 	accessToken, refreshToken, _ := model.GenerateTokens(
-		h.Cfg.JWTSecret, id, tenantID, req.Email, role, sessionID,
+		h.Cfg.JWTSecret, id, tenantID, userIdentifier, role, sessionID,
 		h.Cfg.JWTAccessTTL, h.Cfg.JWTRefreshTTL,
 	)
 
 	c.JSON(200, gin.H{
 		"user": gin.H{
-			"id": id, "email": req.Email,
+			"id": id, "email": userIdentifier,
+			"firstName": firstName, "lastName": lastName,
+			"role": role, "tenantId": tenantID,
+		},
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
+		"expiresIn":    h.Cfg.JWTAccessTTL,
+	})
+}
+
+// POST /api/v1/auth/otp-login — Dev-only: login phone user with dummy OTP code
+func (h *AuthHandler) HandleOTPLogin(c *gin.Context) {
+	var req struct {
+		Phone string `json:"phone" binding:"required"`
+		Code  string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Dev-only: accept dummy OTP code "1234"
+	if req.Code != "1234" {
+		c.JSON(401, gin.H{"error": "Invalid OTP code"})
+		return
+	}
+
+	cleaned := strings.ReplaceAll(strings.ReplaceAll(req.Phone, " ", ""), "-", "")
+	var id, tenantID, firstName, lastName, role, status, email string
+	err := h.DB.QueryRow(
+		`SELECT id, tenant_id, first_name, last_name, role, status, COALESCE(email, '') FROM users WHERE phone = $1 AND status = 'active'`,
+		cleaned,
+	).Scan(&id, &tenantID, &firstName, &lastName, &role, &status, &email)
+
+	if err == sql.ErrNoRows {
+		c.JSON(401, gin.H{"error": "User not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Database error"})
+		return
+	}
+
+	userIdentifier := email
+	if userIdentifier == "" {
+		userIdentifier = cleaned
+	}
+
+	h.DB.Exec("UPDATE users SET last_login_at = NOW() WHERE id = $1", id)
+
+	sessionID := uuid.New().String()
+	refreshTokenHash, _ := bcrypt.GenerateFromPassword([]byte(sessionID), bcrypt.MinCost)
+	h.DB.Exec(
+		`INSERT INTO sessions (id, user_id, tenant_id, refresh_token_hash, user_agent, ip_address, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, NOW() + INTERVAL '7 days')`,
+		sessionID, id, tenantID, string(refreshTokenHash), c.GetHeader("User-Agent"), c.ClientIP(),
+	)
+
+	accessToken, refreshToken, _ := model.GenerateTokens(
+		h.Cfg.JWTSecret, id, tenantID, userIdentifier, role, sessionID,
+		h.Cfg.JWTAccessTTL, h.Cfg.JWTRefreshTTL,
+	)
+
+	c.JSON(200, gin.H{
+		"user": gin.H{
+			"id": id, "email": userIdentifier,
 			"firstName": firstName, "lastName": lastName,
 			"role": role, "tenantId": tenantID,
 		},

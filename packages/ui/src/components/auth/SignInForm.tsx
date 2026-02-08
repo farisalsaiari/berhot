@@ -178,11 +178,7 @@ function ShieldIcon() {
 
 // ── Business Type + Revenue Data ─────────────────────────
 const BUSINESS_TYPES = [
-  'Fine Dining', 'Casual Dining', 'Hotel', 'Bar/Pub',
-  'Nightclub', 'Counter Service', 'Fast Food', 'Fast Casual',
-  'Coffee Shop', 'Food Truck/Concession', 'Delivery', 'Pizzeria',
-  'Cafeteria', 'Deli/Grocery', 'Bakery', 'Catering',
-  'Retirement Home', 'Festival',
+  'Restaurant', 'Cafe', 'Retail', 'Appointment',
 ];
 
 const REVENUE_OPTIONS = [
@@ -488,6 +484,12 @@ export function SignInForm({
     setSignInLoading(true);
     try {
       await onSignIn(identifier, password);
+      // Existing users skip onboarding — go to protect only, then redirect
+      // New users (shouldn't reach here, but just in case) get onboarding
+      if (isExistingUser) {
+        // Skip protect + onboarding for returning users — let the wrapper redirect
+        return;
+      }
       if (identifierType === 'email') {
         setStep('protect');
       }
@@ -507,10 +509,11 @@ export function SignInForm({
       // Success — clear error state
       setOtpError('');
       setOtpAttempts(0);
-      // After successful OTP verification, new users go to register step
       if (!isExistingUser) {
+        // New users go to register step after OTP
         setStep('register');
       }
+      // Existing phone users — the wrapper handles redirect via otpLogin, no step change needed
     } catch {
       // Wrong code — increment attempts
       const newAttempts = otpAttempts + 1;

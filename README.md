@@ -272,7 +272,7 @@ The frontend apps proxy `/api` requests to the backend. To test real features (s
 
 # 2. Start Docker infrastructure (Postgres, Redis, Kafka, Mailhog, etc.)
 pnpm docker:up
-
+pnpm run docker:up
 # 3. Wait for containers to be healthy
 docker ps
 

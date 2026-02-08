@@ -7,10 +7,12 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   server: {
     port: 3006,
+    strictPort: true,
     proxy: { '/api': { target: 'http://localhost:8081', changeOrigin: true } },
   },
   preview: {
     port: 5007,
+    strictPort: true,
   },
   build: {
     rollupOptions: {

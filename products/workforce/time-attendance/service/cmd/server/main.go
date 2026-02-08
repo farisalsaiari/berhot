@@ -12,7 +12,7 @@ import (
 func main() {
 	port := os.Getenv("APP_PORT")
 	if port == "" {
-		port = "8080"
+		port = "4050"
 	}
 
 	router := gin.Default()

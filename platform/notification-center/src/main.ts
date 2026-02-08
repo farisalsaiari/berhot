@@ -9,7 +9,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1/notifications');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  const port = process.env.PORT || 3010;
+  const port = process.env.PORT || 4001;
   await app.listen(port);
   console.log(`Notification Center running on port ${port}`);
 }

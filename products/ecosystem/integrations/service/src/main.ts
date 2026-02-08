@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1/integrations');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  const port = process.env.PORT || 3051;
+  const port = process.env.PORT || 4041;
   await app.listen(port);
   console.log(`Integrations service running on port ${port}`);
 }

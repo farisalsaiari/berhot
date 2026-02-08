@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { SignInPage } from '@berhot/ui';
 import { useTranslation, LanguageSwitcher } from '@berhot/i18n';
 import type { CheckUserResult } from '@berhot/ui';
-import { checkUser, signIn, sendOtp, verifyOtp, signUp, getGoogleAuthUrl, passkeyLogin } from '../lib/auth-api';
+import { checkUser, signIn, sendOtp, verifyOtp, otpLogin, signUp, getGoogleAuthUrl, passkeyLogin } from '../lib/auth-api';
 import { useAuth } from '../lib/auth-context';
 
 function BerhotLogo() {
@@ -26,65 +26,77 @@ function BerhotLogo() {
 
 // ── Business Type → POS Product Mapping ──────────────────
 const BUSINESS_TYPE_TO_POS: Record<string, { name: string; port: number }> = {
-  'Fine Dining': { name: 'Restaurant POS', port: 4001 },
-  'Casual Dining': { name: 'Restaurant POS', port: 4001 },
-  'Hotel': { name: 'Restaurant POS', port: 4001 },
-  'Bar/Pub': { name: 'Restaurant POS', port: 4001 },
-  'Nightclub': { name: 'Restaurant POS', port: 4001 },
-  'Counter Service': { name: 'Restaurant POS', port: 4001 },
-  'Fast Food': { name: 'Restaurant POS', port: 4001 },
-  'Fast Casual': { name: 'Restaurant POS', port: 4001 },
-  'Pizzeria': { name: 'Restaurant POS', port: 4001 },
-  'Coffee Shop': { name: 'Cafe POS', port: 4002 },
-  'Bakery': { name: 'Cafe POS', port: 4002 },
-  'Deli/Grocery': { name: 'Retail POS', port: 4003 },
-  'Food Truck/Concession': { name: 'Cafe POS', port: 4002 },
-  'Delivery': { name: 'Cafe POS', port: 4002 },
-  'Cafeteria': { name: 'Cafe POS', port: 4002 },
-  'Catering': { name: 'Cafe POS', port: 4002 },
-  'Retirement Home': { name: 'Cafe POS', port: 4002 },
-  'Festival': { name: 'Cafe POS', port: 4002 },
+  'Restaurant': { name: 'Restaurant POS', port: 3001 },
+  'Cafe': { name: 'Cafe POS', port: 3002 },
+  'Retail': { name: 'Retail POS', port: 3003 },
+  'Appointment': { name: 'Appointment POS', port: 3004 },
 };
 
 const STORAGE_KEY = 'berhot_auth';
+const POS_PRODUCTS_KEY = 'berhot_pos_products'; // per-user map: { "email": { name, port } }
 
-/** Get the saved POS product for the user, if any */
-function getSavedPosProduct(): { name: string; port: number } | null {
+// ── Per-user POS product storage ─────────────────────────
+// Stored as a map keyed by email so each user keeps their own POS choice
+
+function getAllPosProducts(): Record<string, { name: string; port: number }> {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed.posProduct) return parsed.posProduct;
-    }
-  } catch {
-    // ignore
-  }
-  return null;
+    const raw = localStorage.getItem(POS_PRODUCTS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
 }
 
-/** Save the chosen POS product to auth storage */
-function savePosProduct(posProduct: { name: string; port: number }) {
+function getSavedPosProduct(email?: string): { name: string; port: number } | null {
+  if (!email) {
+    // Try to get email from current auth
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        email = parsed.user?.email;
+      }
+    } catch { /* ignore */ }
+  }
+  if (!email) return null;
+
+  const all = getAllPosProducts();
+  return all[email] || null;
+}
+
+function savePosProduct(email: string, posProduct: { name: string; port: number }) {
   try {
+    // Save to per-user map
+    const all = getAllPosProducts();
+    all[email] = posProduct;
+    localStorage.setItem(POS_PRODUCTS_KEY, JSON.stringify(all));
+
+    // Also save inside berhot_auth for cross-origin handoff
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       parsed.posProduct = posProduct;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
     }
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
 /** Redirect to the user's POS dashboard, or product selector if none saved */
-function redirectToDashboard(_authData?: { accessToken: string; refreshToken: string; user: object } | null) {
+function redirectToDashboard(email?: string) {
   const lang = document.documentElement.lang || 'en';
-  const savedProduct = getSavedPosProduct();
+  const savedProduct = getSavedPosProduct(email);
+
   if (savedProduct) {
-    // Build auth hash for cross-origin handoff
+    // Ensure posProduct is in berhot_auth for cross-origin handoff
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const authHash = btoa(stored);
+      try {
+        const parsed = JSON.parse(stored);
+        if (!parsed.posProduct || parsed.posProduct.port !== savedProduct.port) {
+          parsed.posProduct = savedProduct;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
+      } catch { /* ignore */ }
+      const authHash = btoa(localStorage.getItem(STORAGE_KEY)!);
       window.location.href = `http://localhost:${savedProduct.port}/${lang}/dashboard/#auth=${authHash}`;
     } else {
       window.location.href = `http://localhost:${savedProduct.port}/${lang}/dashboard/`;
@@ -97,7 +109,7 @@ function redirectToDashboard(_authData?: { accessToken: string; refreshToken: st
 
 export default function SignInPageWrapper() {
   const { t, lang } = useTranslation();
-  const { isAuthenticated, login, googleProfile, clearGoogleProfile } = useAuth();
+  const { isAuthenticated, login, logout, user, googleProfile, clearGoogleProfile } = useAuth();
 
   // Hold pending auth data until protect step is resolved
   const pendingAuth = useRef<{
@@ -106,9 +118,19 @@ export default function SignInPageWrapper() {
     user: { id: string; email: string; firstName: string; lastName: string; role: string; tenantId: string };
   } | null>(null);
 
-  // ── Route protection: redirect authenticated users to dashboard ──
-  if (isAuthenticated) {
-    redirectToDashboard();
+  // ── Handle logout from POS apps (they redirect here with ?logout=true) ──
+  const urlParams = new URLSearchParams(window.location.search);
+  const isLoggingOut = urlParams.get('logout') === 'true';
+  if (isLoggingOut) {
+    // Clear landing app auth and clean up the URL
+    // (berhot_pos_products is per-user and preserved across logouts)
+    localStorage.removeItem(STORAGE_KEY);
+    logout();
+    window.history.replaceState(null, '', window.location.pathname);
+    // Don't redirect — fall through to show sign-in form
+  } else if (isAuthenticated) {
+    // ── Route protection: redirect authenticated users to dashboard ──
+    redirectToDashboard(user?.email);
     return null;
   }
 
@@ -119,12 +141,12 @@ export default function SignInPageWrapper() {
 
   const handleSignIn = async (email: string, password: string) => {
     const data = await signIn(email, password);
-    // Don't login yet — store pending auth for after protect step
-    pendingAuth.current = {
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      user: data.user,
-    };
+    // Existing user — finalize auth immediately and redirect to dashboard
+    // (skips protect account + onboarding steps)
+    login(data.accessToken, data.refreshToken, data.user);
+
+    // Redirect to this user's saved POS product
+    redirectToDashboard(data.user.email);
   };
 
   const handleVerifyOtp = async (identifier: string, code: string) => {
@@ -133,25 +155,16 @@ export default function SignInPageWrapper() {
       throw new Error('Invalid code');
     }
 
-    // Check if user exists — if so, log them in via real backend OTP verify
-    try {
-      const data = await verifyOtp(identifier, code);
-      if (data.accessToken && data.user) {
-        login(data.accessToken, data.refreshToken!, data.user);
-        redirectToDashboard({ accessToken: data.accessToken, refreshToken: data.refreshToken!, user: data.user });
-        return;
-      }
-    } catch {
-      // Backend verify failed (no real OTP sent) — check if user exists
-      const result = await checkUser(identifier);
-      if (result.exists) {
-        // Existing user, correct dummy code → redirect to dashboard
-        // We don't have tokens here, so just redirect (dashboard will check its own storage)
-        redirectToDashboard();
-        return;
-      }
-      // New user — form will transition to register step (no throw = success)
+    // Check if user exists — if so, log them in via backend OTP login
+    const result = await checkUser(identifier);
+    if (result.exists) {
+      // Existing phone user — authenticate via OTP login endpoint
+      const data = await otpLogin(identifier, code);
+      login(data.accessToken, data.refreshToken, data.user);
+      redirectToDashboard(data.user.email);
+      return;
     }
+    // New user — form will transition to register step (no throw = success)
   };
 
   const handleSignUp = async (data: {
@@ -183,7 +196,7 @@ export default function SignInPageWrapper() {
   const handlePasskeySignIn = async () => {
     const data = await passkeyLogin();
     login(data.accessToken, data.refreshToken, data.user);
-    redirectToDashboard({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user });
+    redirectToDashboard(data.user.email);
   };
 
   const handleResendOtp = async (_identifier: string) => {
@@ -208,29 +221,48 @@ export default function SignInPageWrapper() {
     // Send OTP to the phone number for account protection
     await sendOtp(phone);
     // Don't redirect — form will advance to business-type step for new users
-    // For existing users (no onboarding), finalize and redirect
   };
 
   const handleSkipProtect = () => {
     // Don't redirect — form will advance to business-type step for new users
-    // For existing users (no onboarding), finalize and redirect
   };
 
   const handleOnboardingComplete = (data: { businessType: string; annualRevenue: string }) => {
     // Map business type to POS product
-    const posProduct = BUSINESS_TYPE_TO_POS[data.businessType] || { name: 'Cafe POS', port: 4002 };
+    const posProduct = BUSINESS_TYPE_TO_POS[data.businessType] || { name: 'Cafe POS', port: 3002 };
 
-    // Finalize pending auth (store tokens in context)
-    finalizePendingAuth();
+    // Finalize pending auth (store tokens in context + localStorage)
+    const authData = finalizePendingAuth();
 
-    // Save the chosen POS product
-    savePosProduct(posProduct);
+    // Get user email — try authData first, then read from localStorage (most reliable)
+    let userEmail = authData?.user?.email || '';
+    if (!userEmail) {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          userEmail = parsed.user?.email || '';
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Save the chosen POS product for THIS user
+    if (userEmail) {
+      savePosProduct(userEmail, posProduct);
+    }
 
     // Redirect to the chosen POS dashboard
     const lang = document.documentElement.lang || 'en';
+    // Re-read berhot_auth to include posProduct in the hash
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const authHash = btoa(stored);
+      // Ensure posProduct is in the auth data for cross-origin handoff
+      try {
+        const parsed = JSON.parse(stored);
+        parsed.posProduct = posProduct;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      } catch { /* ignore */ }
+      const authHash = btoa(localStorage.getItem(STORAGE_KEY)!);
       window.location.href = `http://localhost:${posProduct.port}/${lang}/dashboard/#auth=${authHash}`;
     } else {
       window.location.href = `http://localhost:${posProduct.port}/${lang}/dashboard/`;

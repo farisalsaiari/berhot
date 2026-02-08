@@ -6,10 +6,12 @@ export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   server: {
-    port: 4002,
+    port: 3002,
+    strictPort: true,
     proxy: { '/api': { target: 'http://localhost:8081', changeOrigin: true } },
   },
   preview: {
-    port: 4002,
+    port: 5003,
+    strictPort: true,
   },
 });

@@ -79,6 +79,13 @@ export async function verifyOtp(identifier: string, code: string): Promise<OTPVe
   });
 }
 
+export async function otpLogin(phone: string, code: string): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/v1/auth/otp-login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code }),
+  });
+}
+
 export async function signUp(data: {
   identifier: string;
   firstName: string;

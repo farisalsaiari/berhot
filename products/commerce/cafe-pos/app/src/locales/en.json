@@ -13,7 +13,8 @@
     "loyalty": "Loyalty",
     "posTerminal": "POS Terminal",
     "analytics": "Analytics",
-    "backToBerhot": "Back to Berhot"
+    "backToBerhot": "Back to Berhot",
+    "changeBusiness": "Change Business"
   },
   "titles": {
     "dashboard": "Dashboard",
@@ -21,7 +22,16 @@
     "quickOrder": "Quick Order",
     "menu": "Menu Management",
     "barista": "Barista Station",
-    "loyalty": "Loyalty Program"
+    "loyalty": "Loyalty Program",
+    "changeBusiness": "Change Business Type"
+  },
+  "changeBusiness": {
+    "title": "Change Business Type",
+    "description": "Switch to a different POS system that fits your business",
+    "current": "Current",
+    "save": "Save & Switch",
+    "switching": "Switching business type...",
+    "warning": "You will be redirected to the new POS dashboard"
   },
   "signin": {
     "title": "Welcome to Berhot",

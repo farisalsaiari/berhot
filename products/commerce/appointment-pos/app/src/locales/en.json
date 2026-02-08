@@ -11,7 +11,8 @@
     "services": "Services",
     "staff": "Staff",
     "clients": "Clients",
-    "backToBerhot": "Back to Berhot"
+    "backToBerhot": "Back to Berhot",
+    "changeBusiness": "Change Business"
   },
   "titles": {
     "dashboard": "Dashboard",
@@ -19,7 +20,16 @@
     "bookings": "Bookings",
     "services": "Service Catalog",
     "staff": "Staff Directory",
-    "clients": "Client Database"
+    "clients": "Client Database",
+    "changeBusiness": "Change Business Type"
+  },
+  "changeBusiness": {
+    "title": "Change Business Type",
+    "description": "Switch to a different POS system that fits your business",
+    "current": "Current",
+    "save": "Save & Switch",
+    "switching": "Switching business type...",
+    "warning": "You will be redirected to the new POS dashboard"
   },
   "signin": {
     "title": "Welcome to Berhot",

@@ -29,7 +29,7 @@ services:
       KAFKA_CLUSTERS_0_NAME: berhot-local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     ports:
-      - "8080:8080"
+      - "8093:8080"
     depends_on:
       kafka:
         condition: service_healthy
@@ -82,7 +82,7 @@ services:
       - ./runtime/observability/grafana/provisioning:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana
     ports:
-      - "3001:3000"
+      - "9091:3000"
     depends_on:
       - prometheus
     networks:

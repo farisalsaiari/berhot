@@ -245,16 +245,35 @@ function MegaDropdown({ categories, activePanel, onPanelChange }: MegaDropdownPr
 /* ------------------------------------------------------------------ */
 
 const STORAGE_KEY = 'berhot_auth';
+const POS_PRODUCTS_KEY = 'berhot_pos_products';
 
 function getDashboardUrl(lang: string): string {
   try {
+    // Get current user email from auth
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed.posProduct?.port) {
-        const authHash = btoa(stored);
-        return `http://localhost:${parsed.posProduct.port}/${lang}/dashboard/#auth=${authHash}`;
+    if (!stored) return `/${lang}/dashboard`;
+    const authData = JSON.parse(stored);
+    const email = authData.user?.email;
+
+    // Look up this user's saved POS product
+    let savedPort: number | null = null;
+    if (email) {
+      const raw = localStorage.getItem(POS_PRODUCTS_KEY);
+      if (raw) {
+        const all = JSON.parse(raw);
+        if (all[email]?.port) savedPort = all[email].port;
       }
+    }
+    // Fallback: check inside auth storage
+    if (!savedPort && authData.posProduct?.port) {
+      savedPort = authData.posProduct.port;
+    }
+
+    if (savedPort) {
+      // Ensure posProduct in auth for handoff
+      authData.posProduct = { name: 'POS', port: savedPort };
+      const authHash = btoa(JSON.stringify(authData));
+      return `http://localhost:${savedPort}/${lang}/dashboard/#auth=${authHash}`;
     }
   } catch {
     // ignore

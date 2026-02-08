@@ -13,7 +13,14 @@ interface AuthUser {
   tenantId: string;
 }
 
-function parseAuthFromHash(): { accessToken: string; refreshToken: string; user: AuthUser } | null {
+interface AuthData {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+  posProduct?: { name: string; port: number };
+}
+
+function parseAuthFromHash(): AuthData | null {
   try {
     const hash = window.location.hash;
     if (!hash || !hash.includes('auth=')) return null;
@@ -47,7 +54,14 @@ const TITLE_KEYS: Record<string, string> = {
   services: 'titles.services',
   staff: 'titles.staff',
   clients: 'titles.clients',
+  'change-business': 'titles.changeBusiness',
 };
+
+// This POS app's designated port — used to verify user authorization
+const APP_PORT = 3004;
+
+// Landing app URL for auth redirects
+const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || 'http://localhost:3000';
 
 export function Layout() {
   const location = useLocation();
@@ -57,8 +71,21 @@ export function Layout() {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
+    // Helper: check if user is authorized for THIS POS app
+    const isAuthorized = (data: { posProduct?: { port: number } }) => {
+      return data.posProduct?.port === APP_PORT;
+    };
+
     const hashAuth = parseAuthFromHash();
     if (hashAuth) {
+      if (!isAuthorized(hashAuth)) {
+        if (hashAuth.posProduct?.port) {
+          window.location.href = `http://localhost:${hashAuth.posProduct.port}/${lang || 'en'}/dashboard/#auth=${btoa(JSON.stringify(hashAuth))}`;
+        } else {
+          window.location.href = `${LANDING_URL}/`;
+        }
+        return;
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(hashAuth));
       setAuthChecked(true);
       return;
@@ -67,10 +94,18 @@ export function Layout() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.user) { setAuthChecked(true); return; }
+        if (parsed.user) {
+          if (!isAuthorized(parsed)) {
+            localStorage.removeItem(STORAGE_KEY);
+            window.location.href = `${LANDING_URL}/`;
+            return;
+          }
+          setAuthChecked(true);
+          return;
+        }
       }
     } catch { /* ignore */ }
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = `${LANDING_URL}/`;
   }, []);
 
   const pathSegments = location.pathname.split('/');
@@ -118,10 +153,26 @@ export function Layout() {
               {t(item.labelKey)}
             </button>
           ))}
+
+          <div className="h-px bg-white/10 mx-6 my-3" />
+
+          <button onClick={() => navigate(`/${lang}/dashboard/change-business`)} className={`w-full flex items-center gap-3 px-6 py-2.5 text-sm transition-colors ${activeKey === 'change-business' ? 'text-white bg-white/10 ltr:border-r-2 rtl:border-l-2 border-blue-500' : 'text-white/50 hover:text-white hover:bg-white/5'}`}>
+            <svg className="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 5H4m0 0l4 4m-4-4l4-4" /></svg>
+            {t('nav.changeBusiness')}
+          </button>
         </nav>
 
-        <div className="px-6 py-4 border-t border-white/10">
-          <a href="http://localhost:3000" className="text-white/40 text-xs hover:text-white/70">{t('nav.backToBerhot')}</a>
+        <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between">
+          <a href={LANDING_URL} className="text-white/40 text-xs hover:text-white/70">{t('nav.backToBerhot')}</a>
+          <button
+            onClick={() => { localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}`; }}
+            className="flex items-center gap-1.5 text-white/40 text-xs hover:text-red-400 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Logout
+          </button>
         </div>
       </aside>
 

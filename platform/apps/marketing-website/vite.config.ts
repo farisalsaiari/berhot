@@ -9,11 +9,13 @@ export default defineConfig({
   },
   server: {
     port: 3013,
+    strictPort: true,
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: true }
     }
   },
   preview: {
     port: 5014,
+    strictPort: true,
   },
 });

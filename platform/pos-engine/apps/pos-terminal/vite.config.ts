@@ -11,9 +11,11 @@ export default defineConfig({
   },
   server: {
     port: 3012,
+    strictPort: true,
   },
   preview: {
     port: 5013,
+    strictPort: true,
   },
   build: {
     rollupOptions: {

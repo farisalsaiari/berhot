@@ -8,7 +8,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1/shifts');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  const port = process.env.PORT || 3040;
+  const port = process.env.PORT || 4030;
   await app.listen(port);
   console.log(`Shift Management service running on port ${port}`);
 }
