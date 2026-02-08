@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "Memberships",
+    "status": "Active"
+  },
+  "nav": {
+    "overview": "Overview",
+    "members": "Members",
+    "plans": "Plans",
+    "billing": "Billing",
+    "access": "Access"
+  },
+  "titles": {
+    "overview": "Membership Overview",
+    "members": "Member Directory",
+    "plans": "Plan Management",
+    "billing": "Billing",
+    "access": "Access Control"
+  }
+}

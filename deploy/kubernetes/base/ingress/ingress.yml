@@ -1,0 +1,54 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: berhot-api
+  namespace: berhot-platform
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+    - hosts:
+        - api.berhot.com
+      secretName: berhot-api-tls
+  rules:
+    - host: api.berhot.com
+      http:
+        paths:
+          - path: /api/v1/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: identity-access
+                port:
+                  number: 8080
+          - path: /api/v1/tenants
+            pathType: Prefix
+            backend:
+              service:
+                name: tenant-management
+                port:
+                  number: 8080
+          - path: /api/v1/pos
+            pathType: Prefix
+            backend:
+              service:
+                name: pos-engine
+                port:
+                  number: 8080
+          - path: /api/v1/loyalty
+            pathType: Prefix
+            backend:
+              service:
+                name: loyalty
+                port:
+                  number: 8080
+          - path: /api/v1/queue
+            pathType: Prefix
+            backend:
+              service:
+                name: queue-waitlist
+                port:
+                  number: 8080

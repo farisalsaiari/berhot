@@ -1,0 +1,25 @@
+{
+  "name": "@berhot/testing",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsc" },
+  "dependencies": {
+    "@berhot/backend-common": "workspace:*",
+    "@berhot/database": "workspace:*",
+    "@berhot/event-bus": "workspace:*",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "vitest": "^1.4.0",
+    "supertest": "^6.3.4",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/supertest": "^6.0.2",
+    "@types/uuid": "^9.0.7",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/pg": "^8.11.2"
+  }
+}

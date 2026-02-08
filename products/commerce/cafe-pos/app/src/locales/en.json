@@ -1,0 +1,30 @@
+{
+  "app": {
+    "name": "Cafe POS",
+    "branch": "Main Branch",
+    "newOrder": "New Order"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "queue": "Queue",
+    "quickOrder": "Quick Order",
+    "menu": "Menu",
+    "barista": "Barista Station",
+    "loyalty": "Loyalty",
+    "posTerminal": "POS Terminal",
+    "analytics": "Analytics",
+    "backToBerhot": "Back to Berhot"
+  },
+  "titles": {
+    "dashboard": "Dashboard",
+    "queue": "Customer Queue",
+    "quickOrder": "Quick Order",
+    "menu": "Menu Management",
+    "barista": "Barista Station",
+    "loyalty": "Loyalty Program"
+  },
+  "signin": {
+    "title": "Welcome to Berhot",
+    "subtitle": "Sign in to manage your cafe"
+  }
+}

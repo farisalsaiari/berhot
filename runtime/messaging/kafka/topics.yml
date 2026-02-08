@@ -1,0 +1,107 @@
+# Berhot Platform – Kafka Topics Configuration
+# Applied via kafka-topics.sh or Terraform
+
+topics:
+  # Identity
+  - name: identity.user.created
+    partitions: 6
+    replication: 3
+    config:
+      retention.ms: 604800000
+      cleanup.policy: delete
+
+  - name: identity.session.created
+    partitions: 3
+    replication: 3
+
+  # Tenant
+  - name: tenant.tenant.created
+    partitions: 3
+    replication: 3
+
+  - name: tenant.product.activated
+    partitions: 3
+    replication: 3
+
+  # Commerce
+  - name: commerce.order.created
+    partitions: 12
+    replication: 3
+    config:
+      retention.ms: 2592000000
+
+  - name: commerce.order.completed
+    partitions: 12
+    replication: 3
+
+  - name: commerce.payment.processed
+    partitions: 6
+    replication: 3
+
+  - name: commerce.inventory.updated
+    partitions: 6
+    replication: 3
+
+  - name: commerce.inventory.low_stock
+    partitions: 3
+    replication: 3
+
+  # Loyalty
+  - name: loyalty.points.earned
+    partitions: 6
+    replication: 3
+
+  - name: loyalty.points.redeemed
+    partitions: 6
+    replication: 3
+
+  - name: loyalty.tier.changed
+    partitions: 3
+    replication: 3
+
+  # Queue
+  - name: queue.customer.joined
+    partitions: 6
+    replication: 3
+
+  - name: queue.customer.served
+    partitions: 6
+    replication: 3
+
+  # Workforce
+  - name: workforce.shift.started
+    partitions: 3
+    replication: 3
+
+  - name: workforce.attendance.clock_in
+    partitions: 6
+    replication: 3
+
+  # Notifications
+  - name: notification.message.requested
+    partitions: 12
+    replication: 3
+
+  - name: notification.message.sent
+    partitions: 6
+    replication: 3
+
+  # Billing
+  - name: billing.subscription.created
+    partitions: 3
+    replication: 3
+
+  - name: billing.invoice.generated
+    partitions: 3
+    replication: 3
+
+  # Dead letter topics
+  - name: dlq.commerce.order
+    partitions: 3
+    replication: 3
+    config:
+      retention.ms: 2592000000
+
+  - name: dlq.notification.message
+    partitions: 3
+    replication: 3

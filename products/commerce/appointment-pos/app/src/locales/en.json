@@ -1,0 +1,28 @@
+{
+  "app": {
+    "name": "Appointment POS",
+    "status": "Open",
+    "newBooking": "New Booking"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "bookings": "Bookings",
+    "services": "Services",
+    "staff": "Staff",
+    "clients": "Clients",
+    "backToBerhot": "Back to Berhot"
+  },
+  "titles": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "bookings": "Bookings",
+    "services": "Service Catalog",
+    "staff": "Staff Directory",
+    "clients": "Client Database"
+  },
+  "signin": {
+    "title": "Welcome to Berhot",
+    "subtitle": "Sign in to manage your appointments"
+  }
+}

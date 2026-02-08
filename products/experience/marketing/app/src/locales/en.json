@@ -1,0 +1,23 @@
+{
+  "app": {
+    "name": "Marketing",
+    "activeCampaigns": "3 Active Campaigns"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "campaigns": "Campaigns",
+    "audiences": "Audiences",
+    "templates": "Templates",
+    "sms": "SMS",
+    "email": "Email",
+    "backToBerhot": "Back to Berhot"
+  },
+  "titles": {
+    "dashboard": "Marketing Dashboard",
+    "campaigns": "Campaigns",
+    "audiences": "Audiences",
+    "templates": "Templates",
+    "sms": "SMS Campaigns",
+    "email": "Email Campaigns"
+  }
+}

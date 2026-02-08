@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "Time & Attendance",
+    "status": "Online"
+  },
+  "nav": {
+    "clock": "Clock In/Out",
+    "log": "Attendance Log",
+    "employees": "Employees",
+    "devices": "Devices",
+    "overtime": "Overtime",
+    "reports": "Reports"
+  },
+  "titles": {
+    "clock": "Clock In / Out",
+    "log": "Attendance Log",
+    "employees": "Employee Attendance",
+    "devices": "Device Management",
+    "overtime": "Overtime Tracking",
+    "reports": "Attendance Reports"
+  }
+}

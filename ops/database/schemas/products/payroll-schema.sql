@@ -1,0 +1,3 @@
+-- Payroll Schema
+-- See pos-core-schema.sql for the base tables this extends
+-- Product-specific tables for Payroll

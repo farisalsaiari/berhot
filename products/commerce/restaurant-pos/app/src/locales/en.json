@@ -1,0 +1,30 @@
+{
+  "app": {
+    "name": "Restaurant POS",
+    "branch": "Main Branch",
+    "newOrder": "New Order"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "tables": "Tables",
+    "orders": "Orders",
+    "kitchen": "Kitchen Display",
+    "menu": "Menu",
+    "reservations": "Reservations",
+    "posTerminal": "POS Terminal",
+    "analytics": "Analytics",
+    "backToBerhot": "Back to Berhot"
+  },
+  "titles": {
+    "dashboard": "Dashboard",
+    "tables": "Table Management",
+    "orders": "Active Orders",
+    "kitchen": "Kitchen Display",
+    "menu": "Menu Management",
+    "reservations": "Reservations"
+  },
+  "signin": {
+    "title": "Welcome to Berhot",
+    "subtitle": "Sign in to manage your restaurant"
+  }
+}

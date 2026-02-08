@@ -1,0 +1,21 @@
+{
+  "app": {
+    "name": "قائمة الانتظار",
+    "status": "مفتوح"
+  },
+  "nav": {
+    "liveQueue": "الطابور المباشر",
+    "waitlist": "قائمة الانتظار",
+    "displayBoard": "لوحة العرض",
+    "history": "السجل",
+    "settings": "الإعدادات",
+    "backToBerhot": "العودة إلى برحوت"
+  },
+  "titles": {
+    "liveQueue": "الطابور المباشر",
+    "waitlist": "إدارة قائمة الانتظار",
+    "displayBoard": "لوحة العرض",
+    "history": "سجل الطابور",
+    "settings": "الإعدادات"
+  }
+}

@@ -1,0 +1,22 @@
+# Default deny all ingress/egress – each service must explicitly allow traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: berhot-platform
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: berhot-commerce
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress

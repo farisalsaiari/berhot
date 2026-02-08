@@ -1,0 +1,579 @@
+import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { LanguageSwitcher, useTranslation } from '@berhot/i18n';
+import { useAuth } from '../lib/auth-context';
+
+/* ------------------------------------------------------------------ */
+/*  Data                                                               */
+/* ------------------------------------------------------------------ */
+
+const businessTypes = [
+  {
+    label: 'Restaurants',
+    icon: '🍽️',
+    description: 'Full-service restaurant management with POS, kitchen display, and table management.',
+    links: [
+      { name: 'Restaurant POS', href: 'http://localhost:4001' },
+      { name: 'Kitchen Display', href: 'http://localhost:4001/kitchen' },
+      { name: 'Table Management', href: 'http://localhost:4001/tables' },
+    ],
+  },
+  {
+    label: 'Cafes',
+    icon: '☕',
+    description: 'Streamlined cafe operations with quick-service POS and loyalty programs.',
+    links: [
+      { name: 'Cafe POS', href: 'http://localhost:4002' },
+      { name: 'Quick Order', href: 'http://localhost:4002/quick' },
+    ],
+  },
+  {
+    label: 'Retail',
+    icon: '🛍️',
+    description: 'Complete retail solution with inventory, barcode scanning, and e-commerce.',
+    links: [
+      { name: 'Retail POS', href: 'http://localhost:4003' },
+      { name: 'Inventory', href: 'http://localhost:4003/inventory' },
+    ],
+  },
+  {
+    label: 'Services',
+    icon: '📅',
+    description: 'Appointment scheduling, client management, and service bookings.',
+    links: [
+      { name: 'Appointments', href: 'http://localhost:4004' },
+      { name: 'Memberships', href: 'http://localhost:4009' },
+    ],
+  },
+  {
+    label: 'Events',
+    icon: '🎪',
+    description: 'Event ticketing, attendance tracking, and venue management.',
+    links: [
+      { name: 'Events', href: 'http://localhost:4010' },
+      { name: 'Attendance', href: 'http://localhost:4011' },
+    ],
+  },
+  {
+    label: 'Food Trucks',
+    icon: '🚚',
+    description: 'Mobile food operations with portable POS and on-the-go ordering.',
+    links: [
+      { name: 'Food Truck POS', href: 'http://localhost:4011' },
+    ],
+  },
+  {
+    label: 'Grocery',
+    icon: '🥬',
+    description: 'Grocery store management with inventory, scales, and barcode scanning.',
+    links: [
+      { name: 'Grocery POS', href: 'http://localhost:4012' },
+    ],
+  },
+  {
+    label: 'Supermarkets',
+    icon: '🏪',
+    description: 'Large-scale retail with multi-lane checkout and warehouse management.',
+    links: [
+      { name: 'Supermarket POS', href: 'http://localhost:4013' },
+    ],
+  },
+  {
+    label: 'Quick Service',
+    icon: '⚡',
+    description: 'Fast ordering for cafeterias, home businesses, and dessert shops.',
+    links: [
+      { name: 'Quick Service POS', href: 'http://localhost:4014' },
+    ],
+  },
+];
+
+const productCategories = [
+  {
+    label: 'Commerce',
+    icon: '💳',
+    description: 'Point-of-sale solutions for every business type.',
+    links: [
+      { name: 'Restaurant POS', href: 'http://localhost:4001' },
+      { name: 'Cafe POS', href: 'http://localhost:4002' },
+      { name: 'Retail POS', href: 'http://localhost:4003' },
+    ],
+  },
+  {
+    label: 'Experience',
+    icon: '✨',
+    description: 'Customer-facing tools to delight and retain.',
+    links: [
+      { name: 'Loyalty', href: 'http://localhost:4005' },
+      { name: 'Queue Management', href: 'http://localhost:4006' },
+      { name: 'Memberships', href: 'http://localhost:4009' },
+    ],
+  },
+  {
+    label: 'Workforce',
+    icon: '👥',
+    description: 'Manage your team, schedules, and attendance.',
+    links: [
+      { name: 'Shifts', href: 'http://localhost:4008' },
+      { name: 'Attendance', href: 'http://localhost:4011' },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    icon: '📊',
+    description: 'Analytics, marketing, and business intelligence.',
+    links: [
+      { name: 'Marketing', href: 'http://localhost:4007' },
+    ],
+  },
+  {
+    label: 'Platform',
+    icon: '⚙️',
+    description: 'Appointments, events, and platform services.',
+    links: [
+      { name: 'Appointments', href: 'http://localhost:4004' },
+      { name: 'Events', href: 'http://localhost:4010' },
+    ],
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                     */
+/* ------------------------------------------------------------------ */
+
+function BerhotLogo() {
+  return (
+    <Link to="/" className="flex items-center gap-2 group">
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="transition-transform group-hover:scale-105"
+      >
+        <rect width="32" height="32" rx="8" fill="#2563eb" />
+        <path
+          d="M8 10h6a4 4 0 010 8H8V10zm0 4h6M10 18h5a4 4 0 010 8H10V18z"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+      <span className="text-xl font-bold text-gray-900 tracking-tight">
+        berhot
+      </span>
+    </Link>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+  );
+}
+
+interface MegaDropdownProps {
+  categories: typeof businessTypes;
+  activePanel: number;
+  onPanelChange: (idx: number) => void;
+}
+
+function MegaDropdown({ categories, activePanel, onPanelChange }: MegaDropdownProps) {
+  const active = categories[activePanel];
+
+  return (
+    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[720px] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 animate-in">
+      <div className="grid grid-cols-5">
+        {/* Left: category list */}
+        <div className="col-span-2 border-r border-gray-100 py-3">
+          {categories.map((cat, idx) => (
+            <button
+              key={cat.label}
+              onMouseEnter={() => onPanelChange(idx)}
+              className={`w-full text-left px-5 py-3 flex items-center gap-3 transition-colors ${
+                idx === activePanel
+                  ? 'bg-brand-50 text-brand-600'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span className="text-lg">{cat.icon}</span>
+              <span className="font-medium text-sm">{cat.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right: detail panel */}
+        <div className="col-span-3 p-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <span>{active.icon}</span> {active.label}
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">{active.description}</p>
+          </div>
+          <div className="space-y-1">
+            {active.links.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-600 transition-colors"
+              >
+                <svg className="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                {link.name}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Account Dropdown                                                   */
+/* ------------------------------------------------------------------ */
+
+const STORAGE_KEY = 'berhot_auth';
+
+function getDashboardUrl(lang: string): string {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.posProduct?.port) {
+        const authHash = btoa(stored);
+        return `http://localhost:${parsed.posProduct.port}/${lang}/dashboard/#auth=${authHash}`;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return `/${lang}/dashboard`;
+}
+
+function AccountDropdown({ userName, onLogout, lang }: { userName: string; onLogout: () => void; lang: string }) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpen(false), 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={dropdownRef}
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
+        {/* User avatar circle */}
+        <div className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-semibold">
+          {userName.charAt(0).toUpperCase()}
+        </div>
+        <span>My Account</span>
+        <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+          {/* User info */}
+          <div className="px-4 py-2 border-b border-gray-100">
+            <p className="text-sm font-medium text-gray-900">{userName}</p>
+          </div>
+
+          {/* Menu items */}
+          <div className="py-1">
+            <a
+              href={getDashboardUrl(lang)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+              Dashboard
+            </a>
+
+            <Link
+              to={`/${lang}/shop/hardware/us/${lang}/my-orders`}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+              Order Status
+            </Link>
+
+            <a
+              href="#"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+              Refer &amp; Earn Rewards
+            </a>
+          </div>
+
+          {/* Logout */}
+          <div className="border-t border-gray-100 py-1">
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              Log out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Header                                                             */
+/* ------------------------------------------------------------------ */
+
+export function Header() {
+  const { lang } = useTranslation();
+  const { isAuthenticated, user, logout } = useAuth();
+  const [openMenu, setOpenMenu] = useState<'business' | 'products' | null>(null);
+  const [businessPanel, setBusinessPanel] = useState(0);
+  const [productsPanel, setProductsPanel] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = (menu: 'business' | 'products') => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpenMenu(menu);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpenMenu(null), 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = `/${lang}`;
+  };
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <BerhotLogo />
+
+          {/* Desktop Nav */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {/* Business Types */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleMouseEnter('business')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                openMenu === 'business' ? 'text-brand-600 bg-brand-50' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+              }`}>
+                Business Types
+                <svg className="w-4 h-4 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {openMenu === 'business' && (
+                <MegaDropdown
+                  categories={businessTypes}
+                  activePanel={businessPanel}
+                  onPanelChange={setBusinessPanel}
+                />
+              )}
+            </div>
+
+            {/* Products */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleMouseEnter('products')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                openMenu === 'products' ? 'text-brand-600 bg-brand-50' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+              }`}>
+                Products
+                <svg className="w-4 h-4 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {openMenu === 'products' && (
+                <MegaDropdown
+                  categories={productCategories}
+                  activePanel={productsPanel}
+                  onPanelChange={setProductsPanel}
+                />
+              )}
+            </div>
+
+            {/* Static links */}
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              Pricing
+            </Link>
+            <Link
+              to="partners"
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              Partners
+            </Link>
+          </nav>
+
+          {/* Right side */}
+          <div className="hidden lg:flex items-center gap-3">
+            <LanguageSwitcher />
+            <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              <SearchIcon />
+            </button>
+            <a
+              href="#support"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Support
+            </a>
+
+            {isAuthenticated && user ? (
+              <AccountDropdown
+                userName={`${user.firstName} ${user.lastName}`.trim() || user.email}
+                onLogout={handleLogout}
+                lang={lang}
+              />
+            ) : (
+              <>
+                <Link
+                  to={`/${lang}/signin`}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to={`/${lang}/signin`}
+                  className="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Mobile menu button */}
+          <button
+            className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            {mobileOpen ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile nav */}
+      {mobileOpen && (
+        <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+          <div className="px-4 py-4 space-y-2">
+            <Link to="/products" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+              Products
+            </Link>
+            <Link to="/pricing" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+              Pricing
+            </Link>
+            <Link to="partners" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+              Partners
+            </Link>
+            <a href="#support" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+              Support
+            </a>
+            <hr className="my-2 border-gray-200" />
+            <div className="px-3 py-2">
+              <LanguageSwitcher />
+            </div>
+
+            {isAuthenticated && user ? (
+              <>
+                <div className="px-3 py-2 text-sm font-medium text-gray-900">
+                  {`${user.firstName} ${user.lastName}`.trim() || user.email}
+                </div>
+                <a href={getDashboardUrl(lang)} className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                  Dashboard
+                </a>
+                <Link to={`/${lang}/shop/hardware/us/${lang}/my-orders`} className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                  Order Status
+                </Link>
+                <a href="#" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                  Refer &amp; Earn Rewards
+                </a>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to={`/${lang}/signin`} className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                  Sign in
+                </Link>
+                <Link
+                  to={`/${lang}/signin`}
+                  className="block px-3 py-2 text-sm font-semibold text-center text-white bg-brand-600 hover:bg-brand-700 rounded-lg"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}

@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: platform-service-role
+  namespace: berhot-platform
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-binding
+  namespace: berhot-platform
+subjects:
+  - kind: ServiceAccount
+    name: identity-access
+    namespace: berhot-platform
+roleRef:
+  kind: Role
+  name: platform-service-role
+  apiGroup: rbac.authorization.k8s.io

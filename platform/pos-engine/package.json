@@ -1,0 +1,6 @@
+{
+  "name": "@berhot/pos-engine-non-node",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Non-Node.js service - deps managed externally"
+}

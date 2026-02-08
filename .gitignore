@@ -1,0 +1,136 @@
+# ──────────────────────────────────────
+# Dependencies
+# ──────────────────────────────────────
+node_modules/
+.pnpm-store/
+vendor/
+.vscode
+.husky
+.github
+.claude
+
+
+# ──────────────────────────────────────
+# Build Outputs
+# ──────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+target/
+
+# ──────────────────────────────────────
+# Go
+# ──────────────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+__debug_bin*
+
+# ──────────────────────────────────────
+# Python
+# ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+
+# ──────────────────────────────────────
+# Java
+# ──────────────────────────────────────
+*.class
+*.jar
+*.war
+.gradle/
+.mvn/wrapper/maven-wrapper.jar
+
+# ──────────────────────────────────────
+# Environment & Secrets
+# ──────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+credentials.json
+service-account.json
+
+# ──────────────────────────────────────
+# IDE & Editor
+# ──────────────────────────────────────
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ──────────────────────────────────────
+# Testing & Coverage
+# ──────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+
+# ──────────────────────────────────────
+# Docker
+# ──────────────────────────────────────
+docker-compose.override.yml
+
+# ──────────────────────────────────────
+# Terraform
+# ──────────────────────────────────────
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+
+# ──────────────────────────────────────
+# Logs
+# ──────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# ──────────────────────────────────────
+# OS Files
+# ──────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# ──────────────────────────────────────
+# Misc
+# ──────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+.vercel/
+.netlify/
+storybook-static/

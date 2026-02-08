@@ -1,0 +1,3 @@
+# Uses same template as identity-access
+# In production, extract to a shared Helm library chart
+# See helm-charts/service-identity-access/templates/service.yaml

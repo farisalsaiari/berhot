@@ -1,0 +1,51 @@
+packages:
+  # ── Shared Packages ─────────────────────────────────────────
+  - "packages/ui"
+  - "packages/ui-components"
+  - "packages/ui-pos"
+  - "packages/i18n"
+  - "packages/libraries/*"
+  - "packages/sdks/javascript-sdk"
+
+  # ── Platform Services (Node.js-based only) ──────────────────
+  - "platform/notification-center"
+  - "platform/integration-hub"
+  - "platform/file-service"
+
+  # ── Platform Apps ───────────────────────────────────────────
+  - "platform/pos-engine/apps/merchant-dashboard"
+  - "platform/pos-engine/apps/pos-terminal"
+  - "platform/pos-engine/apps/merchant-mobile"
+  - "platform/apps/customer-mobile"
+  - "platform/apps/developer-portal"
+  - "platform/apps/landing-app"
+  - "platform/apps/marketing-website"
+
+  # ── Platform Internal Tools ─────────────────────────────────
+  - "platform/internal/admin-console"
+  - "platform/internal/customer-support"
+  - "platform/internal/compliance-portal"
+
+  # ── Product Frontend Apps (React/Vite) ──────────────────────
+  - "products/commerce/restaurant-pos/app"
+  - "products/commerce/cafe-pos/app"
+  - "products/commerce/retail-pos/app"
+  - "products/commerce/appointment-pos/app"
+  - "products/experience/loyalty/app"
+  - "products/experience/queue-waitlist/app"
+  - "products/experience/marketing/app"
+  - "products/engagement/event-management/app"
+  - "products/engagement/memberships/app"
+  - "products/workforce/shift-management/app"
+  - "products/workforce/time-attendance/app"
+
+  # ── Product Backend Services (NestJS-based only) ────────────
+  - "products/commerce/restaurant-pos/service"
+  - "products/commerce/cafe-pos/service"
+  - "products/commerce/retail-pos/service"
+  - "products/commerce/appointment-pos/service"
+  - "products/engagement/event-management/service"
+  - "products/engagement/memberships/service"
+  - "products/workforce/shift-management/service"
+  - "products/ecosystem/marketplace/service"
+  - "products/ecosystem/integrations/service"

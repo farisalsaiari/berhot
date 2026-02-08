@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "Event Management",
+    "status": "Active"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "events": "Events",
+    "tickets": "Tickets",
+    "attendees": "Attendees",
+    "checkin": "Check-in"
+  },
+  "titles": {
+    "dashboard": "Events Dashboard",
+    "events": "Event Management",
+    "tickets": "Ticket Management",
+    "attendees": "Attendees",
+    "checkin": "Event Check-in"
+  }
+}

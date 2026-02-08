@@ -1,0 +1,30 @@
+{
+  "app": {
+    "name": "Retail POS",
+    "branch": "Main Branch",
+    "newOrder": "New Sale"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "inventory": "Inventory",
+    "sales": "Sales",
+    "returns": "Returns",
+    "customers": "Customers",
+    "posTerminal": "POS Terminal",
+    "analytics": "Analytics",
+    "backToBerhot": "Back to Berhot"
+  },
+  "titles": {
+    "dashboard": "Dashboard",
+    "products": "Product Catalog",
+    "inventory": "Inventory Management",
+    "sales": "Sales History",
+    "returns": "Returns & Exchanges",
+    "customers": "Customer Database"
+  },
+  "signin": {
+    "title": "Welcome to Berhot",
+    "subtitle": "Sign in to manage your store"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "Loyalty Program",
+    "status": "Active"
+  },
+  "nav": {
+    "overview": "Overview",
+    "members": "Members",
+    "rewards": "Rewards",
+    "tiers": "Tiers",
+    "campaigns": "Campaigns"
+  },
+  "titles": {
+    "overview": "Program Overview",
+    "members": "Members",
+    "rewards": "Rewards Catalog",
+    "tiers": "Tier Configuration",
+    "campaigns": "Campaigns"
+  }
+}

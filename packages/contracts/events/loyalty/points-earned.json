@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PointsEarned",
+  "description": "Emitted when loyalty points are earned",
+  "type": "object",
+  "required": ["id", "type", "source", "tenantId", "timestamp", "data"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "type": { "const": "loyalty.points.earned" },
+    "source": { "type": "string" },
+    "tenantId": { "type": "string", "format": "uuid" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "data": {
+      "type": "object",
+      "required": ["customerId", "points", "balanceAfter"],
+      "properties": {
+        "customerId": { "type": "string", "format": "uuid" },
+        "orderId": { "type": "string", "format": "uuid" },
+        "points": { "type": "integer" },
+        "balanceAfter": { "type": "integer" },
+        "orderAmount": { "type": "number" }
+      }
+    }
+  }
+}

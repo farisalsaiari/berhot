@@ -1,0 +1,123 @@
+_format_version: "3.0"
+
+services:
+  # ── Identity & Access ─────────────────────────────────────
+  - name: identity-access
+    url: http://identity-access:8080
+    routes:
+      - name: auth-routes
+        paths: ["/api/v1/auth"]
+        strip_path: false
+      - name: user-routes
+        paths: ["/api/v1/users"]
+        strip_path: false
+      - name: session-routes
+        paths: ["/api/v1/sessions"]
+        strip_path: false
+      - name: api-key-routes
+        paths: ["/api/v1/api-keys"]
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          policy: redis
+          redis_host: redis
+      - name: cors
+        config:
+          origins: ["*"]
+          methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+          headers: [Authorization, Content-Type, X-Tenant-ID, X-Request-ID]
+          max_age: 3600
+
+  # ── Tenant Management ─────────────────────────────────────
+  - name: tenant-management
+    url: http://tenant-management:8080
+    routes:
+      - name: tenant-routes
+        paths: ["/api/v1/tenants"]
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 100
+
+  # ── POS Engine ────────────────────────────────────────────
+  - name: pos-engine
+    url: http://pos-engine:8080
+    routes:
+      - name: pos-routes
+        paths: ["/api/v1/pos"]
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 300
+
+  # ── Restaurant POS ────────────────────────────────────────
+  - name: restaurant-pos
+    url: http://restaurant-pos:3000
+    routes:
+      - name: restaurant-routes
+        paths: ["/api/v1/restaurant"]
+        strip_path: false
+
+  # ── Loyalty ───────────────────────────────────────────────
+  - name: loyalty
+    url: http://loyalty:8080
+    routes:
+      - name: loyalty-routes
+        paths: ["/api/v1/loyalty"]
+        strip_path: false
+      - name: loyalty-public
+        paths: ["/api/v1/public/loyalty"]
+        strip_path: false
+
+  # ── Queue & Waitlist ──────────────────────────────────────
+  - name: queue-waitlist
+    url: http://queue-waitlist:8080
+    routes:
+      - name: queue-routes
+        paths: ["/api/v1/queue"]
+        strip_path: false
+      - name: queue-public
+        paths: ["/api/v1/public/queue"]
+        strip_path: false
+
+  # ── Notifications ─────────────────────────────────────────
+  - name: notification-center
+    url: http://notification-center:3000
+    routes:
+      - name: notification-routes
+        paths: ["/api/v1/notifications"]
+        strip_path: false
+
+  # ── Shift Management ──────────────────────────────────────
+  - name: shift-management
+    url: http://shift-management:3000
+    routes:
+      - name: shift-routes
+        paths: ["/api/v1/shifts"]
+        strip_path: false
+
+  # ── Analytics ─────────────────────────────────────────────
+  - name: analytics-core
+    url: http://analytics-core:8000
+    routes:
+      - name: analytics-routes
+        paths: ["/api/v1/analytics"]
+        strip_path: false
+
+# Global plugins
+plugins:
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+  - name: response-transformer
+    config:
+      add:
+        headers: ["X-Powered-By:Berhot Platform"]

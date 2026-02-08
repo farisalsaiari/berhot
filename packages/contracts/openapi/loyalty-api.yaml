@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: Berhot Loyalty API
+  version: 1.0.0
+  description: Loyalty program management - points, tiers, rewards
+
+servers:
+  - url: /api/v1/loyalty
+
+paths:
+  /programs:
+    get:
+      operationId: listPrograms
+      tags: [Programs]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LoyaltyProgram" }
+
+  /members/{customerId}/balance:
+    get:
+      operationId: getBalance
+      tags: [Members]
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberBalance"
+
+  /points/earn:
+    post:
+      operationId: earnPoints
+      tags: [Points]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customerId, orderId, amount]
+              properties:
+                customerId: { type: string, format: uuid }
+                orderId: { type: string, format: uuid }
+                amount: { type: number }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PointsTransaction"
+
+  /points/redeem:
+    post:
+      operationId: redeemPoints
+      tags: [Points]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customerId, points]
+              properties:
+                customerId: { type: string, format: uuid }
+                points: { type: integer }
+                rewardId: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PointsTransaction"
+
+  /public/check:
+    get:
+      operationId: publicCheckPoints
+      tags: [Public]
+      description: Public API - check loyalty balance by phone
+      security: [{ apiKeyAuth: [] }]
+      parameters:
+        - name: phone
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberBalance"
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+    apiKeyAuth: { type: apiKey, in: header, name: X-API-Key }
+  schemas:
+    LoyaltyProgram:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [points, stamps, tiered, cashback] }
+        pointsPerCurrency: { type: number }
+        isActive: { type: boolean }
+    MemberBalance:
+      type: object
+      properties:
+        customerId: { type: string }
+        pointsBalance: { type: integer }
+        lifetimePoints: { type: integer }
+        tier: { type: string }
+    PointsTransaction:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [earn, redeem] }
+        points: { type: integer }
+        balanceAfter: { type: integer }

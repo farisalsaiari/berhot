@@ -1,0 +1,27 @@
+{
+  "name": "@berhot/pos-terminal",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:electron": "vite build && electron-builder",
+    "electron:dev": "electron .",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^4.5.0",
+    "@tanstack/react-query": "^5.24.0",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.13.0",
+    "vite": "^5.1.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.4.0"
+  }
+}

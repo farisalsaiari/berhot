@@ -1,0 +1,104 @@
+{
+  "nav": {
+    "businessTypes": "Business Types",
+    "products": "Products",
+    "pricing": "Pricing",
+    "partners": "Partners",
+    "support": "Support",
+    "signIn": "Sign in",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "23 integrated services, one platform",
+    "title1": "Run your entire",
+    "title2": "business",
+    "title3": "with",
+    "title4": "one platform",
+    "subtitle": "From point-of-sale to scheduling, loyalty to analytics -- Berhot gives you every tool you need to launch, manage, and grow your business.",
+    "ctaPrimary": "Get Started Free",
+    "ctaSecondary": "Contact Sales",
+    "statBusinesses": "Businesses",
+    "statServices": "Services",
+    "statUptime": "Uptime",
+    "statCountries": "Countries"
+  },
+  "home": {
+    "productSuiteLabel": "Product Suite",
+    "productSuiteTitle": "Everything you need, all in one place",
+    "productSuiteDesc": "From commerce to workforce management, Berhot provides 23 integrated applications that work seamlessly together.",
+    "learnMore": "Learn more",
+    "whyBerhotLabel": "Why Berhot?",
+    "whyBerhotTitle": "Built for scale. Designed for simplicity.",
+    "whyBerhotDesc": "Enterprise-grade infrastructure meets intuitive design. Here is what sets Berhot apart.",
+    "ctaTitle": "Ready to transform your business?",
+    "ctaDesc": "Join 10,000+ businesses already using Berhot to streamline operations, delight customers, and grow revenue.",
+    "startTrial": "Start Free Trial",
+    "requestDemo": "Request a Demo"
+  },
+  "products": {
+    "label": "Products",
+    "title": "23 products. One platform.",
+    "description": "Every tool your business needs, from commerce to workforce management, working together seamlessly.",
+    "explore": "Explore {{product}}",
+    "ctaTitle": "See how it all works together",
+    "ctaDesc": "Book a personalized demo and discover how Berhot can simplify your operations.",
+    "requestDemo": "Request a Demo",
+    "startTrial": "Start Free Trial"
+  },
+  "pricing": {
+    "label": "Pricing",
+    "title": "Simple, transparent pricing",
+    "description": "Start free, scale as you grow. No hidden fees, no surprises.",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "save20": "Save 20%",
+    "perMonth": "/month",
+    "billedAnnually": "billed annually",
+    "faqTitle": "Frequently asked questions",
+    "faqDesc": "Everything you need to know about our pricing.",
+    "ctaTitle": "Start your 14-day free trial",
+    "ctaDesc": "No credit card required. Full access to all features. Cancel anytime.",
+    "ctaButton": "Get Started Free"
+  },
+  "signin": {
+    "title": "Welcome to Berhot",
+    "subtitle": "Sign in to manage your business"
+  },
+  "footer": {
+    "description": "The all-in-one business platform that powers restaurants, cafes, retail, services, and events with 23 integrated applications.",
+    "products": "Products",
+    "company": "Company",
+    "resources": "Resources",
+    "support": "Support",
+    "copyright": "Berhot. All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "cookies": "Cookie Policy"
+  },
+  "businessTypes": {
+    "restaurants": "Restaurants",
+    "restaurantsDesc": "Full-service restaurant management with POS, kitchen display, and table management.",
+    "cafes": "Cafes",
+    "cafesDesc": "Streamlined cafe operations with quick-service POS and loyalty programs.",
+    "retail": "Retail",
+    "retailDesc": "Complete retail solution with inventory, barcode scanning, and e-commerce.",
+    "services": "Services",
+    "servicesDesc": "Appointment scheduling, client management, and service bookings.",
+    "events": "Events",
+    "eventsDesc": "Event ticketing, attendance tracking, and venue management."
+  },
+  "features": {
+    "multiTenant": "Multi-Tenant Architecture",
+    "multiTenantDesc": "Run multiple businesses from one account. Shared data, separate operations, unified billing.",
+    "analytics": "Real-Time Analytics",
+    "analyticsDesc": "Live dashboards with sales, customer, and operational insights across all your locations.",
+    "security": "Enterprise Security",
+    "securityDesc": "SOC 2 Type II certified. End-to-end encryption, role-based access, and audit logging.",
+    "global": "Global Scale",
+    "globalDesc": "Multi-currency, multi-language support. Edge-deployed in 50+ countries for low latency.",
+    "api": "API-First Design",
+    "apiDesc": "RESTful APIs and webhooks for every service. Build custom integrations with full documentation.",
+    "support247": "24/7 Support",
+    "support247Desc": "Dedicated support team available around the clock. Average response time under 5 minutes."
+  }
+}

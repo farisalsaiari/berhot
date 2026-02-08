@@ -1,0 +1,21 @@
+{
+  "app": {
+    "name": "Queue & Waitlist",
+    "status": "Open"
+  },
+  "nav": {
+    "liveQueue": "Live Queue",
+    "waitlist": "Waitlist",
+    "displayBoard": "Display Board",
+    "history": "History",
+    "settings": "Settings",
+    "backToBerhot": "Back to Berhot"
+  },
+  "titles": {
+    "liveQueue": "Live Queue",
+    "waitlist": "Waitlist Management",
+    "displayBoard": "Display Board",
+    "history": "Queue History",
+    "settings": "Settings"
+  }
+}

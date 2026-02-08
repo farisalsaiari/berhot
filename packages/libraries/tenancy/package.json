@@ -1,0 +1,27 @@
+{
+  "name": "@berhot/tenancy",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "lint": "eslint src/ --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@berhot/backend-common": "workspace:*",
+    "@berhot/database": "workspace:*",
+    "@berhot/cache": "workspace:*",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@types/pg": "^8.11.2"
+  }
+}

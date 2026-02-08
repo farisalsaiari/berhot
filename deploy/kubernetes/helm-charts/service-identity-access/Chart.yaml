@@ -1,0 +1,6 @@
+apiVersion: v2
+name: identity-access
+description: Berhot Identity & Access Management Service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

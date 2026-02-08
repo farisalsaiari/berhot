@@ -1,0 +1,177 @@
+openapi: 3.1.0
+info:
+  title: Berhot POS Core API
+  version: 1.0.0
+  description: Point of Sale operations - orders, products, inventory, payments
+
+servers:
+  - url: /api/v1/pos
+
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [Orders]
+      summary: Create a new order
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    get:
+      operationId: listOrders
+      tags: [Orders]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, preparing, ready, completed, cancelled] }
+        - name: locationId
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [Orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}/complete:
+    post:
+      operationId: completeOrder
+      tags: [Orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [Products]
+      parameters:
+        - name: categoryId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: active
+          in: query
+          schema: { type: boolean, default: true }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, default: 20 }
+
+  schemas:
+    CreateOrderRequest:
+      type: object
+      required: [locationId, items]
+      properties:
+        locationId: { type: string, format: uuid }
+        orderType: { type: string, enum: [dine_in, takeout, delivery], default: dine_in }
+        customerId: { type: string, format: uuid }
+        items:
+          type: array
+          items:
+            type: object
+            required: [productId, quantity]
+            properties:
+              productId: { type: string, format: uuid }
+              quantity: { type: number }
+              modifiers: { type: array, items: { type: object } }
+              notes: { type: string }
+        notes: { type: string }
+
+    Order:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orderNumber: { type: string }
+        status: { type: string }
+        orderType: { type: string }
+        items: { type: array, items: { $ref: "#/components/schemas/OrderItem" } }
+        subtotal: { type: number }
+        taxAmount: { type: number }
+        total: { type: number }
+        currency: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    OrderItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        productId: { type: string, format: uuid }
+        name: { type: string }
+        quantity: { type: number }
+        unitPrice: { type: number }
+        totalPrice: { type: number }
+
+    Product:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        price: { type: number }
+        category: { type: string }
+        isActive: { type: boolean }
+
+    PaginatedOrders:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Order" } }
+        pagination:
+          type: object
+          properties:
+            page: { type: integer }
+            total: { type: integer }

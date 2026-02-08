@@ -1,0 +1,19 @@
+{
+  "app": {
+    "name": "Shift Management"
+  },
+  "nav": {
+    "schedule": "Schedule",
+    "shifts": "Shifts",
+    "employees": "Employees",
+    "requests": "Requests",
+    "reports": "Reports"
+  },
+  "titles": {
+    "schedule": "Weekly Schedule",
+    "shifts": "Shift Templates",
+    "employees": "Employee Roster",
+    "requests": "Requests",
+    "reports": "Workforce Reports"
+  }
+}
