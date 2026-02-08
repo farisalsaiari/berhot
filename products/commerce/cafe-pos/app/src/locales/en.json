@@ -5,16 +5,17 @@
     "newOrder": "New Order"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "queue": "Queue",
-    "quickOrder": "Quick Order",
-    "menu": "Menu",
-    "barista": "Barista Station",
-    "loyalty": "Loyalty",
-    "posTerminal": "POS Terminal",
-    "analytics": "Analytics",
+    "dashboard": "Home",
+    "queue": "Items & services",
+    "quickOrder": "Payments & invoices",
+    "menu": "Online",
+    "barista": "Customers",
+    "loyalty": "Reports",
+    "posTerminal": "Staff",
+    "analytics": "Banking",
     "backToBerhot": "Back to Berhot",
-    "changeBusiness": "Change Business"
+    "changeBusiness": "Change Business",
+    "settings": "Settings"
   },
   "titles": {
     "dashboard": "Dashboard",
@@ -23,7 +24,8 @@
     "menu": "Menu Management",
     "barista": "Barista Station",
     "loyalty": "Loyalty Program",
-    "changeBusiness": "Change Business Type"
+    "changeBusiness": "Change Business Type",
+    "settings": "Settings"
   },
   "changeBusiness": {
     "title": "Change Business Type",

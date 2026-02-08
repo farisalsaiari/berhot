@@ -1,3 +1,49 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Profile panel slide from right */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Sub-menu slide from right (entering) */
+@keyframes submenu-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-submenu-in {
+  animation: submenu-slide-in 0.25s ease-out;
+}
+
+/* Sub-menu slide back to left (exiting — reverse) */
+@keyframes submenu-slide-out {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-submenu-out {
+  animation: submenu-slide-out 0.25s ease-out;
+}

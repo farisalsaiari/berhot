@@ -5,16 +5,17 @@
     "newOrder": "طلب جديد"
   },
   "nav": {
-    "dashboard": "لوحة التحكم",
-    "queue": "قائمة الانتظار",
-    "quickOrder": "طلب سريع",
-    "menu": "القائمة",
-    "barista": "محطة الباريستا",
-    "loyalty": "الولاء",
-    "posTerminal": "نقطة البيع",
-    "analytics": "التحليلات",
+    "dashboard": "الرئيسية",
+    "queue": "الأصناف والخدمات",
+    "quickOrder": "المدفوعات والفواتير",
+    "menu": "أونلاين",
+    "barista": "العملاء",
+    "loyalty": "التقارير",
+    "posTerminal": "الموظفين",
+    "analytics": "الحسابات البنكية",
     "backToBerhot": "العودة إلى برحوت",
-    "changeBusiness": "تغيير النشاط"
+    "changeBusiness": "تغيير النشاط",
+    "settings": "الإعدادات"
   },
   "titles": {
     "dashboard": "لوحة التحكم",
@@ -23,7 +24,8 @@
     "menu": "إدارة القائمة",
     "barista": "محطة الباريستا",
     "loyalty": "برنامج الولاء",
-    "changeBusiness": "تغيير نوع النشاط"
+    "changeBusiness": "تغيير نوع النشاط",
+    "settings": "الإعدادات"
   },
   "changeBusiness": {
     "title": "تغيير نوع النشاط",
