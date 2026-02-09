@@ -25,7 +25,9 @@
     "barista": "Barista Station",
     "loyalty": "Loyalty Program",
     "changeBusiness": "Change Business Type",
-    "settings": "Settings"
+    "settings": "Settings",
+    "profile": "Profile",
+    "upgradePlan": "Upgrade Plan"
   },
   "changeBusiness": {
     "title": "Change Business Type",
@@ -38,5 +40,40 @@
   "signin": {
     "title": "Welcome to Berhot",
     "subtitle": "Sign in to manage your cafe"
+  },
+  "profile": {
+    "personalInfo": "Personal Information",
+    "businessInfo": "Business Information",
+    "subtitle": "Manage your personal and business information",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "businessName": "Business name",
+    "country": "Country",
+    "region": "Region",
+    "city": "City",
+    "selectRegion": "Select a region",
+    "selectCity": "Select a city",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "saved": "Changes saved successfully",
+    "error": "Failed to save changes"
+  },
+  "plan": {
+    "currentPlan": "Current plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "contactSales": "Contact Sales",
+    "currentBadge": "Current Plan",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "save20": "Save 20%",
+    "perMonth": "/month",
+    "billedAnnually": "billed annually",
+    "confirmUpgrade": "Are you sure you want to change your plan to {{plan}}?",
+    "planUpdated": "Plan updated successfully",
+    "starter": "Starter",
+    "professional": "Professional",
+    "enterprise": "Enterprise"
   }
 }

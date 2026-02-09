@@ -136,6 +136,27 @@
     "unexpectedError": "An unexpected error occurred. Please try again.",
     "networkError": "Network error. Please check your connection."
   },
+  "signup": {
+    "title": "Let\u2019s create your account",
+    "subtitle": "Signing up for Berhot is fast and free \u2013 no commitments or long-term contracts.",
+    "email": "Email",
+    "password": "Password",
+    "countryLanguage": "Country/language",
+    "termsPrefix": "I have read and agree to Berhot\u2019s ",
+    "generalTerms": "General Terms",
+    "andApplicable": " and the applicable ",
+    "additionalTerms": "Additional Terms",
+    "includingThe": ", including the ",
+    "privacyPolicy": "Privacy Policy",
+    "termsSuffix": ".",
+    "createAccount": "Create account",
+    "alreadyHaveAccount": "Already have a Berhot account?",
+    "signIn": "Sign in",
+    "recaptchaNotice": "This site is protected by reCAPTCHA Enterprise and the Google Privacy Policy and Terms of Service apply.",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "mustAgreeTerms": "You must agree to the terms"
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive",

@@ -6,6 +6,9 @@ import { Footer } from '../components/Footer';
 
 const STORAGE_KEY = 'berhot_auth';
 const POS_PRODUCTS_KEY = 'berhot_pos_products'; // per-user map: { "email": { name, port } }
+const IS_PREVIEW = Number(window.location.port) >= 5000;
+const DEV_TO_PREVIEW: Record<number, number> = { 3001: 5002, 3002: 5003, 3003: 5004, 3004: 5005 };
+function resolvePort(devPort: number) { return IS_PREVIEW ? (DEV_TO_PREVIEW[devPort] || devPort) : devPort; }
 
 const POS_PRODUCTS = [
   {
@@ -75,12 +78,12 @@ function getProductLink(port: number, lang: string, email: string): string {
       const parsed = JSON.parse(stored);
       parsed.posProduct = { name: 'POS', port };
       const authHash = btoa(JSON.stringify(parsed));
-      return `http://localhost:${port}/${lang}/dashboard/#auth=${authHash}`;
+      return `http://localhost:${resolvePort(port)}/${lang}/dashboard/#auth=${authHash}`;
     }
   } catch {
     // ignore
   }
-  return `http://localhost:${port}/${lang}/dashboard/`;
+  return `http://localhost:${resolvePort(port)}/${lang}/dashboard/`;
 }
 
 export default function DashboardPage() {
@@ -110,9 +113,9 @@ export default function DashboardPage() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         } catch { /* ignore */ }
         const authHash = btoa(localStorage.getItem(STORAGE_KEY)!);
-        window.location.href = `http://localhost:${savedProduct.port}/${lang}/dashboard/#auth=${authHash}`;
+        window.location.href = `http://localhost:${resolvePort(savedProduct.port)}/${lang}/dashboard/#auth=${authHash}`;
       } else {
-        window.location.href = `http://localhost:${savedProduct.port}/${lang}/dashboard/`;
+        window.location.href = `http://localhost:${resolvePort(savedProduct.port)}/${lang}/dashboard/`;
       }
       return;
     }

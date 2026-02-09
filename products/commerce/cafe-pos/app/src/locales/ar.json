@@ -25,7 +25,9 @@
     "barista": "محطة الباريستا",
     "loyalty": "برنامج الولاء",
     "changeBusiness": "تغيير نوع النشاط",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "profile": "الملف الشخصي",
+    "upgradePlan": "ترقية الخطة"
   },
   "changeBusiness": {
     "title": "تغيير نوع النشاط",
@@ -38,5 +40,40 @@
   "signin": {
     "title": "مرحباً بك في برحوت",
     "subtitle": "سجل دخولك لإدارة مقهاك"
+  },
+  "profile": {
+    "personalInfo": "المعلومات الشخصية",
+    "businessInfo": "معلومات النشاط التجاري",
+    "subtitle": "إدارة معلوماتك الشخصية والتجارية",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "email": "البريد الإلكتروني",
+    "businessName": "اسم النشاط التجاري",
+    "country": "البلد",
+    "region": "المنطقة",
+    "city": "المدينة",
+    "selectRegion": "اختر منطقة",
+    "selectCity": "اختر مدينة",
+    "save": "حفظ التغييرات",
+    "saving": "جاري الحفظ...",
+    "saved": "تم حفظ التغييرات بنجاح",
+    "error": "فشل في حفظ التغييرات"
+  },
+  "plan": {
+    "currentPlan": "الخطة الحالية",
+    "upgrade": "ترقية",
+    "downgrade": "تخفيض",
+    "contactSales": "تواصل مع المبيعات",
+    "currentBadge": "الخطة الحالية",
+    "monthly": "شهري",
+    "annual": "سنوي",
+    "save20": "وفر 20%",
+    "perMonth": "/شهر",
+    "billedAnnually": "يدفع سنوياً",
+    "confirmUpgrade": "هل أنت متأكد من تغيير خطتك إلى {{plan}}؟",
+    "planUpdated": "تم تحديث الخطة بنجاح",
+    "starter": "الأساسية",
+    "professional": "الاحترافية",
+    "enterprise": "المؤسسات"
   }
 }

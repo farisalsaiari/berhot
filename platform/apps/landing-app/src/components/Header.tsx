@@ -246,6 +246,9 @@ function MegaDropdown({ categories, activePanel, onPanelChange }: MegaDropdownPr
 
 const STORAGE_KEY = 'berhot_auth';
 const POS_PRODUCTS_KEY = 'berhot_pos_products';
+const IS_PREVIEW = Number(window.location.port) >= 5000;
+const DEV_TO_PREVIEW: Record<number, number> = { 3001: 5002, 3002: 5003, 3003: 5004, 3004: 5005 };
+function resolvePort(devPort: number) { return IS_PREVIEW ? (DEV_TO_PREVIEW[devPort] || devPort) : devPort; }
 
 function getDashboardUrl(lang: string): string {
   try {
@@ -273,7 +276,7 @@ function getDashboardUrl(lang: string): string {
       // Ensure posProduct in auth for handoff
       authData.posProduct = { name: 'POS', port: savedPort };
       const authHash = btoa(JSON.stringify(authData));
-      return `http://localhost:${savedPort}/${lang}/dashboard/#auth=${authHash}`;
+      return `http://localhost:${resolvePort(savedPort)}/${lang}/dashboard/#auth=${authHash}`;
     }
   } catch {
     // ignore
@@ -508,7 +511,7 @@ export function Header() {
                   Sign in
                 </Link>
                 <Link
-                  to={`/${lang}/signin`}
+                  to={`/${lang}/signup`}
                   className="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm"
                 >
                   Get Started
@@ -583,7 +586,7 @@ export function Header() {
                   Sign in
                 </Link>
                 <Link
-                  to={`/${lang}/signin`}
+                  to={`/${lang}/signup`}
                   className="block px-3 py-2 text-sm font-semibold text-center text-white bg-brand-600 hover:bg-brand-700 rounded-lg"
                 >
                   Get Started

@@ -173,7 +173,7 @@ export function Layout() {
         <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between">
           <a href={LANDING_URL} className="text-white/40 text-xs hover:text-white/70">{t('nav.backToBerhot')}</a>
           <button
-            onClick={() => { localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}`; }}
+            onClick={() => { try { const _a = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); const _pp = _a.posProduct; const _em = _a.user?.email || ''; localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}${_pp ? '&posProduct=' + encodeURIComponent(JSON.stringify(_pp)) : ''}${_em ? '&email=' + encodeURIComponent(_em) : ''}`; } catch { localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true`; } }}
             className="flex items-center gap-1.5 text-white/40 text-xs hover:text-red-400 transition-colors"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

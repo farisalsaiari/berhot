@@ -4,6 +4,9 @@ import { useTranslation } from '@berhot/i18n';
 const STORAGE_KEY = 'berhot_auth';
 const POS_PRODUCTS_KEY = 'berhot_pos_products';
 const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || (Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000');
+const IS_PREVIEW = Number(window.location.port) >= 5000;
+const DEV_TO_PREVIEW: Record<number, number> = { 3001: 5002, 3002: 5003, 3003: 5004, 3004: 5005 };
+function resolvePort(devPort: number) { return IS_PREVIEW ? (DEV_TO_PREVIEW[devPort] || devPort) : devPort; }
 const APP_PORT = 3002;
 
 const BUSINESS_TYPES = [
@@ -48,7 +51,7 @@ export default function ChangeBusinessPage() {
         // Redirect to new POS with auth handoff
         const authHash = btoa(localStorage.getItem(STORAGE_KEY)!);
         setTimeout(() => {
-          window.location.href = `http://localhost:${newProduct.port}/${lang}/dashboard/#auth=${authHash}`;
+          window.location.href = `http://localhost:${resolvePort(newProduct.port)}/${lang}/dashboard/#auth=${authHash}`;
         }, 1000);
       }
     } catch {

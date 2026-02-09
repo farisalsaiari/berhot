@@ -5,12 +5,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/berhot/platform/identity-access/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type TenantHandler struct {
-	DB *sql.DB
+	DB  *sql.DB
+	Cfg *config.Config
+}
+
+// Allowed plan values
+var allowedPlans = map[string]bool{
+	"free": true, "starter": true, "professional": true, "enterprise": true,
 }
 
 // GET /api/v1/tenants
@@ -82,4 +89,97 @@ func (h *TenantHandler) HandleCreateTenant(c *gin.Context) {
 		return
 	}
 	c.JSON(201, gin.H{"id": id, "name": req.Name, "slug": req.Slug, "plan": req.Plan, "status": "active"})
+}
+
+// GET /api/v1/tenants/me — authenticated user's own tenant
+func (h *TenantHandler) HandleGetMyTenant(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(401, gin.H{"error": "No tenant in token"})
+		return
+	}
+
+	var name, slug, status, plan string
+	var countryCode sql.NullString
+	var regionID, cityID sql.NullString
+	var createdAt time.Time
+	err := h.DB.QueryRow(
+		"SELECT name, slug, status, plan, country_code, region_id::text, city_id::text, created_at FROM tenants WHERE id = $1",
+		tenantID,
+	).Scan(&name, &slug, &status, &plan, &countryCode, &regionID, &cityID, &createdAt)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Tenant not found"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"id": tenantID, "name": name, "slug": slug, "status": status, "plan": plan,
+		"countryCode": countryCode.String, "regionId": regionID.String, "cityId": cityID.String,
+		"createdAt": createdAt,
+	})
+}
+
+// PUT /api/v1/tenants/me — update own tenant info
+func (h *TenantHandler) HandleUpdateMyTenant(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(401, gin.H{"error": "No tenant in token"})
+		return
+	}
+
+	var req struct {
+		Name        string `json:"name"`
+		CountryCode string `json:"countryCode"`
+		RegionID    string `json:"regionId"`
+		CityID      string `json:"cityId"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := h.DB.Exec(
+		`UPDATE tenants SET
+			name = COALESCE(NULLIF($1,''), name),
+			country_code = COALESCE(NULLIF($2,''), country_code),
+			region_id = CASE WHEN $3 = '' THEN region_id ELSE $3::uuid END,
+			city_id = CASE WHEN $4 = '' THEN city_id ELSE $4::uuid END,
+			updated_at = NOW()
+		WHERE id = $5`,
+		req.Name, req.CountryCode, req.RegionID, req.CityID, tenantID,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Update failed", "details": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Tenant updated"})
+}
+
+// PUT /api/v1/tenants/me/plan — upgrade/downgrade plan
+func (h *TenantHandler) HandleUpdateMyTenantPlan(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(401, gin.H{"error": "No tenant in token"})
+		return
+	}
+
+	var req struct {
+		Plan string `json:"plan" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !allowedPlans[req.Plan] {
+		c.JSON(400, gin.H{"error": "Invalid plan. Allowed: free, starter, professional, enterprise"})
+		return
+	}
+
+	_, err := h.DB.Exec("UPDATE tenants SET plan = $1, updated_at = NOW() WHERE id = $2", req.Plan, tenantID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Update failed"})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Plan updated", "plan": req.Plan})
 }

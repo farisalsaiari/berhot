@@ -13,6 +13,8 @@ const MenuPage = lazy(() => import('./pages/MenuPage'));
 const BaristaPage = lazy(() => import('./pages/BaristaPage'));
 const LoyaltyPage = lazy(() => import('./pages/LoyaltyPage'));
 const ChangeBusinessPage = lazy(() => import('./pages/ChangeBusinessPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const UpgradePlanPage = lazy(() => import('./pages/UpgradePlanPage'));
 
 function AppRoutes() {
   return (
@@ -26,6 +28,8 @@ function AppRoutes() {
         <Route path="barista" element={<Suspense fallback={<LoadingSpinner />}><BaristaPage /></Suspense>} />
         <Route path="loyalty" element={<Suspense fallback={<LoadingSpinner />}><LoyaltyPage /></Suspense>} />
         <Route path="change-business" element={<Suspense fallback={<LoadingSpinner />}><ChangeBusinessPage /></Suspense>} />
+        <Route path="profile" element={<Suspense fallback={<LoadingSpinner />}><ProfilePage /></Suspense>} />
+        <Route path="upgrade-plan" element={<Suspense fallback={<LoadingSpinner />}><UpgradePlanPage /></Suspense>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

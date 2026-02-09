@@ -22,9 +22,11 @@ export { NotFoundPage } from './components/NotFoundPage';
 // Auth Components
 export { SignInPage } from './components/auth/SignInPage';
 export { SignInForm } from './components/auth/SignInForm';
+export { SignUpPage } from './components/auth/SignUpPage';
 export { OtpInput, type OtpInputHandle } from './components/auth/OtpInput';
 export type { AuthStep, CheckUserResult, GoogleProfileData } from './components/auth/SignInForm';
 export type { SignInPageProps } from './components/auth/SignInPage';
+export type { SignUpPageProps, CountryOption } from './components/auth/SignUpPage';
 
 // Types
 export type { SidebarItem, StatCardProps, BadgeVariant, Column } from './types';

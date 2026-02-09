@@ -136,6 +136,27 @@
     "unexpectedError": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
     "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك."
   },
+  "signup": {
+    "title": "لنقم بإنشاء حسابك",
+    "subtitle": "التسجيل في برحوت سريع ومجاني \u2013 بدون التزامات أو عقود طويلة الأجل.",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "countryLanguage": "البلد/اللغة",
+    "termsPrefix": "لقد قرأت ووافقت على ",
+    "generalTerms": "الشروط العامة",
+    "andApplicable": " و",
+    "additionalTerms": "الشروط الإضافية",
+    "includingThe": " المعمول بها، بما في ذلك ",
+    "privacyPolicy": "سياسة الخصوصية",
+    "termsSuffix": ".",
+    "createAccount": "إنشاء حساب",
+    "alreadyHaveAccount": "لديك حساب في برحوت بالفعل؟",
+    "signIn": "تسجيل الدخول",
+    "recaptchaNotice": "هذا الموقع محمي بواسطة reCAPTCHA Enterprise وتنطبق سياسة الخصوصية وشروط الخدمة من Google.",
+    "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح",
+    "passwordTooShort": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+    "mustAgreeTerms": "يجب الموافقة على الشروط"
+  },
   "status": {
     "active": "نشط",
     "inactive": "غير نشط",

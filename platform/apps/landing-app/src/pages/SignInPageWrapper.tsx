@@ -25,6 +25,10 @@ function BerhotLogo() {
 }
 
 // ── Business Type → POS Product Mapping ──────────────────
+const IS_PREVIEW = Number(window.location.port) >= 5000;
+const DEV_TO_PREVIEW: Record<number, number> = { 3001: 5002, 3002: 5003, 3003: 5004, 3004: 5005 };
+function resolvePort(devPort: number) { return IS_PREVIEW ? (DEV_TO_PREVIEW[devPort] || devPort) : devPort; }
+
 const BUSINESS_TYPE_TO_POS: Record<string, { name: string; port: number }> = {
   'Restaurant': { name: 'Restaurant POS', port: 3001 },
   'Cafe': { name: 'Cafe POS', port: 3002 },
@@ -97,9 +101,9 @@ function redirectToDashboard(email?: string) {
         }
       } catch { /* ignore */ }
       const authHash = btoa(localStorage.getItem(STORAGE_KEY)!);
-      window.location.href = `http://localhost:${savedProduct.port}/${lang}/dashboard/#auth=${authHash}`;
+      window.location.href = `http://localhost:${resolvePort(savedProduct.port)}/${lang}/dashboard/#auth=${authHash}`;
     } else {
-      window.location.href = `http://localhost:${savedProduct.port}/${lang}/dashboard/`;
+      window.location.href = `http://localhost:${resolvePort(savedProduct.port)}/${lang}/dashboard/`;
     }
   } else {
     // No saved product — go to product selector
@@ -122,6 +126,26 @@ export default function SignInPageWrapper() {
   const urlParams = new URLSearchParams(window.location.search);
   const isLoggingOut = urlParams.get('logout') === 'true';
   if (isLoggingOut) {
+    // Sync posProduct from the POS app that initiated logout
+    // (fixes cross-origin localStorage: the POS app passes its posProduct via URL)
+    const posProductParam = urlParams.get('posProduct');
+    if (posProductParam) {
+      try {
+        const posProduct = JSON.parse(posProductParam);
+        // Get email: try URL param first (from POS app), then landing app's own auth
+        let email = urlParams.get('email') || '';
+        if (!email) {
+          const currentAuth = localStorage.getItem(STORAGE_KEY);
+          if (currentAuth) {
+            email = JSON.parse(currentAuth).user?.email || '';
+          }
+        }
+        if (email && posProduct?.port) {
+          savePosProduct(email, posProduct);
+        }
+      } catch { /* ignore */ }
+    }
+
     // Clear landing app auth and clean up the URL
     // (berhot_pos_products is per-user and preserved across logouts)
     localStorage.removeItem(STORAGE_KEY);
@@ -263,9 +287,9 @@ export default function SignInPageWrapper() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       } catch { /* ignore */ }
       const authHash = btoa(localStorage.getItem(STORAGE_KEY)!);
-      window.location.href = `http://localhost:${posProduct.port}/${lang}/dashboard/#auth=${authHash}`;
+      window.location.href = `http://localhost:${resolvePort(posProduct.port)}/${lang}/dashboard/#auth=${authHash}`;
     } else {
-      window.location.href = `http://localhost:${posProduct.port}/${lang}/dashboard/`;
+      window.location.href = `http://localhost:${resolvePort(posProduct.port)}/${lang}/dashboard/`;
     }
   };
 

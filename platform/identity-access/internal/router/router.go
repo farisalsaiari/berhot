@@ -18,7 +18,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, cfg *config.Config) {
 	// ── Handlers ────────────────────────────────────────────
 	authH := &handler.AuthHandler{DB: db, Cfg: cfg}
 	userH := &handler.UserHandler{DB: db, Cfg: cfg}
-	tenantH := &handler.TenantHandler{DB: db}
+	tenantH := &handler.TenantHandler{DB: db, Cfg: cfg}
 	internalH := &handler.InternalHandler{DB: db, Cfg: cfg}
 	oauthH := &handler.OAuthHandler{DB: db, Cfg: cfg}
 	adminH := &handler.AdminHandler{DB: db, Cfg: cfg}
@@ -122,7 +122,25 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, cfg *config.Config) {
 		adminPartners.GET("/applications", partnerH.HandleListApplications)
 	}
 
-	// ── Tenants ─────────────────────────────────────────────
+	// ── Locations (public) ──────────────────────────────────
+	locationH := &handler.LocationHandler{DB: db, Cfg: cfg}
+	locations := v1.Group("/locations")
+	{
+		locations.GET("/countries", locationH.HandleListCountries)
+		locations.GET("/countries/:code/regions", locationH.HandleListRegions)
+		locations.GET("/regions/:id/cities", locationH.HandleListCities)
+	}
+
+	// ── Tenants (authenticated — /me routes) ────────────────
+	myTenant := v1.Group("/tenants")
+	myTenant.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+	{
+		myTenant.GET("/me", tenantH.HandleGetMyTenant)
+		myTenant.PUT("/me", tenantH.HandleUpdateMyTenant)
+		myTenant.PUT("/me/plan", tenantH.HandleUpdateMyTenantPlan)
+	}
+
+	// ── Tenants (public) ────────────────────────────────────
 	tenants := v1.Group("/tenants")
 	{
 		tenants.GET("/", tenantH.HandleListTenants)

@@ -89,12 +89,15 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		Identifier   string `json:"identifier"`
 		Email        string `json:"email"`
 		Password     string `json:"password"`
-		FirstName    string `json:"firstName" binding:"required"`
-		LastName     string `json:"lastName" binding:"required"`
+		FirstName    string `json:"firstName"`
+		LastName     string `json:"lastName"`
 		BusinessName string `json:"businessName"`
 		TenantID     string `json:"tenantId"`
 		Phone        string `json:"phone"`
 		GoogleID     string `json:"googleId"`
+		CountryCode  string `json:"countryCode"`
+		RegionID     string `json:"regionId"`
+		CityID       string `json:"cityId"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -145,15 +148,23 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		// Auto-create tenant
 		businessName := req.BusinessName
 		if businessName == "" {
-			businessName = req.FirstName + "'s Business"
+			if req.FirstName != "" {
+				businessName = req.FirstName + "'s Business"
+			} else {
+				businessName = "My Business"
+			}
 		}
 		slug := strings.ToLower(strings.ReplaceAll(businessName, " ", "-"))
 		slug = slug + "-" + uuid.New().String()[:8]
 
 		tenantID = uuid.New().String()
+		countryCode := req.CountryCode
+		if countryCode == "" {
+			countryCode = "SA" // Default to Saudi Arabia
+		}
 		_, err := h.DB.Exec(
-			"INSERT INTO tenants (id, name, slug, status, plan) VALUES ($1, $2, $3, 'active', 'free')",
-			tenantID, businessName, slug,
+			"INSERT INTO tenants (id, name, slug, status, plan, country_code, region_id, city_id) VALUES ($1, $2, $3, 'active', 'free', $4, NULLIF($5, '')::uuid, NULLIF($6, '')::uuid)",
+			tenantID, businessName, slug, countryCode, req.RegionID, req.CityID,
 		)
 		if err != nil {
 			c.JSON(500, gin.H{"error": "Failed to create tenant", "details": err.Error()})

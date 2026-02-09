@@ -6,6 +6,12 @@ export default {
     '../../../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
     '../../../../packages/i18n/src/**/*.{js,ts,jsx,tsx}',
   ],
-  theme: { extend: {} },
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50: '#eff6ff', 400: '#60a5fa', 500: '#2563eb', 600: '#1d4ed8', 700: '#1e40af' },
+      },
+    },
+  },
   plugins: [],
 };

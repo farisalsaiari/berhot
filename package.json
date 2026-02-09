@@ -24,7 +24,7 @@
     "dev:retail": "turbo run dev --filter=@berhot/retail-pos-app --parallel",
     "dev:dashboard": "turbo run dev --filter=@berhot/merchant-dashboard",
     "dev:admin": "turbo run dev --filter=@berhot/admin-console",
-    "preview": "turbo run build && turbo run preview --parallel",
+    "preview": "turbo run build && turbo run preview --parallel --concurrency 20",
     "preview:commerce": "turbo run build --filter='./products/commerce/**' && turbo run preview --filter='./products/commerce/**' --parallel",
     "preview:experience": "turbo run build --filter='./products/experience/**' && turbo run preview --filter='./products/experience/**' --parallel",
     "preview:engagement": "turbo run build --filter='./products/engagement/**' && turbo run preview --filter='./products/engagement/**' --parallel",

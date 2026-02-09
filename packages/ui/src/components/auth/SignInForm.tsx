@@ -647,12 +647,12 @@ export function SignInForm({
         <div className="space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t('auth.signIn')}</h1>
-            {/* <p className="text-base text-gray-500 mt-2">
+            <p className="text-base text-gray-500 mt-2">
               {t('auth.newToBerhot')}{' '}
-              <button type="button" onClick={() => setStep('register')} className={linkUnderline}>
-                {t('auth.signUp')}
-              </button>
-            </p> */}
+              <a href={`/${(typeof window !== 'undefined' && window.location.pathname.split('/')[1]) || 'en'}/signup`} className={linkUnderline}>
+                {t('auth.createAccount')}
+              </a>
+            </p>
           </div>
 
           <form onSubmit={handleCheckUser} className="space-y-6">

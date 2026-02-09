@@ -144,7 +144,13 @@ const BOTTOM_NAV_ITEMS: NavItem[] = [
     ],
   },
   { key: 'banking', labelKey: 'nav.analytics', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-  { key: 'settings', labelKey: 'nav.settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+  {
+    key: 'settings', labelKey: 'nav.settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+    children: [
+      { label: 'Account', key: 'profile' },
+      { label: 'Upgrade Plan', key: 'upgrade-plan' },
+    ],
+  },
   { key: 'change-business', labelKey: 'nav.changeBusiness', icon: 'M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z' },
 ];
 
@@ -157,6 +163,8 @@ const TITLE_KEYS: Record<string, string> = {
   loyalty: 'titles.loyalty',
   'change-business': 'titles.changeBusiness',
   settings: 'titles.settings',
+  profile: 'titles.profile',
+  'upgrade-plan': 'titles.upgradePlan',
 };
 
 const APP_PORT = 3002;
@@ -417,7 +425,7 @@ export function Layout() {
         </button>
         <div className="flex-1" />
         <button
-          onClick={() => { localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}`; }}
+          onClick={() => { try { const _a = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); const _pp = _a.posProduct; const _em = _a.user?.email || ''; localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}${_pp ? '&posProduct=' + encodeURIComponent(JSON.stringify(_pp)) : ''}${_em ? '&email=' + encodeURIComponent(_em) : ''}`; } catch { localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true`; } }}
           className="text-gray-400 hover:text-red-500 transition-colors"
           title="Logout"
         >
@@ -469,8 +477,17 @@ export function Layout() {
                 <div className="px-6 py-4 border-b border-gray-100">
                   <span className="text-base text-gray-900">{userRole || 'Owner'}</span>
                 </div>
-                <button className="w-full text-left px-6 py-4 text-base text-gray-900 hover:bg-gray-50 transition-colors border-b border-gray-100">
+                <button
+                  onClick={() => { setProfilePanelOpen(false); navigate(`/${lang}/dashboard/profile`); }}
+                  className="w-full text-left px-6 py-4 text-base text-gray-900 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                >
                   Account settings
+                </button>
+                <button
+                  onClick={() => { setProfilePanelOpen(false); navigate(`/${lang}/dashboard/upgrade-plan`); }}
+                  className="w-full text-left px-6 py-4 text-base text-gray-900 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                >
+                  Upgrade plan
                 </button>
                 <button className="w-full text-left px-6 py-4 text-base text-gray-900 hover:bg-gray-50 transition-colors border-b border-gray-100">
                   Feature log
@@ -482,7 +499,7 @@ export function Layout() {
                   Cookie preferences
                 </button>
                 <button
-                  onClick={() => { localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}`; }}
+                  onClick={() => { try { const _a = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); const _pp = _a.posProduct; const _em = _a.user?.email || ''; localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}${_pp ? '&posProduct=' + encodeURIComponent(JSON.stringify(_pp)) : ''}${_em ? '&email=' + encodeURIComponent(_em) : ''}`; } catch { localStorage.removeItem(STORAGE_KEY); window.location.href = `${LANDING_URL}/en/signin?logout=true`; } }}
                   className="w-full text-left px-6 py-4 text-base text-gray-900 hover:bg-gray-50 transition-colors border-b border-gray-100"
                 >
                   Sign out

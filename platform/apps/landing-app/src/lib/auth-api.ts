@@ -93,6 +93,9 @@ export async function signUp(data: {
   businessName: string;
   password: string;
   googleId?: string;
+  countryCode?: string;
+  regionId?: string;
+  cityId?: string;
 }): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/v1/auth/register', {
     method: 'POST',

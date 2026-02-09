@@ -14,6 +14,7 @@ const PartnersPage = lazy(() => import('./pages/PartnersPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const MyOrdersPage = lazy(() => import('./pages/MyOrdersPage'));
 const SignInPageWrapper = lazy(() => import('./pages/SignInPageWrapper'));
+const SignUpPageWrapper = lazy(() => import('./pages/SignUpPageWrapper'));
 
 function AppRoutes() {
   return (
@@ -71,6 +72,14 @@ function AppRoutes() {
         element={
           <Suspense fallback={<LoadingSpinner size="lg" fullScreen />}>
             <SignInPageWrapper />
+          </Suspense>
+        }
+      />
+      <Route
+        path="signup"
+        element={
+          <Suspense fallback={<LoadingSpinner size="lg" fullScreen />}>
+            <SignUpPageWrapper />
           </Suspense>
         }
       />

@@ -21,7 +21,7 @@ const TITLE_KEYS: Record<string, string> = {
   settings: 'titles.settings',
 };
 
-export function Layout() {
+export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { lang } = useParams<{ lang: string }>();
@@ -73,7 +73,7 @@ export function Layout() {
           {NAV_ITEMS.map((item) => (
             <button
               key={item.key}
-              onClick={() => navigate(`/${lang}/${item.key}`)}
+              onClick={() => navigate(`/${lang}/dashboard/${item.key}`)}
               className={`w-full flex items-center gap-3 px-6 py-2.5 text-sm transition-colors ${
                 activeKey === item.key
                   ? 'text-white bg-white/10 ltr:border-r-2 rtl:border-l-2 border-blue-500'

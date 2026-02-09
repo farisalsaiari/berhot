@@ -134,3 +134,6 @@ Desktop.ini
 .vercel/
 .netlify/
 storybook-static/
+
+# Windows reserved device names
+NUL
