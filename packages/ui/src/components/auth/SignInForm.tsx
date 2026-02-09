@@ -27,6 +27,7 @@ interface SignInFormProps {
     lastName: string;
     businessName: string;
     password: string;
+    country?: string;
     googleId?: string;
   }) => Promise<void>;
   onResendOtp?: (identifier: string) => Promise<void>;
@@ -40,6 +41,7 @@ interface SignInFormProps {
   googleProfile?: GoogleProfileData | null;
   loading?: boolean;
   error?: string;
+  initialStep?: AuthStep;
   t?: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -256,6 +258,7 @@ export function SignInForm({
   googleProfile,
   loading = false,
   error,
+  initialStep,
   t = (key) => {
     const fallbacks: Record<string, string> = {
       'auth.signIn': 'Sign in',
@@ -310,7 +313,7 @@ export function SignInForm({
     return fallbacks[key] || key;
   },
 }: SignInFormProps) {
-  const [step, setStep] = useState<AuthStep>('identifier');
+  const [step, setStep] = useState<AuthStep>(initialStep || 'identifier');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -318,6 +321,7 @@ export function SignInForm({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [country, setCountry] = useState('SA');
   const [regPassword, setRegPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -544,7 +548,7 @@ export function SignInForm({
       return;
     }
     setRegPasswordError('');
-    await onSignUp({ identifier, firstName, lastName, businessName, password: regPassword, googleId: googleId || undefined });
+    await onSignUp({ identifier, firstName, lastName, businessName, password: regPassword, country, googleId: googleId || undefined });
     if (identifierType === 'email') {
       setStep('protect');
     } else if (onOnboardingComplete) {
@@ -647,12 +651,12 @@ export function SignInForm({
         <div className="space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t('auth.signIn')}</h1>
-            <p className="text-base text-gray-500 mt-2">
+            {/* <p className="text-base text-gray-500 mt-2">
               {t('auth.newToBerhot')}{' '}
-              <a href={`/${(typeof window !== 'undefined' && window.location.pathname.split('/')[1]) || 'en'}/signup`} className={linkUnderline}>
-                {t('auth.createAccount')}
-              </a>
-            </p>
+              <button type="button" onClick={() => setStep('register')} className={linkUnderline}>
+                {t('auth.signUp')}
+              </button>
+            </p> */}
           </div>
 
           <form onSubmit={handleCheckUser} className="space-y-6">
@@ -857,17 +861,26 @@ export function SignInForm({
         <form onSubmit={handleSignUp} className="space-y-6">
           {/* Welcome heading */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t('auth.welcomeNew')}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t('auth.createAccount')}</h1>
             <p className="text-base text-gray-500 mt-1">{t('auth.niceToHaveYou')}</p>
           </div>
 
-          {/* Email + Change */}
-          <div className="flex items-center gap-3">
-            <span className="text-base text-gray-700">{identifier}</span>
-            <button type="button" onClick={goBack} className={linkUnderline}>
-              {t('auth.change')}
-            </button>
-          </div>
+          {/* Email — editable if coming from /signup directly, otherwise show + change link */}
+          {initialStep === 'register' ? (
+            <FloatingInput
+              label={t('auth.emailOrPhone')}
+              value={identifier}
+              onChange={setIdentifier}
+              autoComplete="email"
+            />
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="text-base text-gray-700">{identifier}</span>
+              <button type="button" onClick={goBack} className={linkUnderline}>
+                {t('auth.change')}
+              </button>
+            </div>
+          )}
 
           {/* Name fields */}
           <div className="grid grid-cols-2 gap-4">
@@ -875,7 +888,7 @@ export function SignInForm({
               label={t('auth.firstName')}
               value={firstName}
               onChange={setFirstName}
-              autoFocus
+              autoFocus={!initialStep}
               autoComplete="given-name"
             />
             <FloatingInput
@@ -893,6 +906,22 @@ export function SignInForm({
             onChange={setBusinessName}
             autoComplete="organization"
           />
+
+          {/* Country selector */}
+          <div className="relative border rounded-xl px-4 pt-5 pb-2 bg-white border-gray-300 focus-within:border-gray-900 transition-colors">
+            <label className="absolute left-4 top-2 text-xs text-gray-500">{t('auth.country')}</label>
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="w-full text-base text-gray-900 bg-transparent outline-none appearance-none cursor-pointer"
+            >
+              <option value="SA">🇸🇦 Saudi Arabia (+966)</option>
+              <option value="EG">🇪🇬 Egypt (+20)</option>
+            </select>
+            <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </div>
 
           {/* Password with eye toggle */}
           <div>
@@ -928,7 +957,7 @@ export function SignInForm({
           <div>
             <button
               type="submit"
-              disabled={loading || !firstName || !lastName || !regPassword}
+              disabled={loading || !firstName || !lastName || !regPassword || !identifier.trim()}
               className={btnBlack}
             >
               {loading ? <Spinner /> : t('auth.signUp')}
@@ -961,15 +990,19 @@ export function SignInForm({
           {/* Country + Phone side by side */}
           <div className="grid grid-cols-5 gap-4">
             {/* Country selector */}
-            <div className="col-span-2 border border-gray-300 rounded-xl px-4 pt-5 pb-2 bg-white relative">
+            <div className="col-span-2 border border-gray-300 rounded-xl px-4 pt-5 pb-2 bg-white relative focus-within:border-gray-900 transition-colors">
               <label className="absolute left-4 top-2 text-xs text-gray-500">{t('auth.country')}</label>
-              <div className="flex items-center gap-2 text-base text-gray-900">
-                <span className="text-lg">🇸🇦</span>
-                <span>Saudi +966</span>
-                <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                </svg>
-              </div>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full text-base text-gray-900 bg-transparent outline-none appearance-none cursor-pointer"
+              >
+                <option value="SA">🇸🇦 Saudi +966</option>
+                <option value="EG">🇪🇬 Egypt +20</option>
+              </select>
+              <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
             </div>
 
             {/* Phone input */}

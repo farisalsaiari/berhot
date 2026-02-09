@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { SignInForm, type CheckUserResult, type GoogleProfileData } from './SignInForm';
+import { SignInForm, type AuthStep, type CheckUserResult, type GoogleProfileData } from './SignInForm';
 
 export interface SignInPageProps {
   onCheckUser: (identifier: string) => Promise<CheckUserResult>;
@@ -11,6 +11,7 @@ export interface SignInPageProps {
     lastName: string;
     businessName: string;
     password: string;
+    country?: string;
     googleId?: string;
   }) => Promise<void>;
   onGoogleSignIn?: () => void;
@@ -24,6 +25,7 @@ export interface SignInPageProps {
   googleProfile?: GoogleProfileData | null;
   logo?: ReactNode;
   languageSwitcher?: ReactNode;
+  initialStep?: AuthStep;
   t?: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -43,6 +45,7 @@ export function SignInPage({
   googleProfile,
   logo,
   languageSwitcher,
+  initialStep,
   t,
 }: SignInPageProps) {
   const [loading, setLoading] = useState(false);
@@ -90,6 +93,7 @@ export function SignInPage({
             googleProfile={googleProfile}
             loading={loading}
             error={error}
+            initialStep={initialStep}
             t={t}
           />
         </div>
