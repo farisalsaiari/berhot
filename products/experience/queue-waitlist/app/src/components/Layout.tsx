@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation, LanguageSwitcher } from '@berhot/i18n';
 
 const STORAGE_KEY = 'berhot_auth';
-const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || 'http://localhost:3000';
+const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || (Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000');
 
 const NAV_ITEMS = [
   { key: 'live-queue', labelKey: 'nav.liveQueue', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },

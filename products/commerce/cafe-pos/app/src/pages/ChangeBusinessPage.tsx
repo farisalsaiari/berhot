@@ -3,7 +3,7 @@ import { useTranslation } from '@berhot/i18n';
 
 const STORAGE_KEY = 'berhot_auth';
 const POS_PRODUCTS_KEY = 'berhot_pos_products';
-const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || 'http://localhost:3000';
+const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || (Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000');
 const APP_PORT = 3002;
 
 const BUSINESS_TYPES = [

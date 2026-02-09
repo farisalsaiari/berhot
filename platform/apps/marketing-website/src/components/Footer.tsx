@@ -1,3 +1,5 @@
+const LANDING_URL = Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000';
+
 export function Footer() {
   return (
     <footer className="bg-gray-950 border-t border-gray-800">
@@ -24,7 +26,7 @@ export function Footer() {
             <a href="#privacy" className="hover:text-gray-300 transition-colors">Privacy</a>
             <a href="#terms" className="hover:text-gray-300 transition-colors">Terms</a>
             <a href="#support" className="hover:text-gray-300 transition-colors">Support</a>
-            <a href="http://localhost:3000/en" className="hover:text-gray-300 transition-colors">Visit berhot.com</a>
+            <a href={`${LANDING_URL}/en`} className="hover:text-gray-300 transition-colors">Visit berhot.com</a>
           </div>
 
           {/* Copyright */}

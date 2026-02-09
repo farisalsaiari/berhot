@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation, LanguageSwitcher } from '@berhot/i18n';
 
 const STORAGE_KEY = 'berhot_auth';
-const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || 'http://localhost:3000';
+const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || (Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000');
 
 const NAV_ITEMS = [
   { key: 'clock', labelKey: 'nav.clock', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },

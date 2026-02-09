@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+const LANDING_URL = Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000';
+
 export function Hero() {
   const [email, setEmail] = useState('');
 
@@ -42,7 +44,7 @@ export function Hero() {
             onSubmit={(e) => {
               e.preventDefault();
               if (email) {
-                window.location.href = `http://localhost:3000/en/signin?email=${encodeURIComponent(email)}`;
+                window.location.href = `${LANDING_URL}/en/signin?email=${encodeURIComponent(email)}`;
               }
             }}
             className="flex gap-3"

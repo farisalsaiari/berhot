@@ -2,6 +2,7 @@
   "name": "@berhot/pos-terminal",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "dist/electron/main.js",
   "scripts": {
     "dev": "vite",

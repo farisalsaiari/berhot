@@ -125,12 +125,12 @@ export default function DashboardPage() {
     }
 
     // 3. No valid auth — redirect to marketing site home (not sign-in)
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = Number(window.location.port) >= 5000 ? 'http://localhost:5001/' : 'http://localhost:3000/';
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = Number(window.location.port) >= 5000 ? 'http://localhost:5001/' : 'http://localhost:3000/';
   };
 
   // Show nothing while checking auth

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { LanguageSwitcher } from '@berhot/i18n';
 
+const LANDING_URL = Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000';
+
 function BerhotLogo() {
   return (
     <Link to="/" className="flex items-center gap-2 group">
@@ -54,7 +56,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <a
-              href="http://localhost:3000/en/signin"
+              href={`${LANDING_URL}/en/signin`}
               className="hidden sm:inline-flex items-center px-5 py-2 text-sm font-semibold text-gray-950 bg-white hover:bg-gray-100 rounded-full transition-all hover:-translate-y-0.5 shadow-lg shadow-white/10"
             >
               Start Free Trial

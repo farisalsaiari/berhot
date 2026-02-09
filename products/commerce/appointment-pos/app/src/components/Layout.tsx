@@ -61,7 +61,7 @@ const TITLE_KEYS: Record<string, string> = {
 const APP_PORT = 3004;
 
 // Landing app URL for auth redirects
-const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || 'http://localhost:3000';
+const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || (Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000');
 
 export function Layout() {
   const location = useLocation();
