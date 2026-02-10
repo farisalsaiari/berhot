@@ -15,11 +15,14 @@ const LoyaltyPage = lazy(() => import('./pages/LoyaltyPage'));
 const ChangeBusinessPage = lazy(() => import('./pages/ChangeBusinessPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const UpgradePlanPage = lazy(() => import('./pages/UpgradePlanPage'));
+const DashboardPage2 = lazy(() => import('./pages/DashboardPage2'));
 
 function AppRoutes() {
   return (
     <Routes>
       <Route index element={<LangRedirect defaultPath="dashboard" />} />
+      {/* Temp standalone route for dashboard v2 test — no Layout wrapper */}
+      <Route path="dashboard2" element={<Suspense fallback={<LoadingSpinner />}><DashboardPage2 /></Suspense>} />
       <Route path="dashboard" element={<Layout />}>
         <Route index element={<Suspense fallback={<LoadingSpinner />}><DashboardPage /></Suspense>} />
         <Route path="queue" element={<Suspense fallback={<LoadingSpinner />}><QueuePage /></Suspense>} />

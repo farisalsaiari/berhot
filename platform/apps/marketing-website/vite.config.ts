@@ -17,5 +17,8 @@ export default defineConfig({
   preview: {
     port: 5014,
     strictPort: true,
+    proxy: {
+      '/api': { target: 'http://localhost:8080', changeOrigin: true }
+    }
   },
 });

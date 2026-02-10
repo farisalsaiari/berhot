@@ -82,7 +82,7 @@ export function Layout() {
         if (hashAuth.posProduct?.port) {
           window.location.href = `http://localhost:${hashAuth.posProduct.port}/${lang || 'en'}/dashboard/#auth=${btoa(JSON.stringify(hashAuth))}`;
         } else {
-          window.location.href = `${LANDING_URL}/`;
+          window.location.href = `${LANDING_URL}/${lang || 'en'}/signin`;
         }
         return;
       }
@@ -97,7 +97,7 @@ export function Layout() {
         if (parsed.user) {
           if (!isAuthorized(parsed)) {
             localStorage.removeItem(STORAGE_KEY);
-            window.location.href = `${LANDING_URL}/`;
+            window.location.href = `${LANDING_URL}/${lang || 'en'}/signin`;
             return;
           }
           setAuthChecked(true);
@@ -105,7 +105,7 @@ export function Layout() {
         }
       }
     } catch { /* ignore */ }
-    window.location.href = `${LANDING_URL}/`;
+    window.location.href = `${LANDING_URL}/${lang || 'en'}/signin`;
   }, []);
 
   const pathSegments = location.pathname.split('/');

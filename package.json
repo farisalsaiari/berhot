@@ -13,7 +13,10 @@
   "scripts": {
     "build": "turbo run build",
     "build:affected": "turbo run build --filter=...[HEAD~1]",
-    "dev": "turbo run dev --parallel",
+    "build:cafe": "turbo run build --filter=@berhot/cafe-pos-app",
+
+    "dev": "turbo run dev --filter=@berhot/landing-app --filter=@berhot/marketing-website --filter=@berhot/cafe-pos-app --filter=@berhot/restaurant-pos-app --filter=@berhot/retail-pos-app --filter=@berhot/appointments-app --parallel",
+    "dev:all": "turbo run dev --parallel",
     "dev:platform": "turbo run dev --filter=@berhot/notification-center --filter=@berhot/integration-hub --filter=@berhot/file-service --parallel",
     "dev:commerce": "turbo run dev --filter='./products/commerce/**' --parallel",
     "dev:experience": "turbo run dev --filter='./products/experience/**' --parallel",

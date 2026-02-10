@@ -85,12 +85,19 @@ You should see all containers showing `Up ... (healthy)`:
 
 ## Step 5: Run Database Migrations
 
+# In Bash:
 ```bash
 for f in ops/database/migrations/*.sql; do
   echo "--- Running $f ---"
   PGPASSWORD=berhot_dev_password psql -h localhost -p 5555 -U berhot -d berhot_dev -f "$f"
 done
 ```
+
+# In Powershell
+Get-ChildItem ops/database/migrations/*.sql | ForEach-Object { Write-Host "--- Running $_ ---"; Get-Content $_.FullName | docker exec -i berhot-postgres psql -U berhot -d berhot_dev }
+
+
+
 
 This creates 16 core tables: tenants, users, sessions, auth, locations, etc.
 

@@ -13,15 +13,23 @@ export default defineConfig({
     port: 3001,
     strictPort: true,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8081',
-        changeOrigin: true,
-      },
+      '/api/v1/auth': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api/v1/users': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api/v1/tenants': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api/v1/locations': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api': { target: 'http://localhost:8081', changeOrigin: true },
     },
   },
   preview: {
     port: 5002,
     strictPort: true,
+    proxy: {
+      '/api/v1/auth': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api/v1/users': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api/v1/tenants': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api/v1/locations': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api': { target: 'http://localhost:8081', changeOrigin: true },
+    },
   },
   build: {
     rollupOptions: {

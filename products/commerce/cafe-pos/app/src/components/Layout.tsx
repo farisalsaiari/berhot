@@ -220,7 +220,7 @@ export function Layout() {
         if (parsed.user) {
           if (!isAuthorized(parsed)) {
             localStorage.removeItem(STORAGE_KEY);
-            window.location.href = `${LANDING_URL}/`;
+            window.location.href = `${LANDING_URL}/${lang || 'en'}/signin`;
             return;
           }
           setUserName(parsed.user?.firstName || parsed.user?.email || '');
@@ -230,7 +230,7 @@ export function Layout() {
         }
       }
     } catch { /* ignore */ }
-    window.location.href = `${LANDING_URL}/`;
+    window.location.href = `${LANDING_URL}/${lang || 'en'}/signin`;
   }, []);
 
   const pathSegments = location.pathname.split('/');
