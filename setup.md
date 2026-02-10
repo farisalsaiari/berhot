@@ -344,3 +344,5 @@ PGPASSWORD=berhot_dev_password psql -h localhost -p 5555 -U berhot -d berhot_dev
 
 to kill any port:
 lsof -i :8080
+
+for p in {3000..3020} {5001..5014}; do lsof -ti tcp:$p | xargs -r kill -9; done

@@ -13,6 +13,7 @@ export { TabBar } from './components/TabBar';
 export { EmptyState } from './components/EmptyState';
 export { SearchInput } from './components/SearchInput';
 export { ProgressBar } from './components/ProgressBar';
+export { SlidePanel } from './components/SlidePanel';
 
 // Production Components
 export { LoadingSpinner } from './components/LoadingSpinner';
