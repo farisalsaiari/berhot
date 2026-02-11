@@ -29,6 +29,21 @@ func IsEmail(identifier string) bool {
 	return emailRegex.MatchString(identifier)
 }
 
+// NormalizePhone converts local Saudi phone (05XXXXXXXX) to international format (+966XXXXXXXX)
+// and strips spaces/dashes. Other formats are returned as-is after cleaning.
+func NormalizePhone(phone string) string {
+	cleaned := strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(phone), " ", ""), "-", "")
+	// Saudi local format: 05XXXXXXXX → +966XXXXXXXX
+	if strings.HasPrefix(cleaned, "05") && len(cleaned) == 10 {
+		cleaned = "+966" + cleaned[1:]
+	}
+	// 966XXXXXXXX without + → +966XXXXXXXX
+	if strings.HasPrefix(cleaned, "966") && len(cleaned) == 12 {
+		cleaned = "+" + cleaned
+	}
+	return cleaned
+}
+
 // POST /api/v1/auth/check-user
 func (h *AuthHandler) HandleCheckUser(c *gin.Context) {
 	var req struct {
@@ -42,20 +57,23 @@ func (h *AuthHandler) HandleCheckUser(c *gin.Context) {
 	identifier := strings.TrimSpace(req.Identifier)
 	isPhone := IsPhone(identifier)
 
-	var id, authProvider string
+	var id string
+	var passwordHash sql.NullString
+	var authProvider string
+	var userPhone sql.NullString
 	var err error
 
 	if isPhone {
-		cleaned := strings.ReplaceAll(strings.ReplaceAll(identifier, " ", ""), "-", "")
+		cleaned := NormalizePhone(identifier)
 		err = h.DB.QueryRow(
-			"SELECT id, COALESCE(auth_provider, 'phone') FROM users WHERE phone = $1 AND status = 'active'",
+			"SELECT id, password_hash, auth_provider, COALESCE(phone, '') FROM users WHERE phone = $1 AND status = 'active'",
 			cleaned,
-		).Scan(&id, &authProvider)
+		).Scan(&id, &passwordHash, &authProvider, &userPhone)
 	} else {
 		err = h.DB.QueryRow(
-			"SELECT id, COALESCE(auth_provider, 'email') FROM users WHERE email = $1 AND status = 'active'",
+			"SELECT id, password_hash, auth_provider, COALESCE(phone, '') FROM users WHERE LOWER(email) = LOWER($1) AND status = 'active' AND (auth_provider != 'phone' OR email_verified_at IS NOT NULL)",
 			identifier,
-		).Scan(&id, &authProvider)
+		).Scan(&id, &passwordHash, &authProvider, &userPhone)
 	}
 
 	if err == sql.ErrNoRows {
@@ -67,8 +85,17 @@ func (h *AuthHandler) HandleCheckUser(c *gin.Context) {
 		return
 	}
 
+	// Determine method based on what the user typed:
+	// - Phone input → always OTP
+	// - Email input + phone-registered account with no password → phone_linked
+	// - Email input + has password → password
+	// - Email input + no password (non-phone account) → otp
 	method := "password"
-	if isPhone || authProvider == "phone" {
+	if isPhone {
+		method = "otp"
+	} else if authProvider == "phone" && (!passwordHash.Valid || passwordHash.String == "") {
+		method = "phone_linked"
+	} else if !passwordHash.Valid || passwordHash.String == "" {
 		method = "otp"
 	}
 
@@ -77,6 +104,13 @@ func (h *AuthHandler) HandleCheckUser(c *gin.Context) {
 		// Mask phone for display
 		if len(identifier) > 4 {
 			resp["destination"] = strings.Repeat("*", len(identifier)-4) + identifier[len(identifier)-4:]
+		}
+	}
+	if method == "phone_linked" && userPhone.Valid && userPhone.String != "" {
+		// Mask the linked phone number for display
+		phone := userPhone.String
+		if len(phone) > 4 {
+			resp["destination"] = strings.Repeat("*", len(phone)-4) + phone[len(phone)-4:]
 		}
 	}
 
@@ -109,10 +143,13 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 	phone := req.Phone
 	if req.Identifier != "" {
 		if IsPhone(req.Identifier) {
-			phone = strings.ReplaceAll(strings.ReplaceAll(req.Identifier, " ", ""), "-", "")
+			phone = NormalizePhone(req.Identifier)
 		} else {
 			email = req.Identifier
 		}
+	}
+	if phone != "" {
+		phone = NormalizePhone(phone)
 	}
 
 	if email == "" && phone == "" {
@@ -184,23 +221,35 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		}
 	}
 
+	// Check phone uniqueness before insert (phone can be taken by another active user)
+	if phone != "" {
+		var existingID string
+		err := h.DB.QueryRow("SELECT id FROM users WHERE phone = $1 AND status = 'active'", phone).Scan(&existingID)
+		if err == nil {
+			c.JSON(409, gin.H{"error": "This phone number is already associated with another account"})
+			return
+		}
+	}
+
+	// Check email uniqueness before insert
+	if email != "" {
+		var existingID string
+		err := h.DB.QueryRow("SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND status = 'active'", email).Scan(&existingID)
+		if err == nil {
+			c.JSON(409, gin.H{"error": "This email is already associated with another account"})
+			return
+		}
+	}
+
 	userID := uuid.New().String()
 	role := "tenant_owner"
 
 	var insertErr error
-	if email != "" {
-		insertErr = execInsert(h.DB,
-			`INSERT INTO users (id, tenant_id, email, password_hash, first_name, last_name, phone, role, status, auth_provider, email_verified_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, NOW())`,
-			userID, tenantID, email, passwordHash, req.FirstName, req.LastName, nullIfEmpty(phone), role, authProvider,
-		)
-	} else {
-		insertErr = execInsert(h.DB,
-			`INSERT INTO users (id, tenant_id, email, password_hash, first_name, last_name, phone, role, status, auth_provider)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9)`,
-			userID, tenantID, email, passwordHash, req.FirstName, req.LastName, nullIfEmpty(phone), role, authProvider,
-		)
-	}
+	insertErr = execInsert(h.DB,
+		`INSERT INTO users (id, tenant_id, email, password_hash, first_name, last_name, phone, role, status, auth_provider)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9)`,
+		userID, tenantID, nullIfEmpty(email), passwordHash, req.FirstName, req.LastName, nullIfEmpty(phone), role, authProvider,
+	)
 	if insertErr != nil {
 		if strings.Contains(insertErr.Error(), "unique") {
 			c.JSON(409, gin.H{"error": "Account already exists"})
@@ -208,6 +257,11 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		}
 		c.JSON(500, gin.H{"error": "Failed to create user", "details": insertErr.Error()})
 		return
+	}
+
+	// Mark phone as verified for phone-only registrations (user verified via OTP before reaching register step)
+	if phone != "" {
+		h.DB.Exec("UPDATE users SET phone_verified_at = NOW() WHERE id = $1", userID)
 	}
 
 	// Link Google OAuth account if googleId was provided (user registered via Google)
@@ -256,12 +310,12 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	var id, tenantID, firstName, lastName, role, status, email string
+	var id, tenantID, firstName, lastName, role, status, email, phone string
 	var passwordHash sql.NullString
 	err := h.DB.QueryRow(
-		`SELECT id, tenant_id, password_hash, first_name, last_name, role, status, COALESCE(email, '') FROM users WHERE email = $1 OR phone = $1`,
+		`SELECT id, tenant_id, password_hash, first_name, last_name, role, status, COALESCE(email, ''), COALESCE(phone, '') FROM users WHERE (LOWER(email) = LOWER($1) AND (auth_provider != 'phone' OR email_verified_at IS NOT NULL)) OR phone = $1`,
 		req.Email,
-	).Scan(&id, &tenantID, &passwordHash, &firstName, &lastName, &role, &status, &email)
+	).Scan(&id, &tenantID, &passwordHash, &firstName, &lastName, &role, &status, &email, &phone)
 
 	if err == sql.ErrNoRows {
 		c.JSON(401, gin.H{"error": "Invalid email or password"})
@@ -310,7 +364,7 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"user": gin.H{
-			"id": id, "email": userIdentifier,
+			"id": id, "email": userIdentifier, "phone": phone,
 			"firstName": firstName, "lastName": lastName,
 			"role": role, "tenantId": tenantID,
 		},
@@ -337,7 +391,7 @@ func (h *AuthHandler) HandleOTPLogin(c *gin.Context) {
 		return
 	}
 
-	cleaned := strings.ReplaceAll(strings.ReplaceAll(req.Phone, " ", ""), "-", "")
+	cleaned := NormalizePhone(req.Phone)
 	var id, tenantID, firstName, lastName, role, status, email string
 	err := h.DB.QueryRow(
 		`SELECT id, tenant_id, first_name, last_name, role, status, COALESCE(email, '') FROM users WHERE phone = $1 AND status = 'active'`,
@@ -375,7 +429,7 @@ func (h *AuthHandler) HandleOTPLogin(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"user": gin.H{
-			"id": id, "email": userIdentifier,
+			"id": id, "email": userIdentifier, "phone": cleaned,
 			"firstName": firstName, "lastName": lastName,
 			"role": role, "tenantId": tenantID,
 		},
@@ -423,7 +477,7 @@ func (h *AuthHandler) HandleRefreshToken(c *gin.Context) {
 	}
 
 	var email, role string
-	err = h.DB.QueryRow("SELECT email, role FROM users WHERE id = $1 AND status = 'active'", claims.UserID).Scan(&email, &role)
+	err = h.DB.QueryRow("SELECT COALESCE(email, ''), role FROM users WHERE id = $1 AND status = 'active'", claims.UserID).Scan(&email, &role)
 	if err != nil {
 		c.JSON(401, gin.H{"error": "User not found"})
 		return

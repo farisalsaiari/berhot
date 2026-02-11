@@ -147,7 +147,7 @@ export default function ProfilePage() {
           {t('plan.currentPlan')}: {planLabel}
         </span>
         <a
-          href={`/${lang}/dashboard/upgrade-plan`}
+          href={`/${lang}/dashboard2/upgrade-plan`}
           className="ml-auto text-sm font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2"
         >
           {t('plan.upgrade')}

@@ -14,9 +14,9 @@
     "build": "turbo run build",
     "build:affected": "turbo run build --filter=...[HEAD~1]",
     "build:cafe": "turbo run build --filter=@berhot/cafe-pos-app",
-
     "dev": "turbo run dev --filter=@berhot/landing-app --filter=@berhot/marketing-website --filter=@berhot/cafe-pos-app --filter=@berhot/restaurant-pos-app --filter=@berhot/retail-pos-app --filter=@berhot/appointments-app --parallel",
     "dev:all": "turbo run dev --parallel",
+    "dev:backend": "npx concurrently -n ia,email -c blue,magenta \"cd platform/identity-access && go run ./cmd/server\" \"pnpm --filter @berhot/email-service dev\"",
     "dev:platform": "turbo run dev --filter=@berhot/notification-center --filter=@berhot/integration-hub --filter=@berhot/file-service --parallel",
     "dev:commerce": "turbo run dev --filter='./products/commerce/**' --parallel",
     "dev:experience": "turbo run dev --filter='./products/experience/**' --parallel",
@@ -69,6 +69,7 @@
     "@changesets/cli": "^2.27.0",
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
+    "concurrently": "^9.2.1",
     "husky": "^9.0.0",
     "lint-staged": "^15.0.0",
     "prettier": "^3.4.0",

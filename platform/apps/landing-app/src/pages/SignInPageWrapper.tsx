@@ -193,6 +193,7 @@ export default function SignInPageWrapper() {
     password: string;
     country?: string;
     googleId?: string;
+    email?: string;
   }) => {
     const result = await signUp(data);
     // Clear Google profile if this was a Google sign-up
@@ -239,7 +240,32 @@ export default function SignInPageWrapper() {
   const handleProtectAccount = async (phone: string) => {
     // Send OTP to the phone number for account protection
     await sendOtp(phone);
+
+    // Save phone to user's account in the database
+    if (pendingAuth.current?.user?.id) {
+      try {
+        await fetch(`http://localhost:8080/internal/users/${pendingAuth.current.user.id}/phone`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        });
+        // Also update pending auth and localStorage with the phone
+        if (pendingAuth.current.user) {
+          (pendingAuth.current.user as Record<string, string>).phone = phone;
+        }
+      } catch {
+        // Non-critical — phone can be added later from account settings
+      }
+    }
     // Don't redirect — form will advance to business-type step for new users
+  };
+
+  const handleVerifyProtectOtp = async (_phone: string, code: string) => {
+    // Dummy OTP verification for protect step — accept "1234"
+    if (code !== '1234') {
+      throw new Error('Invalid code');
+    }
+    // OTP verified — form will advance to business-type step
   };
 
   const handleSkipProtect = () => {
@@ -307,6 +333,7 @@ export default function SignInPageWrapper() {
       onPasskeySignIn={handlePasskeySignIn}
       onResendOtp={handleResendOtp}
       onProtectAccount={handleProtectAccount}
+      onVerifyProtectOtp={handleVerifyProtectOtp}
       onSkipProtect={handleSkipProtect}
       onForgotPassword={handleForgotPassword}
       onLostEmailOrPhone={handleLostEmailOrPhone}

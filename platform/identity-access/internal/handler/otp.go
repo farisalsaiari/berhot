@@ -28,6 +28,9 @@ func (h *OTPHandler) HandleSendOTP(c *gin.Context) {
 	}
 
 	identifier := req.Identifier
+	if IsPhone(identifier) {
+		identifier = NormalizePhone(identifier)
+	}
 
 	// Rate limit: max 3 OTPs per identifier per 10 minutes
 	var recentCount int
@@ -99,6 +102,11 @@ func (h *OTPHandler) HandleVerifyOTP(c *gin.Context) {
 		return
 	}
 
+	identifier := req.Identifier
+	if IsPhone(identifier) {
+		identifier = NormalizePhone(identifier)
+	}
+
 	// Find latest unexpired, unverified OTP
 	var otpID, codeHash string
 	var attempts, maxAttempts int
@@ -106,7 +114,7 @@ func (h *OTPHandler) HandleVerifyOTP(c *gin.Context) {
 		`SELECT id, code_hash, attempts, max_attempts FROM otp_codes
 		 WHERE identifier = $1 AND purpose = 'login' AND verified_at IS NULL AND expires_at > NOW()
 		 ORDER BY created_at DESC LIMIT 1`,
-		req.Identifier,
+		identifier,
 	).Scan(&otpID, &codeHash, &attempts, &maxAttempts)
 
 	if err == sql.ErrNoRows {
@@ -138,17 +146,17 @@ func (h *OTPHandler) HandleVerifyOTP(c *gin.Context) {
 
 	// Find or create user
 	var userID, tenantID, email, firstName, lastName, role string
-	isPhone := IsPhone(req.Identifier)
+	isPhone := IsPhone(identifier)
 
 	if isPhone {
 		err = h.DB.QueryRow(
 			"SELECT id, tenant_id, COALESCE(email,''), first_name, last_name, role FROM users WHERE phone = $1 AND status = 'active'",
-			req.Identifier,
+			identifier,
 		).Scan(&userID, &tenantID, &email, &firstName, &lastName, &role)
 	} else {
 		err = h.DB.QueryRow(
-			"SELECT id, tenant_id, email, first_name, last_name, role FROM users WHERE email = $1 AND status = 'active'",
-			req.Identifier,
+			"SELECT id, tenant_id, COALESCE(email,''), first_name, last_name, role FROM users WHERE LOWER(email) = LOWER($1) AND status = 'active'",
+			identifier,
 		).Scan(&userID, &tenantID, &email, &firstName, &lastName, &role)
 	}
 
@@ -157,7 +165,7 @@ func (h *OTPHandler) HandleVerifyOTP(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"verified":       true,
 			"userExists":     false,
-			"identifier":     req.Identifier,
+			"identifier":     identifier,
 			"needsRegistration": true,
 		})
 		return

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
 import { OtpInput, type OtpInputHandle } from './OtpInput';
 
-export type AuthStep = 'identifier' | 'password' | 'otp' | 'register' | 'protect' | 'forgot' | 'passkey' | 'business-type' | 'revenue';
+export type AuthStep = 'identifier' | 'password' | 'otp' | 'register' | 'protect' | 'protect-otp' | 'forgot' | 'passkey' | 'phone_linked' | 'phone-email' | 'business-type' | 'revenue';
 
 export interface CheckUserResult {
   exists: boolean;
-  method?: 'password' | 'otp';
+  method?: 'password' | 'otp' | 'phone_linked';
   destination?: string;
   firstName?: string;
 }
@@ -29,11 +29,13 @@ interface SignInFormProps {
     password: string;
     country?: string;
     googleId?: string;
+    email?: string;
   }) => Promise<void>;
   onResendOtp?: (identifier: string) => Promise<void>;
   onGoogleSignIn?: () => void;
   onPasskeySignIn?: () => Promise<void>;
   onProtectAccount?: (phone: string) => Promise<void>;
+  onVerifyProtectOtp?: (phone: string, code: string) => Promise<void>;
   onSkipProtect?: () => void;
   onForgotPassword?: (identifier: string) => Promise<void>;
   onLostEmailOrPhone?: () => void;
@@ -47,7 +49,7 @@ interface SignInFormProps {
 
 // ── Validation helpers ──────────────────────────────────────
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const SAUDI_PHONE_REGEX = /^05\d{8}$/;
+const SAUDI_PHONE_REGEX = /^0?5\d{8}$/;
 
 function isValidEmail(value: string): boolean {
   return EMAIL_REGEX.test(value);
@@ -56,6 +58,13 @@ function isValidEmail(value: string): boolean {
 function isSaudiPhone(value: string): boolean {
   const cleaned = value.replace(/[\s\-()]/g, '');
   return SAUDI_PHONE_REGEX.test(cleaned);
+}
+
+/** Normalize Saudi phone: 5XXXXXXXX → 05XXXXXXXX, already 05XXXXXXXX stays as-is */
+function normalizeSaudiLocal(phone: string): string {
+  const cleaned = phone.replace(/[\s\-()]/g, '');
+  if (/^5\d{8}$/.test(cleaned)) return '0' + cleaned;
+  return cleaned;
 }
 
 function looksLikePhone(value: string): boolean {
@@ -201,13 +210,12 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
               <div className={`w-8 h-0.5 ${stepNum <= current ? 'bg-red-500' : 'bg-gray-600'}`} />
             )}
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 ${
-                isCompleted
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 ${isCompleted
                   ? 'bg-red-500 border-red-500 text-white'
                   : isActive
                     ? 'bg-transparent border-red-500 text-red-500'
                     : 'bg-transparent border-gray-600 text-gray-500'
-              }`}
+                }`}
             >
               {isCompleted ? (
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
@@ -251,6 +259,7 @@ export function SignInForm({
   onGoogleSignIn,
   onPasskeySignIn,
   onProtectAccount,
+  onVerifyProtectOtp,
   onSkipProtect,
   onForgotPassword,
   onLostEmailOrPhone,
@@ -308,6 +317,10 @@ export function SignInForm({
       'auth.completePasskey': 'Complete sign-in using your passkey.',
       'auth.signInAnotherWay': 'Sign in another way',
       'auth.passkeyFailed': 'Passkey authentication failed. Please try another sign-in method.',
+      'auth.phoneLinkedTitle': 'Email linked to phone',
+      'auth.phoneLinkedDesc': 'This email is linked to a phone account. Please sign in with your phone number instead.',
+      'auth.phoneLinkedHint': 'Want to sign in with email? You can set a password from your account settings after signing in with your phone.',
+      'auth.signInWithPhone': 'Sign in with phone number',
       'common.back': 'Back',
     };
     return fallbacks[key] || key;
@@ -329,6 +342,9 @@ export function SignInForm({
   const [userName, setUserName] = useState('');
   const [protectPhone, setProtectPhone] = useState('');
   const [protectPhoneError, setProtectPhoneError] = useState('');
+  const [protectFullPhone, setProtectFullPhone] = useState('');
+  const [protectOtpError, setProtectOtpError] = useState('');
+  const protectOtpRef = useRef<OtpInputHandle>(null);
   const [identifierType, setIdentifierType] = useState<'email' | 'phone'>('email');
   const [resetIdentifier, setResetIdentifier] = useState('');
   const [resetValidationError, setResetValidationError] = useState('');
@@ -341,6 +357,13 @@ export function SignInForm({
   const [signInLoading, setSignInLoading] = useState(false);
   const [selectedBusinessType, setSelectedBusinessType] = useState('');
   const [selectedRevenue, setSelectedRevenue] = useState('');
+  // Phone signup: email + optional password step
+  const [phoneEmail, setPhoneEmail] = useState('');
+  const [phoneEmailError, setPhoneEmailError] = useState('');
+  const [wantPassword, setWantPassword] = useState(false);
+  const [phonePassword, setPhonePassword] = useState('');
+  const [showPhonePassword, setShowPhonePassword] = useState(false);
+  const [phonePasswordError, setPhonePasswordError] = useState('');
 
   // ── OTP security state ──────────────────────────────────
   const otpInputRef = useRef<OtpInputHandle>(null);
@@ -463,7 +486,10 @@ export function SignInForm({
     if (result.exists) {
       setIsExistingUser(true);
       setUserName(result.firstName || '');
-      if (result.method === 'otp' || isPhone) {
+      if (result.method === 'phone_linked') {
+        setOtpDestination(result.destination || '');
+        setStep('phone_linked');
+      } else if (result.method === 'otp' || isPhone) {
         setOtpDestination(result.destination || identifier);
         setStep('otp');
         startResendTimer();
@@ -514,8 +540,8 @@ export function SignInForm({
       setOtpError('');
       setOtpAttempts(0);
       if (!isExistingUser) {
-        // New users go to register step after OTP
-        setStep('register');
+        // New phone users go to email-password step before register
+        setStep('phone-email');
       }
       // Existing phone users — the wrapper handles redirect via otpLogin, no step change needed
     } catch {
@@ -543,12 +569,27 @@ export function SignInForm({
 
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
-    if (regPassword.length < 8) {
-      setRegPasswordError(t('auth.passwordTooShort'));
-      return;
+    // For email signup: password is required (from register step)
+    // For phone signup: password is optional (from phone-email step, already stored in regPassword)
+    if (identifierType === 'email') {
+      if (regPassword.length < 8) {
+        setRegPasswordError(t('auth.passwordTooShort'));
+        return;
+      }
     }
     setRegPasswordError('');
-    await onSignUp({ identifier, firstName, lastName, businessName, password: regPassword, country, googleId: googleId || undefined });
+
+    // Build signup data — for phone users, include email from phone-email step
+    await onSignUp({
+      identifier,
+      firstName,
+      lastName,
+      businessName,
+      password: regPassword || '',
+      country,
+      googleId: googleId || undefined,
+      email: identifierType === 'phone' && phoneEmail.trim() ? phoneEmail.trim() : undefined,
+    });
     if (identifierType === 'email') {
       setStep('protect');
     } else if (onOnboardingComplete) {
@@ -570,18 +611,46 @@ export function SignInForm({
     startResendTimer();
   };
 
+  const COUNTRY_DIAL: Record<string, string> = { SA: '+966', EG: '+20' };
+
   const handleProtectSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const cleaned = protectPhone.replace(/[\s\-()]/g, '');
     if (!SAUDI_PHONE_REGEX.test(cleaned)) {
-      setProtectPhoneError(t('auth.invalidPhone'));
+      setProtectPhoneError(t('auth.saudiPhoneError'));
       return;
     }
     setProtectPhoneError('');
-    await onProtectAccount?.(cleaned);
-    if (onOnboardingComplete) {
-      setStep('business-type');
+    // Normalize local → 05XXXXXXXX, then build international: +966 + 5XXXXXXXX
+    const normalized = normalizeSaudiLocal(cleaned);
+    const dial = COUNTRY_DIAL[country] || '+966';
+    const fullPhone = dial + normalized.replace(/^0/, '');
+    setProtectFullPhone(fullPhone);
+    await onProtectAccount?.(fullPhone);
+    // Go to OTP verification step
+    setProtectOtpError('');
+    setStep('protect-otp');
+    startResendTimer();
+  };
+
+  const handleProtectVerifyOtp = async (code: string) => {
+    try {
+      await onVerifyProtectOtp?.(protectFullPhone, code);
+      // OTP verified — continue to onboarding
+      if (onOnboardingComplete) {
+        setStep('business-type');
+      }
+    } catch {
+      setProtectOtpError(t('auth.incorrectCode'));
+      protectOtpRef.current?.reset();
     }
+  };
+
+  const handleProtectResendOtp = async () => {
+    await onProtectAccount?.(protectFullPhone);
+    setProtectOtpError('');
+    protectOtpRef.current?.reset();
+    startResendTimer();
   };
 
   const handleForgotPassword = async (e: FormEvent) => {
@@ -865,7 +934,7 @@ export function SignInForm({
             <p className="text-base text-gray-500 mt-1">{t('auth.niceToHaveYou')}</p>
           </div>
 
-          {/* Email — editable if coming from /signup directly, otherwise show + change link */}
+          {/* Identifier — editable if coming from /signup directly, otherwise show + change link */}
           {initialStep === 'register' ? (
             <FloatingInput
               label={t('auth.emailOrPhone')}
@@ -874,11 +943,21 @@ export function SignInForm({
               autoComplete="email"
             />
           ) : (
-            <div className="flex items-center gap-3">
-              <span className="text-base text-gray-700">{identifier}</span>
-              <button type="button" onClick={goBack} className={linkUnderline}>
-                {t('auth.change')}
-              </button>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <span className="text-base text-gray-700">{identifier}</span>
+                <button type="button" onClick={goBack} className={linkUnderline}>
+                  {t('auth.change')}
+                </button>
+              </div>
+              {identifierType === 'phone' && phoneEmail.trim() && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-500">{phoneEmail.trim()}</span>
+                  <button type="button" onClick={() => setStep('phone-email')} className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600 transition-colors">
+                    {t('auth.change')}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -915,49 +994,51 @@ export function SignInForm({
               onChange={(e) => setCountry(e.target.value)}
               className="w-full text-base text-gray-900 bg-transparent outline-none appearance-none cursor-pointer"
             >
-              <option value="SA">🇸🇦 Saudi Arabia (+966)</option>
-              <option value="EG">🇪🇬 Egypt (+20)</option>
+              <option value="SA">🇸🇦 Saudi Arabia</option>
+              <option value="EG">🇪🇬 Egypt</option>
             </select>
             <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
             </svg>
           </div>
 
-          {/* Password with eye toggle */}
-          <div>
-            <FloatingInput
-              label={t('auth.password')}
-              value={regPassword}
-              onChange={(val) => {
-                setRegPassword(val);
-                if (regPasswordError) {
-                  if (val.length >= 8) setRegPasswordError('');
+          {/* Password with eye toggle — only for email signup (phone users set it in phone-email step) */}
+          {identifierType === 'email' && (
+            <div>
+              <FloatingInput
+                label={t('auth.password')}
+                value={regPassword}
+                onChange={(val) => {
+                  setRegPassword(val);
+                  if (regPasswordError) {
+                    if (val.length >= 8) setRegPasswordError('');
+                  }
+                }}
+                type={showRegPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                error={!!regPasswordError}
+                right={
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="p-1 hover:opacity-70 transition-opacity"
+                    tabIndex={-1}
+                  >
+                    {showRegPassword ? <EyeIcon /> : <EyeSlashIcon />}
+                  </button>
                 }
-              }}
-              type={showRegPassword ? 'text' : 'password'}
-              autoComplete="new-password"
-              error={!!regPasswordError}
-              right={
-                <button
-                  type="button"
-                  onClick={() => setShowRegPassword(!showRegPassword)}
-                  className="p-1 hover:opacity-70 transition-opacity"
-                  tabIndex={-1}
-                >
-                  {showRegPassword ? <EyeIcon /> : <EyeSlashIcon />}
-                </button>
-              }
-            />
-            {regPasswordError && (
-              <p className="text-xs text-red-600 mt-1.5 ml-1">{regPasswordError}</p>
-            )}
-          </div>
+              />
+              {regPasswordError && (
+                <p className="text-xs text-red-600 mt-1.5 ml-1">{regPasswordError}</p>
+              )}
+            </div>
+          )}
 
           {/* Sign Up button */}
           <div>
             <button
               type="submit"
-              disabled={loading || !firstName || !lastName || !regPassword || !identifier.trim()}
+              disabled={loading || !firstName || !lastName || (identifierType === 'email' && !regPassword) || !identifier.trim()}
               className={btnBlack}
             >
               {loading ? <Spinner /> : t('auth.signUp')}
@@ -988,51 +1069,53 @@ export function SignInForm({
           </p>
 
           {/* Country + Phone side by side */}
-          <div className="grid grid-cols-5 gap-4">
-            {/* Country selector */}
-            <div className="col-span-2 border border-gray-300 rounded-xl px-4 pt-5 pb-2 bg-white relative focus-within:border-gray-900 transition-colors">
-              <label className="absolute left-4 top-2 text-xs text-gray-500">{t('auth.country')}</label>
-              <select
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="w-full text-base text-gray-900 bg-transparent outline-none appearance-none cursor-pointer"
-              >
-                <option value="SA">🇸🇦 Saudi +966</option>
-                <option value="EG">🇪🇬 Egypt +20</option>
-              </select>
-              <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </div>
+          <div>
+            <div className="grid grid-cols-5 gap-4">
+              {/* Country selector */}
+              <div className={`col-span-2 border rounded-xl px-4 pt-5 pb-2 bg-white relative focus-within:border-gray-900 transition-colors ${protectPhoneError ? 'border-red-400' : 'border-gray-300'}`}>
+                <label className="absolute left-4 top-2 text-xs text-gray-500">{t('auth.country')}</label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full text-base text-gray-900 bg-transparent outline-none appearance-none cursor-pointer"
+                >
+                  <option value="SA">🇸🇦 +966</option>
+                  <option value="EG">🇪🇬 +20</option>
+                </select>
+                <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
 
-            {/* Phone input */}
-            <div className="col-span-3">
-              <FloatingInput
-                label={t('auth.mobileNumber')}
-                value={protectPhone}
-                onChange={(val) => {
-                  setProtectPhone(val);
-                  if (protectPhoneError) setProtectPhoneError('');
-                }}
-                type="tel"
-                autoFocus
-                dir="ltr"
-                error={!!protectPhoneError}
-              />
-              {protectPhoneError && (
-                <p className="text-xs text-red-600 mt-1.5 ml-1">{protectPhoneError}</p>
-              )}
+              {/* Phone input */}
+              <div className="col-span-3">
+                <FloatingInput
+                  label={t('auth.mobileNumber')}
+                  value={protectPhone}
+                  onChange={(val) => {
+                    setProtectPhone(val);
+                    if (protectPhoneError) setProtectPhoneError('');
+                  }}
+                  type="tel"
+                  autoFocus
+                  dir="ltr"
+                  error={!!protectPhoneError}
+                />
+              </div>
             </div>
+            {protectPhoneError && (
+              <p className="text-xs text-red-600 mt-2 ml-1">{protectPhoneError}</p>
+            )}
           </div>
 
           {/* Buttons: Remind me (left) — Send code (right) */}
           <div className="flex items-center justify-between pt-2">
             <button type="button" onClick={() => {
-  onSkipProtect?.();
-  if (onOnboardingComplete) {
-    setStep('business-type');
-  }
-}} className={btnGrayPill}>
+              onSkipProtect?.();
+              if (onOnboardingComplete) {
+                setStep('business-type');
+              }
+            }} className={btnGrayPill}>
               {t('auth.remindMeNextTime')}
             </button>
             <button type="submit" disabled={loading || !protectPhone.trim()} className={btnBlack}>
@@ -1040,6 +1123,56 @@ export function SignInForm({
             </button>
           </div>
         </form>
+      )}
+
+      {/* ════════════════════════════════════════════════════════
+          STEP 3b: PROTECT OTP VERIFICATION
+          ════════════════════════════════════════════════════════ */}
+      {step === 'protect-otp' && (
+        <div className="space-y-8">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            {t('auth.verifyPhone')}
+          </h1>
+
+          {/* Phone + Change */}
+          <div className="flex items-center gap-3">
+            <span className="text-base text-gray-700">{protectFullPhone}</span>
+            <button type="button" onClick={() => setStep('protect')} className={linkUnderline}>
+              {t('auth.change')}
+            </button>
+          </div>
+
+          {/* OTP info */}
+          <p className="text-base text-gray-600">
+            {t('auth.enterCode')} <span className="font-medium">
+              {protectFullPhone.length > 4
+                ? '****' + protectFullPhone.slice(-4)
+                : protectFullPhone}
+            </span>
+          </p>
+
+          {/* OTP inputs */}
+          <OtpInput
+            ref={protectOtpRef}
+            length={4}
+            onComplete={handleProtectVerifyOtp}
+            disabled={loading}
+            error={protectOtpError}
+          />
+
+          {/* Resend */}
+          <div>
+            {resendTimer > 0 ? (
+              <p className="text-sm text-gray-400">
+                {t('auth.resendIn', { seconds: resendTimer })}
+              </p>
+            ) : (
+              <button type="button" onClick={handleProtectResendOtp} disabled={loading} className={linkUnderline}>
+                {t('auth.resendCode')}
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ════════════════════════════════════════════════════════
@@ -1152,6 +1285,208 @@ export function SignInForm({
       )}
 
       {/* ════════════════════════════════════════════════════════
+          PHONE SIGNUP: EMAIL + OPTIONAL PASSWORD
+          ════════════════════════════════════════════════════════ */}
+      {step === 'phone-email' && (
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          // Validate email if provided
+          if (phoneEmail.trim()) {
+            if (!isValidEmail(phoneEmail.trim())) {
+              setPhoneEmailError(t('auth.invalidEmail'));
+              return;
+            }
+          }
+          // Validate password if checkbox is checked
+          if (wantPassword && phoneEmail.trim()) {
+            if (phonePassword.length < 8) {
+              setPhonePasswordError(t('auth.passwordTooShort'));
+              return;
+            }
+          }
+          setPhoneEmailError('');
+          setPhonePasswordError('');
+          // Store email for the register step
+          if (phoneEmail.trim()) {
+            // Set regPassword from phone step so handleSignUp uses it
+            setRegPassword(wantPassword ? phonePassword : '');
+          } else {
+            setRegPassword('');
+          }
+          setStep('register');
+        }} className="space-y-6">
+          {/* Heading */}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+              Add your email
+            </h1>
+            <p className="text-base text-gray-500 mt-1">
+              Add an email address to your account for easy sign-in later.
+            </p>
+          </div>
+
+          {/* Phone shown */}
+          <div className="flex items-center gap-3">
+            <span className="text-base text-gray-700">{identifier}</span>
+            <button type="button" onClick={goBack} className={linkUnderline}>
+              {t('auth.change')}
+            </button>
+          </div>
+
+          {/* Email input */}
+          <div>
+            <FloatingInput
+              label="Email address"
+              value={phoneEmail}
+              onChange={(val) => {
+                setPhoneEmail(val);
+                if (phoneEmailError) {
+                  if (!val.trim() || isValidEmail(val.trim())) setPhoneEmailError('');
+                }
+              }}
+              autoFocus
+              autoComplete="email"
+              error={!!phoneEmailError}
+            />
+            {phoneEmailError && (
+              <p className="text-xs text-red-600 mt-1.5 ml-1">{phoneEmailError}</p>
+            )}
+          </div>
+
+          {/* Set password checkbox — only show when email is provided */}
+          {phoneEmail.trim() && isValidEmail(phoneEmail.trim()) && (
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={wantPassword}
+                  onChange={(e) => {
+                    setWantPassword(e.target.checked);
+                    if (!e.target.checked) {
+                      setPhonePassword('');
+                      setPhonePasswordError('');
+                    }
+                  }}
+                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Set a password for email sign-in</span>
+                  <p className="text-xs text-gray-500 mt-0.5">You can also set this later from your account settings.</p>
+                </div>
+              </label>
+
+              {/* Password input — visible when checkbox is checked */}
+              {wantPassword && (
+                <div>
+                  <FloatingInput
+                    label={t('auth.password')}
+                    value={phonePassword}
+                    onChange={(val) => {
+                      setPhonePassword(val);
+                      if (phonePasswordError && val.length >= 8) setPhonePasswordError('');
+                    }}
+                    type={showPhonePassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    error={!!phonePasswordError}
+                    right={
+                      <button
+                        type="button"
+                        onClick={() => setShowPhonePassword(!showPhonePassword)}
+                        className="p-1 hover:opacity-70 transition-opacity"
+                        tabIndex={-1}
+                      >
+                        {showPhonePassword ? <EyeIcon /> : <EyeSlashIcon />}
+                      </button>
+                    }
+                  />
+                  {phonePasswordError && (
+                    <p className="text-xs text-red-600 mt-1.5 ml-1">{phonePasswordError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Buttons: Skip + Continue */}
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setPhoneEmail('');
+                setWantPassword(false);
+                setPhonePassword('');
+                setRegPassword('');
+                setStep('register');
+              }}
+              className={btnGrayPill}
+            >
+              Skip
+            </button>
+            <button
+              type="submit"
+              disabled={loading || (phoneEmail.trim() !== '' && !isValidEmail(phoneEmail.trim()))}
+              className={btnBlack}
+            >
+              {loading ? <Spinner /> : t('auth.continue')}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* ════════════════════════════════════════════════════════
+          PHONE LINKED (email linked to phone account, no password)
+          ════════════════════════════════════════════════════════ */}
+      {step === 'phone_linked' && (
+        <div className="space-y-8">
+          {/* Info icon */}
+          <div>
+            <svg className="w-14 h-14 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+          </div>
+
+          {/* Heading */}
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            {t('auth.phoneLinkedTitle') !== 'auth.phoneLinkedTitle'
+              ? t('auth.phoneLinkedTitle')
+              : 'Email linked to phone'}
+          </h1>
+
+          {/* Description */}
+          <div className="space-y-3">
+            <p className="text-base text-gray-600 leading-relaxed">
+              {t('auth.phoneLinkedDesc') !== 'auth.phoneLinkedDesc'
+                ? t('auth.phoneLinkedDesc')
+                : `This email is linked to a phone number ending in ${otpDestination}. Please sign in with your phone number instead.`}
+            </p>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              {t('auth.phoneLinkedHint') !== 'auth.phoneLinkedHint'
+                ? t('auth.phoneLinkedHint')
+                : 'Want to sign in with email? You can set a password from your account settings after signing in with your phone.'}
+            </p>
+          </div>
+
+          {/* Sign in with phone button */}
+          <button
+            type="button"
+            onClick={goBack}
+            className={btnBlackFull}
+          >
+            {t('auth.signInWithPhone') !== 'auth.signInWithPhone'
+              ? t('auth.signInWithPhone')
+              : 'Sign in with phone number'}
+          </button>
+
+          {/* Back link */}
+          <div>
+            <button type="button" onClick={goBack} className={linkUnderline}>
+              {t('common.back')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════
           BUSINESS TYPE (new user onboarding)
           ════════════════════════════════════════════════════════ */}
       {step === 'business-type' && (
@@ -1193,9 +1528,8 @@ export function SignInForm({
                     setSelectedBusinessType(type);
                     setStep('revenue');
                   }}
-                  className={`px-4 py-5 bg-white rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors text-center ${
-                    selectedBusinessType === type ? 'ring-2 ring-red-500' : ''
-                  }`}
+                  className={`px-4 py-5 bg-white rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors text-center ${selectedBusinessType === type ? 'ring-2 ring-red-500' : ''
+                    }`}
                 >
                   {type}
                 </button>
@@ -1262,9 +1596,8 @@ export function SignInForm({
                     setSelectedRevenue(option);
                     onOnboardingComplete?.({ businessType: selectedBusinessType, annualRevenue: option });
                   }}
-                  className={`px-4 py-5 bg-white rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors text-center ${
-                    selectedRevenue === option ? 'ring-2 ring-red-500' : ''
-                  }`}
+                  className={`px-4 py-5 bg-white rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors text-center ${selectedRevenue === option ? 'ring-2 ring-red-500' : ''
+                    }`}
                 >
                   {option}
                 </button>

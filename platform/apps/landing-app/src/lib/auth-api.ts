@@ -94,6 +94,7 @@ export async function signUp(data: {
   password: string;
   country?: string;
   googleId?: string;
+  email?: string;
 }): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/v1/auth/register', {
     method: 'POST',

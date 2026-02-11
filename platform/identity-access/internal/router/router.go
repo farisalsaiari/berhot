@@ -132,13 +132,19 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, cfg *config.Config) {
 	}
 
 	// ── Tenants (authenticated — /me routes) ────────────────
+	uploadH := &handler.UploadHandler{DB: db, Cfg: cfg}
 	myTenant := v1.Group("/tenants")
 	myTenant.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	{
 		myTenant.GET("/me", tenantH.HandleGetMyTenant)
 		myTenant.PUT("/me", tenantH.HandleUpdateMyTenant)
 		myTenant.PUT("/me/plan", tenantH.HandleUpdateMyTenantPlan)
+		myTenant.POST("/me/logo", uploadH.HandleUploadLogo)
+		myTenant.POST("/me/cover", uploadH.HandleUploadCover)
 	}
+
+	// ── Serve uploaded files ────────────────────────────────
+	r.Static("/uploads", "./uploads")
 
 	// ── Tenants (public) ────────────────────────────────────
 	tenants := v1.Group("/tenants")
@@ -152,6 +158,11 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, cfg *config.Config) {
 	internal := r.Group("/internal")
 	{
 		internal.POST("/validate-token", internalH.HandleValidateToken)
+		internal.GET("/check-email", internalH.HandleInternalCheckEmail)
+		internal.GET("/check-phone", internalH.HandleInternalCheckPhone)
 		internal.GET("/users/:id", internalH.HandleInternalGetUser)
+		internal.PUT("/users/:id/email", internalH.HandleInternalUpdateEmail)
+		internal.PUT("/users/:id/phone", internalH.HandleInternalUpdatePhone)
+		internal.PUT("/users/:id/password", internalH.HandleInternalSetPassword)
 	}
 }

@@ -18,6 +18,7 @@ export interface SignInPageProps {
   onPasskeySignIn?: () => Promise<void>;
   onResendOtp?: (identifier: string) => Promise<void>;
   onProtectAccount?: (phone: string) => Promise<void>;
+  onVerifyProtectOtp?: (phone: string, code: string) => Promise<void>;
   onSkipProtect?: () => void;
   onForgotPassword?: (identifier: string) => Promise<void>;
   onLostEmailOrPhone?: () => void;
@@ -38,6 +39,7 @@ export function SignInPage({
   onPasskeySignIn,
   onResendOtp,
   onProtectAccount,
+  onVerifyProtectOtp,
   onSkipProtect,
   onForgotPassword,
   onLostEmailOrPhone,
@@ -86,6 +88,7 @@ export function SignInPage({
             onPasskeySignIn={onPasskeySignIn}
             onResendOtp={onResendOtp}
             onProtectAccount={onProtectAccount ? withLoading(onProtectAccount) : undefined}
+            onVerifyProtectOtp={onVerifyProtectOtp}
             onSkipProtect={onSkipProtect}
             onForgotPassword={onForgotPassword ? withLoading(onForgotPassword) : undefined}
             onLostEmailOrPhone={onLostEmailOrPhone}

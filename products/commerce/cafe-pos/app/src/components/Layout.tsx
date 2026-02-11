@@ -222,7 +222,7 @@ export function Layout() {
     if (hashAuth) {
       if (!isAuthorized(hashAuth)) {
         if (hashAuth.posProduct?.port) {
-          window.location.href = `http://localhost:${hashAuth.posProduct.port}/${lang || 'en'}/dashboard/#auth=${btoa(JSON.stringify(hashAuth))}`;
+          window.location.href = `http://localhost:${hashAuth.posProduct.port}/${lang || 'en'}/dashboard2/#auth=${btoa(JSON.stringify(hashAuth))}`;
         } else {
           window.location.href = `${LANDING_URL}/`;
         }
@@ -256,7 +256,7 @@ export function Layout() {
   }, []);
 
   const pathSegments = location.pathname.split('/');
-  const dashIdx = pathSegments.indexOf('dashboard');
+  const dashIdx = pathSegments.indexOf('dashboard2');
   const activeKey = dashIdx >= 0 && pathSegments[dashIdx + 1] ? pathSegments[dashIdx + 1] : 'dashboard';
 
   if (!authChecked) {
@@ -268,7 +268,7 @@ export function Layout() {
   }
 
   const handleNav = (key: string, isIndex?: boolean) => {
-    navigate(isIndex ? `/${lang}/dashboard` : `/${lang}/dashboard/${key}`);
+    navigate(isIndex ? `/${lang}/dashboard2` : `/${lang}/dashboard2/${key}`);
     setMobileMenuOpen(false);
     setSubMenuStack([]);
     setSlideAnim('');
@@ -298,7 +298,7 @@ export function Layout() {
       pushSubMenu(child.label, child.children);
     } else if (child.key) {
       // Navigate but stay in the sub-menu — don't clear the stack
-      navigate(`/${lang}/dashboard/${child.key}`);
+      navigate(`/${lang}/dashboard2/${child.key}`);
       setActiveChildLabel(child.label);
       setMobileMenuOpen(false);
     }
@@ -500,13 +500,13 @@ export function Layout() {
                   <span className="text-base text-gray-900">{userRole || 'Owner'}</span>
                 </div>
                 <button
-                  onClick={() => { setProfilePanelOpen(false); navigate(`/${lang}/dashboard/profile`); }}
+                  onClick={() => { setProfilePanelOpen(false); navigate(`/${lang}/dashboard2/profile`); }}
                   className="w-full text-left px-6 py-4 text-base text-gray-900 hover:bg-gray-50 transition-colors border-b border-gray-100"
                 >
                   Account settings
                 </button>
                 <button
-                  onClick={() => { setProfilePanelOpen(false); navigate(`/${lang}/dashboard/upgrade-plan`); }}
+                  onClick={() => { setProfilePanelOpen(false); navigate(`/${lang}/dashboard2/upgrade-plan`); }}
                   className="w-full text-left px-6 py-4 text-base text-gray-900 hover:bg-gray-50 transition-colors border-b border-gray-100"
                 >
                   Upgrade plan
@@ -673,7 +673,7 @@ export function Layout() {
         open={session.phase === 'expired'}
         onClose={() => {
           session.continueSession();
-          navigate(`/${lang}/dashboard`);
+          navigate(`/${lang}/dashboard2`);
         }}
         width={420}
       >
@@ -691,7 +691,7 @@ export function Layout() {
           <button
             onClick={() => {
               session.continueSession();
-              navigate(`/${lang}/dashboard`);
+              navigate(`/${lang}/dashboard2`);
             }}
             style={{
               position: 'absolute',

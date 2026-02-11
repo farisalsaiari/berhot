@@ -110,7 +110,7 @@ func (h *OAuthHandler) HandleGoogleCallback(c *gin.Context) {
 	if err == sql.ErrNoRows {
 		// Check if user exists by email
 		err = h.DB.QueryRow(
-			"SELECT id, tenant_id, email, first_name, last_name, role FROM users WHERE email = $1 AND status = 'active'",
+			"SELECT id, tenant_id, COALESCE(email,''), first_name, last_name, role FROM users WHERE LOWER(email) = LOWER($1) AND status = 'active'",
 			googleUser.Email,
 		).Scan(&userID, &tenantID, &email, &firstName, &lastName, &role)
 

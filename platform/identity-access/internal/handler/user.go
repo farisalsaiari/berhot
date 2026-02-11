@@ -22,7 +22,7 @@ func (h *UserHandler) HandleGetCurrentUser(c *gin.Context) {
 	var email, firstName, lastName, role, status, tenantID string
 	var lastLogin sql.NullTime
 	err := h.DB.QueryRow(
-		"SELECT email, first_name, last_name, role, status, tenant_id, last_login_at FROM users WHERE id = $1",
+		"SELECT COALESCE(email, ''), first_name, last_name, role, status, tenant_id, last_login_at FROM users WHERE id = $1",
 		userID,
 	).Scan(&email, &firstName, &lastName, &role, &status, &tenantID, &lastLogin)
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *UserHandler) HandleUpdateCurrentUser(c *gin.Context) {
 func (h *UserHandler) HandleListUsers(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	rows, err := h.DB.Query(
-		"SELECT id, email, first_name, last_name, role, status, created_at FROM users WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 100",
+		"SELECT id, COALESCE(email, ''), first_name, last_name, role, status, created_at FROM users WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 100",
 		tenantID,
 	)
 	if err != nil {
@@ -90,7 +90,7 @@ func (h *UserHandler) HandleGetUser(c *gin.Context) {
 	id := c.Param("id")
 	var email, fn, ln, role, status string
 	err := h.DB.QueryRow(
-		"SELECT email, first_name, last_name, role, status FROM users WHERE id = $1 AND tenant_id = $2",
+		"SELECT COALESCE(email, ''), first_name, last_name, role, status FROM users WHERE id = $1 AND tenant_id = $2",
 		id, tenantID,
 	).Scan(&email, &fn, &ln, &role, &status)
 	if err != nil {

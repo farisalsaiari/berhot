@@ -7,6 +7,7 @@ import appEn from './locales/en.json';
 import appAr from './locales/ar.json';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const DashboardPage2 = lazy(() => import('./pages/DashboardPage2'));
 const QueuePage = lazy(() => import('./pages/QueuePage'));
 const QuickOrderPage = lazy(() => import('./pages/QuickOrderPage'));
 const MenuPage = lazy(() => import('./pages/MenuPage'));
@@ -15,16 +16,16 @@ const LoyaltyPage = lazy(() => import('./pages/LoyaltyPage'));
 const ChangeBusinessPage = lazy(() => import('./pages/ChangeBusinessPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const UpgradePlanPage = lazy(() => import('./pages/UpgradePlanPage'));
-const DashboardPage2 = lazy(() => import('./pages/DashboardPage2'));
 
 function AppRoutes() {
   return (
     <Routes>
       <Route index element={<LangRedirect defaultPath="dashboard" />} />
-      {/* Temp standalone route for dashboard v2 test — no Layout wrapper */}
-      <Route path="dashboard2/*" element={<Suspense fallback={<LoadingSpinner />}><DashboardPage2 /></Suspense>} />
-      <Route path="dashboard" element={<Layout />}>
-        <Route index element={<Suspense fallback={<LoadingSpinner />}><DashboardPage /></Suspense>} />
+      {/* Main dashboard — standalone with built-in sidebar */}
+      <Route path="dashboard/*" element={<Suspense fallback={<LoadingSpinner />}><DashboardPage /></Suspense>} />
+      {/* Legacy dashboard with Layout wrapper */}
+      <Route path="dashboard2" element={<Layout />}>
+        <Route index element={<Suspense fallback={<LoadingSpinner />}><DashboardPage2 /></Suspense>} />
         <Route path="queue" element={<Suspense fallback={<LoadingSpinner />}><QueuePage /></Suspense>} />
         <Route path="quick-order" element={<Suspense fallback={<LoadingSpinner />}><QuickOrderPage /></Suspense>} />
         <Route path="menu" element={<Suspense fallback={<LoadingSpinner />}><MenuPage /></Suspense>} />

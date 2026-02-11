@@ -18,6 +18,12 @@ export const OtpInput = forwardRef<OtpInputHandle, OtpInputProps>(
     const [shaking, setShaking] = useState(false);
     const refs = useRef<(HTMLInputElement | null)[]>([]);
 
+    // Auto-focus first input on mount
+    useEffect(() => {
+      const timer = setTimeout(() => refs.current[0]?.focus(), 50);
+      return () => clearTimeout(timer);
+    }, []);
+
     // Shake on new error
     useEffect(() => {
       if (error) {

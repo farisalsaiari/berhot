@@ -11,6 +11,7 @@ packages:
   - "platform/notification-center"
   - "platform/integration-hub"
   - "platform/file-service"
+  - "platform/email-service"
 
   # ── Platform Apps ───────────────────────────────────────────
   - "platform/pos-engine/apps/merchant-dashboard"
