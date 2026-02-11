@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { SlidePanel } from '@berhot/ui';
+import { SlidePanel, Modal, useSessionTimeout } from '@berhot/ui';
 import AccountSettingsContent from './AccountSettingsContent';
 
 /* ──────────────────────────────────────────────────────────────────
@@ -11,11 +11,16 @@ import AccountSettingsContent from './AccountSettingsContent';
 // ── Theme palettes ──────────────────────────────────────────────
 const darkTheme = {
   bg: '#0f0f0f',
-  sidebar: '#0f0f0f',
+  sidebar: '#d31717',
   card: '#151515',
   cardBorder: '#3f3f3f',
   hover: '#1d1d1d',
+  /* OLD active ↓ */
   active: '#1d1d1d',
+  // active: 'rgba(56, 152, 236, 0.10)',
+  activeBorder: 'rgba(56, 152, 236, 0.25)',
+  activeText: '#60b5ff',
+  activeIcon: '#60b5ff',
   divider: '#3f3f3f',
   textPrimary: '#e7e7e7',
   textSecond: '#7a7a7a',
@@ -26,15 +31,20 @@ const darkTheme = {
 };
 
 const lightTheme = {
-  bg: '#f5f5f5',
-  sidebar: '#ffffff',
+  bg: '#ffffff',
+  sidebar: '#fafafa',
   card: '#ffffff',
   cardBorder: '#e5e5e5',
   hover: '#f0f0f0',
-  active: '#f0f0f0',
+  /* OLD active ↓ */
+  // active: '#f0f0f0',
+  active: 'rgba(37, 130, 220, 0.08)',
+  activeBorder: 'rgba(37, 130, 220, 0.20)',
+  activeText: '#2570c0',
+  activeIcon: '#2570c0',
   divider: '#c7c7c7',
   textPrimary: '#1a1a1a',
-  textSecond: '#6b6b6b',
+  textSecond: '#444444',
   textDim: '#999999',
   accent: '#3b82f6',
   btnBg: '#2993f0',
@@ -47,7 +57,24 @@ const C = savedTheme === 'light' ? lightTheme : darkTheme;
 
 // ── Read user data from auth session ────────────────────────────
 const STORAGE_KEY = 'berhot_auth';
+const APP_PORT = 3002;
 const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || (Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000');
+
+function parseAuthFromHash(): { accessToken: string; refreshToken: string; user: unknown; posProduct?: { name: string; port: number } } | null {
+  try {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('auth=')) return null;
+    const params = new URLSearchParams(hash.substring(1));
+    const authData = params.get('auth');
+    if (!authData) return null;
+    const parsed = JSON.parse(atob(authData));
+    if (parsed.user && parsed.accessToken) {
+      window.history.replaceState(null, '', window.location.pathname);
+      return parsed;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
 
 function getAuthUser(): { firstName: string; lastName: string; email: string; role: string } {
   try {
@@ -229,8 +256,48 @@ export default function DashboardPage2() {
   });
   const [switching, setSwitching] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const prevPath = useRef(location.pathname);
   const isLight = savedTheme === 'light';
+
+  // ── Auth guard — same logic as Layout.tsx ──────────────────────
+  useEffect(() => {
+    const isAuthorized = (data: { posProduct?: { port: number } }) => {
+      return data.posProduct?.port === APP_PORT;
+    };
+
+    const hashAuth = parseAuthFromHash();
+    if (hashAuth) {
+      if (!isAuthorized(hashAuth)) {
+        if (hashAuth.posProduct?.port) {
+          window.location.href = `http://localhost:${hashAuth.posProduct.port}/${lang}/dashboard2/#auth=${btoa(JSON.stringify(hashAuth))}`;
+        } else {
+          window.location.href = `${LANDING_URL}/`;
+        }
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(hashAuth));
+      setAuthChecked(true);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.user) {
+          if (!isAuthorized(parsed)) {
+            localStorage.removeItem(STORAGE_KEY);
+            window.location.href = `${LANDING_URL}/${lang}/signin`;
+            return;
+          }
+          setAuthChecked(true);
+          return;
+        }
+      }
+    } catch { /* ignore */ }
+    window.location.href = `${LANDING_URL}/${lang}/signin`;
+  }, []);
 
   // Determine which page to show based on URL
   const pagePath = location.pathname.replace(`/${lang}/dashboard2`, '').replace(/^\//, '') || 'home';
@@ -244,6 +311,46 @@ export default function DashboardPage2() {
       return () => clearTimeout(timer);
     }
   }, [location.pathname]);
+
+  // ── Session timeout ──────────────────────────────────────────
+  const performLogout = () => {
+    try {
+      const _a = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const _pp = _a.posProduct;
+      const _em = _a.user?.email || '';
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}${_pp ? '&posProduct=' + encodeURIComponent(JSON.stringify(_pp)) : ''}${_em ? '&email=' + encodeURIComponent(_em) : ''}`;
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.href = `${LANDING_URL}/en/signin?logout=true`;
+    }
+  };
+
+  const session = useSessionTimeout({
+    timeoutMs: 15 * 60_000,  // 15 min idle timeout
+    warningMs: 2 * 60_000,   // 2 min warning countdown
+    onTimeout: performLogout,
+  });
+
+  const [hoveredExtend, setHoveredExtend] = useState<string | null>(null);
+
+  // ── Auth loading spinner ─────────────────────────────────────
+  if (!authChecked) {
+    return (
+      <>
+        <style>{`@keyframes d2-spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ background: C.bg, height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            width: 32, height: 32,
+            border: `2px solid ${C.divider}`,
+            borderTop: `2px solid ${C.textPrimary}`,
+            borderRadius: '50%',
+            animation: 'd2-spin 0.6s linear infinite',
+          }} />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -326,10 +433,10 @@ export default function DashboardPage2() {
                   alignItems: 'center',
                   gap: 10,
                   width: '100%',
-                  padding: '8px 10px',
+                  padding: '9px 10px',
                   borderRadius: 6,
                   border: 'none',
-                  background: savedTheme === 'light' ? '#f1f1f1' : C.card,
+                  background: savedTheme === 'light' ? '#f2f3f3' : C.card,
                   color: C.textSecond,
                   cursor: 'pointer',
                   fontSize: 13,
@@ -341,12 +448,14 @@ export default function DashboardPage2() {
                 <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
                 {item.shortcut && (
                   <span style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     color: C.textDim,
-                    background: C.card,
+                    // background: C.card,
+                    background: item.active ? `${C.active}${C.cardBorder}` : '1px solid transparent',
+
                     borderRadius: 4,
                     padding: '1px 6px',
-                    border: `1px solid ${C.active}`,
+                    // border: `1px solid ${C.active}`,
                     fontFamily: 'monospace',
                   }}>{item.shortcut}</span>
                 )}
@@ -361,7 +470,7 @@ export default function DashboardPage2() {
           {/* Main nav items (Dashboard, Analytics...) */}
           <nav className="d2-sidebar-scroll" style={{
             display: 'flex',
-            flexDirection: 'column', gap: 5, padding: '0 16px 12px 16px',
+            flexDirection: 'column', gap: 4, padding: '0 16px 12px 16px',
             flex: 1,
             overflowY: 'auto',
             minHeight: 0,
@@ -376,18 +485,52 @@ export default function DashboardPage2() {
                   alignItems: 'center',
                   gap: 10,
                   width: '100%',
-                  padding: '8px 10px',
+                  padding: '9px 10px',
                   borderRadius: 6,
-                  border: item.active ? `1px solid ${C.cardBorder}` : '1px solid transparent',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  /* ── OLD styling (commented out for rollback) ──
+                  border: item.active ? `1px solid transparent ${C.cardBorder}` : '1px solid transparent',
                   background: item.active ? C.active : hoveredNav === item.label ? C.hover : 'transparent',
                   color: item.active ? C.textPrimary : C.textSecond,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: item.active ? 400 : 400,
+                  fontWeight: item.active ? 600 : 600,
                   transition: 'background 0.15s',
+                  ── END OLD styling ── */
+                  /* ── NEW blue accent active styling ── */
+                  // border: item.active ? `1px solid ${C.activeBorder}` : '1px solid transparent',
+                  background: item.active
+                    ? C.active
+                    : hoveredNav === item.label ? C.hover : 'transparent',
+                  // background: item.active ? C.active : hoveredNav === item.label ? C.hover : 'transparent',
+
+                  color: item.active ? C.activeText : C.textSecond,
+                  fontWeight: item.active ? 600 : 600,
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
                 }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center' }}>{item.icon}</span>
+                {/* Left accent bar — only visible on active */}
+                {/* <span style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: '20%',
+                  bottom: '20%',
+                  width: 3,
+                  borderRadius: '0 3px 3px 0',
+                  background: item.active ? C.activeIcon : 'transparent',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  opacity: item.active ? 1 : 0,
+                  transform: item.active ? 'scaleY(1)' : 'scaleY(0)',
+                }} /> */}
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: 18,
+                  justifyContent: 'center',
+                  color: item.active ? C.activeIcon : C.textSecond,
+                  transition: 'color 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}>{item.icon}</span>
                 <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
               </button>
             ))}
@@ -509,7 +652,7 @@ export default function DashboardPage2() {
         </aside>
 
         {/* ═══ MAIN CONTENT ═══ */}
-        <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100vh', position: 'relative', background: pagePath === 'account' ? C.sidebar : C.bg }}>
+        <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100vh', position: 'relative', background: '#ffffff' }}>
 
           {/* Page transition spinner */}
           {pageLoading && (
@@ -517,7 +660,7 @@ export default function DashboardPage2() {
               position: 'absolute',
               inset: 0,
               zIndex: 10,
-              background: pagePath === 'account' ? C.sidebar : C.bg,
+              background: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -537,7 +680,7 @@ export default function DashboardPage2() {
           {pagePath === 'home' && (
             <>
               {/* Top header bar */}
-              <header style={{
+              {/* <header style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
@@ -545,12 +688,12 @@ export default function DashboardPage2() {
               }}>
                 <span style={{ display: 'flex', alignItems: 'center', color: C.textSecond }}><GridIcon /></span>
                 <span style={{ fontSize: 13, color: C.textSecond, fontWeight: 500 }}>Dashboard</span>
-              </header>
+              </header> */}
 
               {/* Welcome text */}
               <div style={{ padding: '24px 28px 20px 28px' }}>
                 <h1 style={{ fontSize: 24, fontWeight: 600, color: C.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
-                  Welcome back {authUser.firstName || 'there'}!
+                  Home: {authUser.firstName || 'there'}!
                 </h1>
               </div>
 
@@ -659,9 +802,9 @@ export default function DashboardPage2() {
           </div>
 
           {/* Owner name */}
-          <div style={{ padding: '0px 30px 12px 30px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 16 }}>👋</span>
-            <span style={{ fontSize: 16, color: C.textSecond, fontWeight: 400 }}>hi {authUser.firstName} {authUser.lastName}</span>
+          {/* Add hi here */}
+          <div style={{ padding: '0px 30px 12px 30px' }}>
+            <span style={{ fontSize: 16, color: C.textSecond, fontWeight: 400 }}>{authUser.firstName} {authUser.lastName}</span>
           </div>
 
           {/* Menu items */}
@@ -792,18 +935,7 @@ export default function DashboardPage2() {
               <button
                 onMouseEnter={() => setHoveredPanel('Sign out')}
                 onMouseLeave={() => setHoveredPanel(null)}
-                onClick={() => {
-                  try {
-                    const _a = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-                    const _pp = _a.posProduct;
-                    const _em = _a.user?.email || '';
-                    localStorage.removeItem(STORAGE_KEY);
-                    window.location.href = `${LANDING_URL}/en/signin?logout=true&port=${window.location.port}${_pp ? '&posProduct=' + encodeURIComponent(JSON.stringify(_pp)) : ''}${_em ? '&email=' + encodeURIComponent(_em) : ''}`;
-                  } catch {
-                    localStorage.removeItem(STORAGE_KEY);
-                    window.location.href = `${LANDING_URL}/en/signin?logout=true`;
-                  }
-                }}
+                onClick={performLogout}
                 style={{
                   display: 'block',
                   width: '100%',
@@ -825,6 +957,200 @@ export default function DashboardPage2() {
           </div>
         </div>
       </SlidePanel>
+
+      {/* ═══ SESSION WARNING MODAL ═══ */}
+      <Modal open={session.phase === 'warning'} width={420}>
+        <div style={{
+          background: C.card,
+          borderRadius: 16,
+          border: `1px solid ${C.cardBorder}`,
+          padding: '32px',
+          textAlign: 'center',
+          width: '100%',
+        }}>
+          {/* Clock icon */}
+          <div style={{ marginBottom: 16 }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+            Session expiring soon
+          </h2>
+          <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.5, margin: '0 0 8px 0' }}>
+            Your session will expire in
+          </p>
+
+          {/* Countdown display */}
+          <div style={{
+            fontSize: 36,
+            fontWeight: 700,
+            color: session.secondsLeft <= 10 ? '#ef4444' : C.textPrimary,
+            fontVariantNumeric: 'tabular-nums',
+            margin: '8px 0 24px 0',
+            transition: 'color 0.3s',
+          }}>
+            {Math.floor(session.secondsLeft / 60)}:{String(session.secondsLeft % 60).padStart(2, '0')}
+          </div>
+
+          {/* Continue button (primary action) */}
+          <button
+            onClick={session.continueSession}
+            style={{
+              width: '100%',
+              padding: '14px 0',
+              borderRadius: 28,
+              border: 'none',
+              background: isLight ? '#1a1a1a' : '#ffffff',
+              color: isLight ? '#ffffff' : '#000000',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginBottom: 16,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            Continue Session
+          </button>
+
+          {/* Extension time options (pill buttons) */}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+            {[
+              { label: '+5 min', ms: 5 * 60_000 },
+              { label: '+15 min', ms: 15 * 60_000 },
+              { label: '+30 min', ms: 30 * 60_000 },
+            ].map((opt) => (
+              <button
+                key={opt.label}
+                onClick={() => session.extendSession(opt.ms)}
+                onMouseEnter={() => setHoveredExtend(opt.label)}
+                onMouseLeave={() => setHoveredExtend(null)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 20,
+                  border: `1px solid ${C.cardBorder}`,
+                  background: hoveredExtend === opt.label ? C.hover : 'transparent',
+                  color: C.textPrimary,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sign out (secondary/text action) */}
+          <button
+            onClick={performLogout}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: C.textSecond,
+              fontSize: 14,
+              cursor: 'pointer',
+              padding: '4px 0',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+          >
+            Sign out now
+          </button>
+        </div>
+      </Modal>
+
+      {/* ═══ SESSION EXPIRED MODAL ═══ */}
+      <Modal
+        open={session.phase === 'expired'}
+        onClose={() => {
+          session.continueSession();
+          navigate(`/${lang}/dashboard2`);
+        }}
+        width={420}
+      >
+        <div style={{
+          background: C.card,
+          borderRadius: 16,
+          border: `1px solid ${C.cardBorder}`,
+          padding: '32px',
+          textAlign: 'center',
+          width: '100%',
+          position: 'relative',
+        }}>
+          {/* X button top-left */}
+          <button
+            onClick={() => {
+              session.continueSession();
+              navigate(`/${lang}/dashboard2`);
+            }}
+            style={{
+              position: 'absolute',
+              top: 16,
+              left: 16,
+              background: 'none',
+              border: `1.5px solid ${C.divider}`,
+              borderRadius: '50%',
+              color: C.textPrimary,
+              cursor: 'pointer',
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = C.hover)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+
+          {/* Lock icon */}
+          <div style={{ marginBottom: 16, marginTop: 8 }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+          </div>
+
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+            Session timeout
+          </h2>
+          <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.5, margin: '0 0 24px 0' }}>
+            You have been signed out due to inactivity. Please sign in again.
+          </p>
+
+          {/* Sign In button */}
+          <button
+            onClick={performLogout}
+            style={{
+              width: '100%',
+              padding: '14px 0',
+              borderRadius: 28,
+              border: 'none',
+              background: isLight ? '#1a1a1a' : '#ffffff',
+              color: isLight ? '#ffffff' : '#000000',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            Sign In
+          </button>
+        </div>
+      </Modal>
     </>
   );
 }

@@ -14,6 +14,11 @@ export { EmptyState } from './components/EmptyState';
 export { SearchInput } from './components/SearchInput';
 export { ProgressBar } from './components/ProgressBar';
 export { SlidePanel } from './components/SlidePanel';
+export { Modal } from './components/Modal';
+
+// Hooks
+export { useSessionTimeout } from './hooks/useSessionTimeout';
+export type { SessionTimeoutConfig, SessionTimeoutState } from './hooks/useSessionTimeout';
 
 // Production Components
 export { LoadingSpinner } from './components/LoadingSpinner';
