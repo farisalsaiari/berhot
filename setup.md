@@ -342,7 +342,46 @@ PGPASSWORD=berhot_dev_password psql -h localhost -p 5555 -U berhot -d berhot_dev
 
 
 
-to kill any port:
-lsof -i :8080
 
-for p in {3000..3020} {5001..5014}; do lsof -ti tcp:$p | xargs -r kill -9; done
+
+
+----- FRESH START
+
+
+## kill any processes using ports 3000–3015 and 5001–5020.
+
+✅ Bash (Linux / macOS)
+
+for port in {3000..3015} {5001..5020}; do lsof -ti tcp:$port | xargs -r kill -9; done
+
+
+
+
+✅ PowerShell (Windows)
+
+(3000..3015 + 5001..5020) | ForEach-Object {
+  Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue |
+  ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+}
+
+
+pnpm install
+pnpm build
+pnpm docker:up
+
+
+
+## from platform\identity-access>
+go run ./cmd/server/main.go
+
+
+## Step 1 — Copy migrations into the container:
+
+
+
+docker cp "C:\Users\HeeMe\OneDrive\Desktop\New\berhot\ops\database\migrations" berhot-postgres:/tmp/migrations
+
+## Step 2 — Run them:
+
+docker exec berhot-postgres bash -c 'for f in /tmp/migrations/*.sql; do echo "=== Running $f ==="; psql -U berhot -d berhot_dev -f "$f" 2>&1; done'
+

@@ -11,7 +11,7 @@ import AccountSettingsContent from './AccountSettingsContent';
 // ── Theme palettes ──────────────────────────────────────────────
 const darkTheme = {
   bg: '#0f0f0f',
-  sidebar: '#d31717',
+  sidebar: '#151515',
   card: '#151515',
   cardBorder: '#3f3f3f',
   hover: '#1d1d1d',
@@ -23,7 +23,7 @@ const darkTheme = {
   activeIcon: '#60b5ff',
   divider: '#3f3f3f',
   textPrimary: '#e7e7e7',
-  textSecond: '#7a7a7a',
+  textSecond: '#a0a0a0',
   textDim: '#949494',
   accent: '#3b82f6',
   btnBg: '#2993f0',
@@ -52,7 +52,7 @@ const lightTheme = {
 };
 
 // ── Read saved theme (before render) ────────────────────────────
-const savedTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_theme')) || 'dark';
+const savedTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_theme')) || 'light';
 const C = savedTheme === 'light' ? lightTheme : darkTheme;
 
 // ── Read user data from auth session ────────────────────────────
@@ -252,7 +252,7 @@ export default function DashboardPage2() {
     return sessionStorage.getItem('d2_upgrade_dismissed') !== 'true';
   });
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('d2_theme') as 'dark' | 'light') || 'dark';
+    return (localStorage.getItem('d2_theme') as 'dark' | 'light') || 'light';
   });
   const [switching, setSwitching] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
@@ -401,28 +401,63 @@ export default function DashboardPage2() {
           overflow: 'hidden',
         }}>
 
-          {/* Workspace selector — 1px gray border rounded */}
-          <div style={{ padding: '16px 16px 10px 16px' }}>
+          {/* Sidebar header — logo + brand + collapse icon */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '18px 20px 16px 20px',
+            // borderBottom: `1px solid ${C.divider}`,
+          }}>
             <button onClick={() => setShowWorkspace(true)} style={{
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '8px 10px',
-              width: '100%',
-              background: C.active,
-              border: `1px solid ${C.cardBorder}`,
-              borderRadius: 8,
+              background: 'none',
+              border: 'none',
               cursor: 'pointer',
+              padding: 0,
               color: C.textPrimary,
             }}>
-              <MoonIcon />
-              <span style={{ fontWeight: 600, fontSize: 14, flex: 1, textAlign: 'left' }}>Lunor</span>
-              <ChevronUpDown />
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: isLight ? '#1a1a1a' : '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#ffffff' : '#000000'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+                </svg>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }}>Lunor</span>
             </button>
+            {/* <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 6,
+              // border: `1px solid ${C.divider}50`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}> */}
+            <div>
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#949494" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="4" /><line x1="9" y1="3" x2="9" y2="21" /><path d="M15 10l-2 2 2 2" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Divider between header and nav */}
+          <div style={{ padding: '0 16px' }}>
+            <div style={{ height: 1, background: C.divider }} />
           </div>
 
           {/* Top nav items (Search, Reports, Contracts) */}
-          <nav style={{ padding: '10px 16px' }}>
+          <nav style={{ padding: '10px 16px' , paddingBottom:10 }}>
             {navTop.map((item) => (
               <button
                 key={item.label}
@@ -652,7 +687,7 @@ export default function DashboardPage2() {
         </aside>
 
         {/* ═══ MAIN CONTENT ═══ */}
-        <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100vh', position: 'relative', background: '#ffffff' }}>
+        <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100vh', position: 'relative', background: C.bg }}>
 
           {/* Page transition spinner */}
           {pageLoading && (
@@ -660,7 +695,7 @@ export default function DashboardPage2() {
               position: 'absolute',
               inset: 0,
               zIndex: 10,
-              background: '#ffffff',
+              background: C.bg,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
