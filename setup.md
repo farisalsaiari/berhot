@@ -398,6 +398,18 @@ echo "✅ Database reset complete"
 
 
 
+## in windows
+$env:PGPASSWORD="berhot_dev_password"
+docker exec -e PGPASSWORD=berhot_dev_password berhot-postgres psql -U berhot -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'berhot_dev' AND pid <> pg_backend_pid();"
+docker exec -e PGPASSWORD=berhot_dev_password berhot-postgres psql -U berhot -d postgres -c "DROP DATABASE IF EXISTS berhot_dev;"
+docker exec -e PGPASSWORD=berhot_dev_password berhot-postgres psql -U berhot -d postgres -c "CREATE DATABASE berhot_dev;"
+Get-ChildItem "C:\Projects\berhot\ops\database\migrations\*.sql" | Sort-Object Name | ForEach-Object { Write-Host "Running: $($_.FullName)"; Get-Content $_.FullName -Raw | docker exec -i -e PGPASSWORD=berhot_dev_password berhot-postgres psql -U berhot -d berhot_dev }
+Write-Host "Database reset complete"
+
+
+
+
+
 
 pnpm --filter @berhot/email-service dev
 
