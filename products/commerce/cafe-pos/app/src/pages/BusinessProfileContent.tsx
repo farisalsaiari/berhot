@@ -37,6 +37,7 @@ interface City   { id: string; nameEn: string; nameAr: string }
 interface BusinessProfileContentProps {
   C: Theme;
   isLight: boolean;
+  onLogoChange?: (url: string, croppedDataUrl?: string) => void;
 }
 
 function getAccessToken(): string {
@@ -47,7 +48,159 @@ function getAccessToken(): string {
   return '';
 }
 
-export default function BusinessProfileContent({ C, isLight }: BusinessProfileContentProps) {
+/* ── Logo Crop Modal ─────────────────────────────────────────────
+   Shows a square crop overlay the user can drag & resize over the image.
+   Returns { x, y, size } as percentages (0–100) of the original image.
+   ─────────────────────────────────────────────────────────────────── */
+function LogoCropModal({ src, C, onConfirm, onSkip, onCancel }: {
+  src: string;
+  C: Theme;
+  onConfirm: (croppedDataUrl: string) => void;
+  onSkip: () => void;
+  onCancel: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
+  // crop in px relative to the displayed image
+  const [crop, setCrop] = useState({ x: 0, y: 0, size: 0 });
+  const [dragging, setDragging] = useState<'move' | 'resize' | null>(null);
+  const dragStart = useRef({ mx: 0, my: 0, cx: 0, cy: 0, cs: 0 });
+
+  const onImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const w = img.clientWidth;
+    const h = img.clientHeight;
+    setImgSize({ w, h });
+    const s = Math.min(w, h) * 0.7;
+    setCrop({ x: (w - s) / 2, y: (h - s) / 2, size: s });
+  };
+
+  const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+
+  const onMouseDown = (e: React.MouseEvent, type: 'move' | 'resize') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(type);
+    dragStart.current = { mx: e.clientX, my: e.clientY, cx: crop.x, cy: crop.y, cs: crop.size };
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStart.current.mx;
+      const dy = e.clientY - dragStart.current.my;
+      if (dragging === 'move') {
+        setCrop(prev => ({
+          ...prev,
+          x: clamp(dragStart.current.cx + dx, 0, imgSize.w - prev.size),
+          y: clamp(dragStart.current.cy + dy, 0, imgSize.h - prev.size),
+        }));
+      } else {
+        const delta = Math.max(dx, dy);
+        const newSize = clamp(dragStart.current.cs + delta, 40, Math.min(imgSize.w - dragStart.current.cx, imgSize.h - dragStart.current.cy));
+        setCrop(prev => ({ ...prev, size: newSize }));
+      }
+    };
+    const onUp = () => setDragging(null);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [dragging, imgSize]);
+
+  const handleConfirm = () => {
+    if (!imgSize.w || !imgSize.h) return;
+    const img = containerRef.current?.querySelector('img');
+    if (!img) return;
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+    const scaleX = natW / imgSize.w;
+    const scaleY = natH / imgSize.h;
+    // Crop on canvas at natural resolution
+    const canvas = document.createElement('canvas');
+    const outputSize = 256; // high-res square output
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(
+      img,
+      crop.x * scaleX, crop.y * scaleY, crop.size * scaleX, crop.size * scaleY,
+      0, 0, outputSize, outputSize,
+    );
+    onConfirm(canvas.toDataURL('image/png'));
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 99999,
+      background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: C.card, borderRadius: 16, padding: 24, maxWidth: 500, width: '90%',
+        display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.textPrimary }}>
+          Adjust logo area
+        </h3>
+        <p style={{ margin: 0, fontSize: 13, color: C.textSecond }}>
+          Drag to position, drag corner to resize. This area will show in the sidebar.
+        </p>
+        <div ref={containerRef} style={{ position: 'relative', overflow: 'hidden', borderRadius: 8, background: '#f0f0f0', userSelect: 'none' }}>
+          <img src={src} alt="Crop preview" onLoad={onImgLoad} style={{ display: 'block', maxWidth: '100%', maxHeight: 350 }} draggable={false} />
+          {imgSize.w > 0 && (<>
+            {/* Dark overlay with hole */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+              <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+                <defs>
+                  <mask id="crop-mask">
+                    <rect width="100%" height="100%" fill="white" />
+                    <rect x={crop.x} y={crop.y} width={crop.size} height={crop.size} fill="black" rx="4" />
+                  </mask>
+                </defs>
+                <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#crop-mask)" />
+              </svg>
+            </div>
+            {/* Draggable crop area */}
+            <div
+              onMouseDown={(e) => onMouseDown(e, 'move')}
+              style={{
+                position: 'absolute',
+                left: crop.x, top: crop.y, width: crop.size, height: crop.size,
+                border: '2px solid #fff', borderRadius: 4, cursor: 'move', boxSizing: 'border-box',
+              }}
+            >
+              {/* Resize handle — bottom right */}
+              <div
+                onMouseDown={(e) => onMouseDown(e, 'resize')}
+                style={{
+                  position: 'absolute', right: -5, bottom: -5, width: 12, height: 12,
+                  background: '#fff', borderRadius: 3, cursor: 'nwse-resize',
+                  border: '1px solid rgba(0,0,0,0.2)',
+                }}
+              />
+            </div>
+          </>)}
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onCancel} style={{
+            padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.divider}`,
+            background: 'transparent', color: C.textSecond, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}>Cancel</button>
+          <button onClick={onSkip} style={{
+            padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.divider}`,
+            background: 'transparent', color: C.textSecond, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}>Skip crop</button>
+          <button onClick={handleConfirm} style={{
+            padding: '8px 20px', borderRadius: 8, border: 'none',
+            background: C.btnBg, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}>Apply</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function BusinessProfileContent({ C, isLight, onLogoChange }: BusinessProfileContentProps) {
   // ── Form state ──
   const [businessName, setBusinessName] = useState('');
   const [registrationNo, setRegistrationNo] = useState('');
@@ -69,6 +222,9 @@ export default function BusinessProfileContent({ C, isLight }: BusinessProfileCo
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
+  const [cropModalSrc, setCropModalSrc] = useState('');
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [reCropping, setReCropping] = useState(false);
 
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -132,7 +288,7 @@ export default function BusinessProfileContent({ C, isLight }: BusinessProfileCo
   };
 
   // ── Upload image (logo or cover) ──
-  const uploadImage = async (file: File, type: 'logo' | 'cover') => {
+  const uploadImage = async (file: File, type: 'logo' | 'cover', croppedDataUrl?: string) => {
     const error = validateFile(file);
     if (error) { setUploadError(error); setTimeout(() => setUploadError(''), 3000); return; }
 
@@ -158,8 +314,16 @@ export default function BusinessProfileContent({ C, isLight }: BusinessProfileCo
       const data = await res.json();
       const url = data.url;
 
-      if (type === 'logo') setLogoUrl(url);
-      else setCoverUrl(url);
+      if (type === 'logo') {
+        setLogoUrl(url);
+        // Save cropped image to localStorage for sidebar display
+        if (croppedDataUrl) {
+          try { localStorage.setItem('berhot_sidebar_logo', croppedDataUrl); } catch { /* ignore */ }
+        }
+        onLogoChange?.(url, croppedDataUrl);
+      } else {
+        setCoverUrl(url);
+      }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
       setTimeout(() => setUploadError(''), 3000);
@@ -170,8 +334,57 @@ export default function BusinessProfileContent({ C, isLight }: BusinessProfileCo
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) uploadImage(file, 'logo');
-    e.target.value = ''; // Reset so same file can be re-selected
+    if (file) {
+      const error = validateFile(file);
+      if (error) { setUploadError(error); setTimeout(() => setUploadError(''), 3000); return; }
+      setPendingLogoFile(file);
+      setCropModalSrc(URL.createObjectURL(file));
+    }
+    e.target.value = '';
+  };
+
+  const handleCropConfirm = async (croppedDataUrl: string) => {
+    setCropModalSrc('');
+    if (reCropping) {
+      // Re-cropping existing logo — just update localStorage and sidebar
+      try { localStorage.setItem('berhot_sidebar_logo', croppedDataUrl); } catch { /* ignore */ }
+      onLogoChange?.(logoUrl, croppedDataUrl);
+      setReCropping(false);
+      return;
+    }
+    if (!pendingLogoFile) return;
+    await uploadImage(pendingLogoFile, 'logo', croppedDataUrl);
+    setPendingLogoFile(null);
+  };
+
+  const handleCropSkip = async () => {
+    setCropModalSrc('');
+    if (reCropping) {
+      // Re-cropping skipped — clear crop, use original logo
+      try { localStorage.removeItem('berhot_sidebar_logo'); } catch { /* ignore */ }
+      onLogoChange?.(logoUrl);
+      setReCropping(false);
+      return;
+    }
+    if (!pendingLogoFile) return;
+    // Clear any previous crop from localStorage
+    try { localStorage.removeItem('berhot_sidebar_logo'); } catch { /* ignore */ }
+    await uploadImage(pendingLogoFile, 'logo');
+    setPendingLogoFile(null);
+  };
+
+  const handleCropCancel = () => {
+    if (cropModalSrc && !reCropping) URL.revokeObjectURL(cropModalSrc);
+    setCropModalSrc('');
+    setPendingLogoFile(null);
+    setReCropping(false);
+  };
+
+  const handleReCrop = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!logoUrl) return;
+    setReCropping(true);
+    setCropModalSrc(resolveImg(logoUrl));
   };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -259,11 +472,16 @@ export default function BusinessProfileContent({ C, isLight }: BusinessProfileCo
 
   return (
     <div>
+      {/* Logo crop modal */}
+      {cropModalSrc && (
+        <LogoCropModal src={cropModalSrc} C={C} onConfirm={handleCropConfirm} onSkip={handleCropSkip} onCancel={handleCropCancel} />
+      )}
+
       {/* Page title */}
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: C.textPrimary, margin: '0 0 6px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
         Business Profile
-      </h1>
-      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 28px 0' }}>
+      </h2>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 28px 0', lineHeight: 1.5 }}>
         Manage your company information and branding
       </p>
 
@@ -365,6 +583,28 @@ export default function BusinessProfileContent({ C, isLight }: BusinessProfileCo
             </div>
             <input ref={logoRef} type="file" accept={ALLOWED_EXTS} onChange={handleLogoChange} style={{ display: 'none' }} />
           </div>
+          {/* Crop adjust icon — bottom-right of logo */}
+          {logoUrl && !uploadingLogo && (
+            <div
+              onClick={handleReCrop}
+              onMouseEnter={() => setHoveredBtn('crop')}
+              onMouseLeave={() => setHoveredBtn(null)}
+              title="Adjust crop"
+              style={{
+                position: 'absolute', right: -4, bottom: -4,
+                width: 26, height: 26, borderRadius: 8,
+                background: isLight ? '#1a1a1a' : '#ffffff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                transition: 'transform 0.15s',
+                transform: hoveredBtn === 'crop' ? 'scale(1.1)' : 'scale(1)',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#ffffff' : '#000000'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2v4H2" /><path d="M6 6h12v12" /><path d="M18 22v-4h4" /><path d="M18 18H6V6" />
+              </svg>
+            </div>
+          )}
         </div>
       </div>
 

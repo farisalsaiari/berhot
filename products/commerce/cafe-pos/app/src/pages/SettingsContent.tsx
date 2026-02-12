@@ -28,9 +28,9 @@ interface SettingsContentProps {
 function SettingsPlaceholder({ C, title, description }: { C: Theme; title: string; description: string }) {
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: C.textPrimary, margin: '0 0 6px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
         {title}
-      </h1>
+      </h2>
       <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 28px 0', lineHeight: 1.5 }}>
         {description}
       </p>

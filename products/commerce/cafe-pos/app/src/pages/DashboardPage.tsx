@@ -69,6 +69,7 @@ const C = savedTheme === 'light' ? lightTheme : darkTheme;
 // ── Read user data from auth session ────────────────────────────
 const STORAGE_KEY = 'berhot_auth';
 const APP_PORT = 3002;
+const API_URL = 'http://localhost:8080';
 const LANDING_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_LANDING_URL || (Number(window.location.port) >= 5000 ? 'http://localhost:5001' : 'http://localhost:3000');
 
 function parseAuthFromHash(): { accessToken: string; refreshToken: string; user: unknown; posProduct?: { name: string; port: number } } | null {
@@ -96,6 +97,11 @@ function getAuthUser(): { firstName: string; lastName: string; email: string; ro
     }
   } catch { /* ignore */ }
   return { firstName: '', lastName: '', email: '', role: '' };
+}
+
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
 const authUser = getAuthUser();
@@ -323,6 +329,8 @@ export default function DashboardPage() {
   const [settingsSlideDir, setSettingsSlideDir] = useState<'forward' | 'back' | ''>('');
   const [settingsSlideKey, setSettingsSlideKey] = useState(0);
   const [settingsClosing, setSettingsClosing] = useState(false);
+  const [navReturning, setNavReturning] = useState(false);
+  const [isLargeScreen, setIsLargeScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 1366);
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [showLangPanel, setShowLangPanel] = useState(false);
   const [selectedLang, setSelectedLang] = useState(lang);
@@ -335,6 +343,10 @@ export default function DashboardPage() {
   });
   const [switching, setSwitching] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [sidebarLogoUrl, setSidebarLogoUrl] = useState('');
+  const [sidebarLogoImg, setSidebarLogoImg] = useState(() => {
+    try { return localStorage.getItem('berhot_sidebar_logo') || ''; } catch { return ''; }
+  });
   // Page transition: displayedPath holds the path currently rendered.
   // When URL changes, we show spinner, then update displayedPath after delay.
   const [displayedPath, setDisplayedPath] = useState(location.pathname);
@@ -380,6 +392,22 @@ export default function DashboardPage() {
     window.location.href = `${LANDING_URL}/${lang}/signin`;
   }, []);
 
+  // Fetch tenant logo for sidebar
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      const token = JSON.parse(stored).accessToken;
+      if (!token) return;
+      fetch(`${API_URL}/api/v1/tenants/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.json())
+        .then(data => { if (data.logoUrl) setSidebarLogoUrl(data.logoUrl); })
+        .catch(() => {});
+    } catch { /* ignore */ }
+  }, []);
+
   // Determine which page to show — uses displayedPath (not location) to avoid flash
   const pagePath = displayedPath.replace(`/${lang}/dashboard`, '').replace(/^\//, '') || 'home';
   const isSettingsPage = pagePath.startsWith('settings');
@@ -392,9 +420,16 @@ export default function DashboardPage() {
     }
   }, [pagePath, lang, navigate]);
 
-  // Auto-open settings submenu on page load if on a settings page
+  // Track screen size for settings sidebar behavior
   useEffect(() => {
-    if (isSettingsPage && settingsMenuStack.length === 0) {
+    const onResize = () => setIsLargeScreen(window.innerWidth > 1366);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Auto-open settings submenu on page load if on a settings page (small screens only)
+  useEffect(() => {
+    if (!isLargeScreen && isSettingsPage && settingsMenuStack.length === 0 && !settingsClosing) {
       // Find which category the current page belongs to
       const currentGroup = settingsNav.find((g) => g.links.some((l) => pagePath === l.path));
       if (currentGroup) {
@@ -406,13 +441,13 @@ export default function DashboardPage() {
         setSettingsMenuStack([{ parentLabel: 'Settings', children: settingsNav }]);
       }
     }
-    // Close submenu when navigating away from settings
-    if (!isSettingsPage && settingsMenuStack.length > 0) {
+    // Close submenu when navigating away from settings or on large screen
+    if ((!isSettingsPage || isLargeScreen) && settingsMenuStack.length > 0) {
       setSettingsMenuStack([]);
       setSettingsSlideDir('');
       setSettingsClosing(false);
     }
-  }, [isSettingsPage, pagePath]);
+  }, [isSettingsPage, pagePath, isLargeScreen]);
 
   // Page transition — after URL changes, wait then reveal new content
   useEffect(() => {
@@ -470,13 +505,16 @@ export default function DashboardPage() {
       .d2-main-scroll::-webkit-scrollbar { display: none; }
       .d2-main-scroll { -ms-overflow-style: none; scrollbar-width: none; }
       @keyframes d2-spin { to { transform: rotate(360deg); } }
+      @keyframes d2-page-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+      .d2-page-in { animation: d2-page-in 0.35s ease-out forwards; }
       @keyframes d2-slide-forward { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
       @keyframes d2-slide-back { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-      @keyframes d2-overlay-close { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-40px); opacity: 0; } }
+      @keyframes d2-slide-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(40px); opacity: 0; } }
       .d2-slide-forward { animation: d2-slide-forward 0.18s ease-out forwards; }
       .d2-slide-back { animation: d2-slide-back 0.18s ease-out forwards; }
-      .d2-overlay-close { animation: d2-overlay-close 0.18s ease-out forwards; }
-      .d2-settings-sidebar { display: flex; }
+      .d2-slide-out { animation: d2-slide-out 0.08s ease-out forwards; }
+      @keyframes d2-settings-sidebar-in { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+      .d2-settings-sidebar { display: flex; animation: d2-settings-sidebar-in 0.25s ease forwards; }
       @media (max-width: 1366px) { .d2-settings-sidebar { display: none !important; } }
     `}</style>
 
@@ -543,58 +581,96 @@ export default function DashboardPage() {
           position: 'relative',
         }}>
 
-          {/* Sidebar header — logo + brand + collapse icon */}
+          {/* Sidebar header — logo + brand OR back arrow + label when in settings */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '18px 20px 16px 20px',
-            // borderBottom: `1px solid ${C.divider}`,
+            padding: '17px 20px 16px 20px',
           }}>
-            <button onClick={() => setShowWorkspace(true)} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              color: C.textPrimary,
-            }}>
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: isLight ? '#1a1a1a' : '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#ffffff' : '#000000'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-                </svg>
+            {!isLargeScreen && (settingsMenuStack.length > 0 || settingsClosing) ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  onClick={() => {
+                    if (settingsMenuStack.length <= 1) {
+                      setSettingsClosing(true);
+                      setSettingsSlideDir('back');
+                      setSettingsSlideKey((k) => k + 1);
+                    } else {
+                      setSettingsSlideDir('back');
+                      setSettingsSlideKey((k) => k + 1);
+                      setSettingsMenuStack((prev) => prev.slice(0, -1));
+                    }
+                  }}
+                  onMouseEnter={() => setHoveredNav('settings-back')}
+                  onMouseLeave={() => setHoveredNav(null)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    borderRadius: 6,
+                    border: 'none',
+                    background: hoveredNav === 'settings-back' ? C.hover : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s',
+                    padding: 0,
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary }}>
+                  {settingsMenuStack.length > 0 ? settingsMenuStack[settingsMenuStack.length - 1].parentLabel : 'Settings'}
+                </span>
               </div>
-              <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }}>Lunor</span>
-            </button>
-            {/* <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: 6,
-              // border: `1px solid ${C.divider}50`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}> */}
-            <div>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#949494" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="4" /><line x1="9" y1="3" x2="9" y2="21" /><path d="M15 10l-2 2 2 2" />
-              </svg>
-            </div>
+            ) : (
+              <>
+                <button onClick={() => setShowWorkspace(true)} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: C.textPrimary,
+                }}>
+                  {(sidebarLogoImg || sidebarLogoUrl) ? (
+                    <img
+                      src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
+                      alt="Logo"
+                      style={{
+                        width: 35,
+                        height: 35,
+                        objectFit: 'cover',
+                        borderRadius: 6,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <svg width="26" height="26" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
+                      <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
+                        <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
+                      </g>
+                    </svg>
+                  )}
+                  <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }}>berhot</span>
+                </button>
+                <div>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#949494" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="4" /><line x1="9" y1="3" x2="9" y2="21" /><path d="M15 10l-2 2 2 2" />
+                  </svg>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Divider between header and nav */}
-          <div style={{ padding: '0 16px' }}>
+          <div style={{ padding: '0 18px' }}>
             <div style={{ height: 1, background: C.divider, opacity: 0.6 }} />
           </div>
 
@@ -640,7 +716,7 @@ export default function DashboardPage() {
           {/* <div style={{ height: 1, background: C.divider,  }} /> */}
 
 
-          {/* Main nav items (Dashboard, Analytics...) */}
+          {/* Main nav / Settings nav — only the links area transitions */}
           <nav className="d2-sidebar-scroll" style={{
             display: 'flex',
             flexDirection: 'column', gap: 2, padding: '10px 16px 12px 16px',
@@ -648,48 +724,144 @@ export default function DashboardPage() {
             overflowY: 'auto',
             minHeight: 0,
           }}>
-            {navMain.map((item) => {
-              const isActive = pagePath === item.path;
+            {!isLargeScreen && settingsMenuStack.length > 0 ? (() => {
+              const current = settingsMenuStack[settingsMenuStack.length - 1];
+              const isTopLevel = current.children === settingsNav;
               return (
-                <button
-                  key={item.label}
-                  onMouseEnter={() => setHoveredNav(item.label)}
-                  onMouseLeave={() => setHoveredNav(null)}
-                  onClick={() => {
-                    const target = item.path === 'home'
-                      ? `/${lang}/dashboard`
-                      : `/${lang}/dashboard/${item.path}`;
-                    navigate(target);
+                <div
+                  key={settingsSlideKey}
+                  className={settingsClosing ? 'd2-slide-out' : settingsSlideDir === 'forward' ? 'd2-slide-forward' : settingsSlideDir === 'back' ? 'd2-slide-back' : ''}
+                  onAnimationEnd={() => {
+                    if (settingsClosing) {
+                      setSettingsClosing(false);
+                      setSettingsMenuStack([]);
+                      setSettingsSlideDir('');
+                      setNavReturning(true);
+                    } else {
+                      setSettingsSlideDir('');
+                    }
                   }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    padding: '9px 10px',
-                    borderRadius: 6,
-                    border: 'none',
-                    background: (isActive || hoveredNav === item.label) ? C.hover : 'transparent',
-                    color: isActive ? C.textPrimary : C.textSecond,
-                    fontWeight: isActive ? 600 : 500,
-                    transition: 'background 0.15s',
-                    cursor: 'pointer',
-                    fontSize: 13,
-                  }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
                 >
-                  <span style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    width: 18,
-                    justifyContent: 'center',
-                    color: isActive ? C.accent : C.textSecond,
-                    transition: 'color 0.15s',
-                  }}>{item.icon}</span>
-                  <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
-                </button>
+                  {isTopLevel ? (
+                    current.children.map((group) => (
+                      <button
+                        key={group.category}
+                        onMouseEnter={() => setHoveredNav(`settings-cat-${group.category}`)}
+                        onMouseLeave={() => setHoveredNav(null)}
+                        onClick={() => {
+                          setSettingsSlideDir('forward');
+                          setSettingsSlideKey((k) => k + 1);
+                          setSettingsMenuStack((prev) => [...prev, {
+                            parentLabel: group.category,
+                            children: [group],
+                          }]);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          width: '100%',
+                          padding: '9px 10px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: hoveredNav === `settings-cat-${group.category}` ? C.hover : 'transparent',
+                          color: C.textSecond,
+                          fontWeight: 500,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          transition: 'background 0.15s',
+                        }}
+                      >
+                        <span style={{ flex: 1, textAlign: 'left' }}>{group.category}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </button>
+                    ))
+                  ) : (
+                    current.children.map((group) =>
+                      group.links.map((link) => {
+                        const isLinkActive = pagePath === link.path;
+                        return (
+                          <button
+                            key={link.path}
+                            onMouseEnter={() => setHoveredNav(`settings-link-${link.path}`)}
+                            onMouseLeave={() => setHoveredNav(null)}
+                            onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              width: '100%',
+                              padding: '9px 10px',
+                              borderRadius: 6,
+                              border: 'none',
+                              background: (isLinkActive || hoveredNav === `settings-link-${link.path}`) ? C.hover : 'transparent',
+                              color: isLinkActive ? C.textPrimary : C.textSecond,
+                              fontWeight: isLinkActive ? 600 : 400,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                              transition: 'background 0.15s',
+                              textAlign: 'left',
+                            }}
+                          >
+                            {link.label}
+                          </button>
+                        );
+                      })
+                    )
+                  )}
+                </div>
               );
-            })}
-
+            })() : (
+              <div
+                className={navReturning ? 'd2-slide-back' : ''}
+                onAnimationEnd={() => setNavReturning(false)}
+                style={{ display: 'flex', flexDirection: 'column', gap: 2, ...(navReturning ? { opacity: 0 } : {}) }}
+              >
+                {navMain.map((item) => {
+                  const isActive = pagePath === item.path;
+                  return (
+                    <button
+                      key={item.label}
+                      onMouseEnter={() => setHoveredNav(item.label)}
+                      onMouseLeave={() => setHoveredNav(null)}
+                      onClick={() => {
+                        const target = item.path === 'home'
+                          ? `/${lang}/dashboard`
+                          : `/${lang}/dashboard/${item.path}`;
+                        navigate(target);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '9px 10px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: (isActive || hoveredNav === item.label) ? C.hover : 'transparent',
+                        color: isActive ? C.textPrimary : C.textSecond,
+                        fontWeight: isActive ? 600 : 500,
+                        transition: 'background 0.15s',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                      }}
+                    >
+                      <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: 18,
+                        justifyContent: 'center',
+                        color: isActive ? C.accent : C.textSecond,
+                        transition: 'color 0.15s',
+                      }}>{item.icon}</span>
+                      <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </nav>
 
           {/* ── Sidebar footer — Settings, Support, User card, Icon bar (sticky) ── */}
@@ -701,9 +873,15 @@ export default function DashboardPage() {
                 onMouseEnter={() => setHoveredNav('footer-settings')}
                 onMouseLeave={() => setHoveredNav(null)}
                 onClick={() => {
-                  setSettingsSlideDir('forward');
-                  setSettingsSlideKey((k) => k + 1);
-                  setSettingsMenuStack([{ parentLabel: 'Settings', children: settingsNav }]);
+                  if (isLargeScreen) {
+                    // Large screen: just navigate, secondary sidebar handles the rest
+                    navigate(`/${lang}/dashboard/${settingsNav[0].links[0].path}`);
+                  } else {
+                    // Small/tablet: use sliding navigation
+                    setSettingsSlideDir('forward');
+                    setSettingsSlideKey((k) => k + 1);
+                    setSettingsMenuStack([{ parentLabel: 'Settings', children: settingsNav }]);
+                  }
                 }}
                 style={{
                   display: 'flex',
@@ -723,9 +901,11 @@ export default function DashboardPage() {
               >
                 <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: isSettingsActive ? C.accent : C.textSecond }}><SettingsIcon /></span>
                 <span style={{ flex: 1, textAlign: 'left' }}>Settings</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
+                {!isLargeScreen && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                )}
               </button>
 
               {/* Support link */}
@@ -792,7 +972,7 @@ export default function DashboardPage() {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}>
-                    {authUser.firstName} {authUser.lastName}
+                    {capitalize(authUser.firstName)} {capitalize(authUser.lastName)}
                   </span>
                   <VerifiedBadge />
                 </div>
@@ -920,168 +1100,14 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ═══ SETTINGS SUB-MENU OVERLAY (slides over sidebar) ═══ */}
-          {settingsMenuStack.length > 0 && (() => {
-            const current = settingsMenuStack[settingsMenuStack.length - 1];
-            const isTopLevel = current.children === settingsNav;
-            return (
-              <div
-                className={settingsClosing ? 'd2-overlay-close' : ''}
-                onAnimationEnd={() => {
-                  if (settingsClosing) {
-                    setSettingsClosing(false);
-                    setSettingsMenuStack([]);
-                    setSettingsSlideDir('');
-                  }
-                }}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: C.sidebar,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  zIndex: 20,
-                }}>
-                {/* Header — back arrow + label */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '18px 20px 16px 20px',
-                }}>
-                  <button
-                    onClick={() => {
-                      if (settingsMenuStack.length <= 1) {
-                        // Top level → animate the whole overlay out, then clear
-                        setSettingsClosing(true);
-                      } else {
-                        setSettingsSlideDir('back');
-                        setSettingsSlideKey((k) => k + 1);
-                        setSettingsMenuStack((prev) => prev.slice(0, -1));
-                      }
-                    }}
-                    onMouseEnter={() => setHoveredNav('settings-back')}
-                    onMouseLeave={() => setHoveredNav(null)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 32,
-                      height: 32,
-                      borderRadius: 6,
-                      border: 'none',
-                      background: hoveredNav === 'settings-back' ? C.hover : 'transparent',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s',
-                      padding: 0,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <span style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary }}>{current.parentLabel}</span>
-                </div>
-
-                {/* Divider */}
-                <div style={{ padding: '0 16px' }}>
-                  <div style={{ height: 1, background: C.divider, opacity: 0.6 }} />
-                </div>
-
-                {/* Menu items — animated on level change */}
-                <nav
-                  key={settingsSlideKey}
-                  className={settingsSlideDir === 'forward' ? 'd2-slide-forward' : settingsSlideDir === 'back' ? 'd2-slide-back' : ''}
-                  onAnimationEnd={() => setSettingsSlideDir('')}
-                  style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    padding: '10px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                  }}
-                >
-                  {isTopLevel ? (
-                    current.children.map((group) => (
-                      <button
-                        key={group.category}
-                        onMouseEnter={() => setHoveredNav(`settings-cat-${group.category}`)}
-                        onMouseLeave={() => setHoveredNav(null)}
-                        onClick={() => {
-                          setSettingsSlideDir('forward');
-                          setSettingsSlideKey((k) => k + 1);
-                          setSettingsMenuStack((prev) => [...prev, {
-                            parentLabel: group.category,
-                            children: [group],
-                          }]);
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          width: '100%',
-                          padding: '9px 10px',
-                          borderRadius: 6,
-                          border: 'none',
-                          background: hoveredNav === `settings-cat-${group.category}` ? C.hover : 'transparent',
-                          color: C.textSecond,
-                          fontWeight: 500,
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          transition: 'background 0.15s',
-                        }}
-                      >
-                        <span style={{ flex: 1, textAlign: 'left' }}>{group.category}</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                      </button>
-                    ))
-                  ) : (
-                    current.children.map((group) =>
-                      group.links.map((link) => {
-                        const isLinkActive = pagePath === link.path;
-                        return (
-                          <button
-                            key={link.path}
-                            onMouseEnter={() => setHoveredNav(`settings-link-${link.path}`)}
-                            onMouseLeave={() => setHoveredNav(null)}
-                            onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              width: '100%',
-                              padding: '9px 10px',
-                              borderRadius: 6,
-                              border: 'none',
-                              background: (isLinkActive || hoveredNav === `settings-link-${link.path}`) ? C.hover : 'transparent',
-                              color: isLinkActive ? C.textPrimary : C.textSecond,
-                              fontWeight: isLinkActive ? 600 : 400,
-                              fontSize: 13,
-                              cursor: 'pointer',
-                              transition: 'background 0.15s',
-                              textAlign: 'left',
-                            }}
-                          >
-                            {link.label}
-                          </button>
-                        );
-                      })
-                    )
-                  )}
-                </nav>
-              </div>
-            );
-          })()}
+          {/* Old settings overlay removed — settings now renders inline in the nav area above */}
         </aside>
 
         {/* ═══ SETTINGS SECONDARY SIDEBAR (hidden on small screens) ═══ */}
         {isSettingsPage && (
           <aside className="d2-sidebar-scroll d2-settings-sidebar" style={{
-            width: 240,
-            minWidth: 240,
+            width: 260,
+            minWidth: 260,
             background: C.sidebar,
             borderRight: `1px solid ${C.divider}70`,
             height: '100vh',
@@ -1170,57 +1196,26 @@ export default function DashboardPage() {
                 animation: 'd2-spin 0.6s linear infinite',
               }} />
             </div>
-          ) : (<>
+          ) : (<div key={displayedPath} className="d2-page-in" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
 
             {/* ── Page: Home (Dashboard) ── */}
             {pagePath === 'home' && (
-              <>
-                {/* Top header bar */}
-                {/* <header style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '16px 28px 0 28px',
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', color: C.textSecond }}><GridIcon /></span>
-                <span style={{ fontSize: 13, color: C.textSecond, fontWeight: 500 }}>Dashboard</span>
-              </header> */}
-
-                {/* Welcome text */}
-                <div style={{ padding: '24px 28px 20px 28px' }}>
-                  <h1 style={{ fontSize: 24, fontWeight: 600, color: C.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
-                    Home: {authUser.firstName || 'there'}!
-                  </h1>
-                </div>
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+                  Home
+                </h2>
+                <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 28px 0', lineHeight: 1.5 }}>
+                  Welcome back, {capitalize(authUser.firstName) || 'there'}! 👋
+                </p>
 
                 {/* Dashboard cards grid */}
-                <div style={{ padding: '0 28px 28px 28px', flex: 1 }}>
-                  {/* Row 1: 2 cards side by side */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div style={{
-                      background: C.card,
-                      border: `1px solid ${C.cardBorder}`,
-                      borderRadius: 12,
-                      height: 160,
-                    }} />
-                    <div style={{
-                      background: C.card,
-                      border: `1px solid ${C.cardBorder}`,
-                      borderRadius: 12,
-                      height: 160,
-                    }} />
-                  </div>
-
-                  {/* Row 2: 1 full-width card */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                   <div style={{
                     background: C.card,
                     border: `1px solid ${C.cardBorder}`,
                     borderRadius: 12,
-                    height: 200,
-                    marginBottom: 16,
+                    height: 160,
                   }} />
-
-                  {/* Row 3: 1 full-width card */}
                   <div style={{
                     background: C.card,
                     border: `1px solid ${C.cardBorder}`,
@@ -1228,7 +1223,22 @@ export default function DashboardPage() {
                     height: 160,
                   }} />
                 </div>
-              </>
+
+                <div style={{
+                  background: C.card,
+                  border: `1px solid ${C.cardBorder}`,
+                  borderRadius: 12,
+                  height: 200,
+                  marginBottom: 16,
+                }} />
+
+                <div style={{
+                  background: C.card,
+                  border: `1px solid ${C.cardBorder}`,
+                  borderRadius: 12,
+                  height: 160,
+                }} />
+              </div>
             )}
 
             {/* ── Page: Account Settings ── */}
@@ -1241,7 +1251,7 @@ export default function DashboardPage() {
             {/* ── Page: Business Profile ── */}
             {pagePath === 'business' && (
               <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <BusinessProfileContent C={C} isLight={isLight} />
+                <BusinessProfileContent C={C} isLight={isLight} onLogoChange={(url, croppedDataUrl) => { setSidebarLogoUrl(url); if (croppedDataUrl) setSidebarLogoImg(croppedDataUrl); }} />
               </div>
             )}
 
@@ -1332,7 +1342,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-          </>)}
+          </div>)}
         </main>
       </div>
 
@@ -1394,7 +1404,7 @@ export default function DashboardPage() {
 
           {/* Owner name + role */}
           <div style={{ padding: '10px 30px 12px 30px' }}>
-            <div style={{ fontSize: 16, color: C.textPrimary, fontWeight: 700 }}>{authUser.firstName} {authUser.lastName}</div>
+            <div style={{ fontSize: 16, color: C.textPrimary, fontWeight: 700 }}>{capitalize(authUser.firstName)} {capitalize(authUser.lastName)}</div>
             <div style={{ fontSize: 13, color: C.textSecond, fontWeight: 400, marginTop: 2 }}>Owner</div>
           </div>
 
