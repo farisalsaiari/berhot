@@ -4,6 +4,15 @@ import { SlidePanel, Modal, useSessionTimeout } from '@berhot/ui';
 import { useTranslation } from '@berhot/i18n';
 import AccountSettingsContent from './AccountSettingsContent';
 import BusinessProfileContent from './BusinessProfileContent';
+import {
+  SettingsTimezoneContent, SettingsCurrencyContent, SettingsMultiTabContent, SettingsThemeContent,
+  SettingsDisplayPreferencesContent, SettingsNotificationsActionsContent,
+  SettingsInvoiceContent, SettingsSubscriptionContent, SettingsPaymentGatewayContent,
+  SettingsTwoFactorContent, SettingsEncryptionContent,
+  SettingsRoleContent, SettingsTeamContent,
+  SettingsThirdPartyContent, SettingsApiAccessContent,
+  SettingsEmailInappContent, SettingsCustomAlertsContent,
+} from './SettingsContent';
 
 /* ──────────────────────────────────────────────────────────────────
    Dashboard — Dark / Light theme, Lunor-style layout
@@ -244,6 +253,62 @@ const navMain: { label: string; icon: React.ReactNode; path: string }[] = [
   { label: 'Apps', icon: <AppsIcon />, path: 'apps' },
 ];
 
+// ── Settings sidebar navigation config ───────────────────────────
+const settingsNav: { category: string; links: { label: string; path: string }[] }[] = [
+  {
+    category: 'General',
+    links: [
+      { label: 'Time Zone', path: 'settings/timezone' },
+      { label: 'Currency', path: 'settings/currency' },
+      { label: 'Enable Multi-Tab Login', path: 'settings/multi-tab' },
+      { label: 'Theme Settings', path: 'settings/theme' },
+    ],
+  },
+  {
+    category: 'Schedules',
+    links: [
+      { label: 'Display Preferences', path: 'settings/display-preferences' },
+      { label: 'Notifications & Actions', path: 'settings/notifications-actions' },
+    ],
+  },
+  {
+    category: 'Billing & Payment',
+    links: [
+      { label: 'Invoice', path: 'settings/invoice' },
+      { label: 'Subscription Management', path: 'settings/subscription' },
+      { label: 'Payment Gateway', path: 'settings/payment-gateway' },
+    ],
+  },
+  {
+    category: 'Privacy & Security',
+    links: [
+      { label: 'Two-factor Authentication', path: 'settings/two-factor' },
+      { label: 'Data Encryption', path: 'settings/encryption' },
+    ],
+  },
+  {
+    category: 'User Permissions',
+    links: [
+      { label: 'Role', path: 'settings/role' },
+      { label: 'Team', path: 'settings/team' },
+    ],
+  },
+  {
+    category: 'Integrations',
+    links: [
+      { label: 'Third-party', path: 'settings/third-party' },
+      { label: 'API Access', path: 'settings/api-access' },
+    ],
+  },
+  {
+    category: 'Notification',
+    links: [
+      { label: 'Email and In-app', path: 'settings/email-inapp' },
+      { label: 'Custom Alerts', path: 'settings/custom-alerts' },
+    ],
+  },
+];
+
 // ── Main component ──────────────────────────────────────────────
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -252,6 +317,12 @@ export default function DashboardPage() {
   const lang = i18nLang || window.location.pathname.split('/')[1] || 'en';
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [hoveredPanel, setHoveredPanel] = useState<string | null>(null);
+  const [hoveredSettingsLink, setHoveredSettingsLink] = useState<string | null>(null);
+  // Settings sub-menu stack for small-screen sidebar navigation
+  const [settingsMenuStack, setSettingsMenuStack] = useState<{ parentLabel: string; children: typeof settingsNav }[]>([]);
+  const [settingsSlideDir, setSettingsSlideDir] = useState<'forward' | 'back' | ''>('');
+  const [settingsSlideKey, setSettingsSlideKey] = useState(0);
+  const [settingsClosing, setSettingsClosing] = useState(false);
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [showLangPanel, setShowLangPanel] = useState(false);
   const [selectedLang, setSelectedLang] = useState(lang);
@@ -311,6 +382,37 @@ export default function DashboardPage() {
 
   // Determine which page to show — uses displayedPath (not location) to avoid flash
   const pagePath = displayedPath.replace(`/${lang}/dashboard`, '').replace(/^\//, '') || 'home';
+  const isSettingsPage = pagePath.startsWith('settings');
+  const isSettingsActive = pagePath === 'account' || isSettingsPage;
+
+  // Redirect bare /settings to /settings/timezone
+  useEffect(() => {
+    if (pagePath === 'settings') {
+      navigate(`/${lang}/dashboard/settings/timezone`, { replace: true });
+    }
+  }, [pagePath, lang, navigate]);
+
+  // Auto-open settings submenu on page load if on a settings page
+  useEffect(() => {
+    if (isSettingsPage && settingsMenuStack.length === 0) {
+      // Find which category the current page belongs to
+      const currentGroup = settingsNav.find((g) => g.links.some((l) => pagePath === l.path));
+      if (currentGroup) {
+        setSettingsMenuStack([
+          { parentLabel: 'Settings', children: settingsNav },
+          { parentLabel: currentGroup.category, children: [currentGroup] },
+        ]);
+      } else {
+        setSettingsMenuStack([{ parentLabel: 'Settings', children: settingsNav }]);
+      }
+    }
+    // Close submenu when navigating away from settings
+    if (!isSettingsPage && settingsMenuStack.length > 0) {
+      setSettingsMenuStack([]);
+      setSettingsSlideDir('');
+      setSettingsClosing(false);
+    }
+  }, [isSettingsPage, pagePath]);
 
   // Page transition — after URL changes, wait then reveal new content
   useEffect(() => {
@@ -368,6 +470,14 @@ export default function DashboardPage() {
       .d2-main-scroll::-webkit-scrollbar { display: none; }
       .d2-main-scroll { -ms-overflow-style: none; scrollbar-width: none; }
       @keyframes d2-spin { to { transform: rotate(360deg); } }
+      @keyframes d2-slide-forward { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes d2-slide-back { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes d2-overlay-close { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-40px); opacity: 0; } }
+      .d2-slide-forward { animation: d2-slide-forward 0.18s ease-out forwards; }
+      .d2-slide-back { animation: d2-slide-back 0.18s ease-out forwards; }
+      .d2-overlay-close { animation: d2-overlay-close 0.18s ease-out forwards; }
+      .d2-settings-sidebar { display: flex; }
+      @media (max-width: 1366px) { .d2-settings-sidebar { display: none !important; } }
     `}</style>
 
       {/* ═══ THEME SWITCH SPINNER OVERLAY ═══ */}
@@ -430,6 +540,7 @@ export default function DashboardPage() {
           borderRight: `1px solid ${C.divider}70`,
           height: '100vh',
           overflow: 'hidden',
+          position: 'relative',
         }}>
 
           {/* Sidebar header — logo + brand + collapse icon */}
@@ -589,7 +700,11 @@ export default function DashboardPage() {
               <button
                 onMouseEnter={() => setHoveredNav('footer-settings')}
                 onMouseLeave={() => setHoveredNav(null)}
-                onClick={() => navigate(`/${lang}/dashboard/account`)}
+                onClick={() => {
+                  setSettingsSlideDir('forward');
+                  setSettingsSlideKey((k) => k + 1);
+                  setSettingsMenuStack([{ parentLabel: 'Settings', children: settingsNav }]);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -598,16 +713,19 @@ export default function DashboardPage() {
                   padding: '9px 10px',
                   borderRadius: 6,
                   border: 'none',
-                  background: (pagePath === 'account' || hoveredNav === 'footer-settings') ? C.hover : 'transparent',
-                  color: pagePath === 'account' ? C.textPrimary : C.textSecond,
+                  background: (isSettingsActive || hoveredNav === 'footer-settings') ? C.hover : 'transparent',
+                  color: isSettingsActive ? C.textPrimary : C.textSecond,
                   cursor: 'pointer',
                   fontSize: 13,
-                  fontWeight: pagePath === 'account' ? 600 : 500,
+                  fontWeight: isSettingsActive ? 600 : 500,
                   transition: 'background 0.15s',
                 }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: pagePath === 'account' ? C.accent : C.textSecond }}><SettingsIcon /></span>
+                <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: isSettingsActive ? C.accent : C.textSecond }}><SettingsIcon /></span>
                 <span style={{ flex: 1, textAlign: 'left' }}>Settings</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
               </button>
 
               {/* Support link */}
@@ -801,7 +919,236 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+
+          {/* ═══ SETTINGS SUB-MENU OVERLAY (slides over sidebar) ═══ */}
+          {settingsMenuStack.length > 0 && (() => {
+            const current = settingsMenuStack[settingsMenuStack.length - 1];
+            const isTopLevel = current.children === settingsNav;
+            return (
+              <div
+                className={settingsClosing ? 'd2-overlay-close' : ''}
+                onAnimationEnd={() => {
+                  if (settingsClosing) {
+                    setSettingsClosing(false);
+                    setSettingsMenuStack([]);
+                    setSettingsSlideDir('');
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: C.sidebar,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  zIndex: 20,
+                }}>
+                {/* Header — back arrow + label */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '18px 20px 16px 20px',
+                }}>
+                  <button
+                    onClick={() => {
+                      if (settingsMenuStack.length <= 1) {
+                        // Top level → animate the whole overlay out, then clear
+                        setSettingsClosing(true);
+                      } else {
+                        setSettingsSlideDir('back');
+                        setSettingsSlideKey((k) => k + 1);
+                        setSettingsMenuStack((prev) => prev.slice(0, -1));
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredNav('settings-back')}
+                    onMouseLeave={() => setHoveredNav(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 32,
+                      height: 32,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: hoveredNav === 'settings-back' ? C.hover : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                      padding: 0,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <span style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary }}>{current.parentLabel}</span>
+                </div>
+
+                {/* Divider */}
+                <div style={{ padding: '0 16px' }}>
+                  <div style={{ height: 1, background: C.divider, opacity: 0.6 }} />
+                </div>
+
+                {/* Menu items — animated on level change */}
+                <nav
+                  key={settingsSlideKey}
+                  className={settingsSlideDir === 'forward' ? 'd2-slide-forward' : settingsSlideDir === 'back' ? 'd2-slide-back' : ''}
+                  onAnimationEnd={() => setSettingsSlideDir('')}
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    padding: '10px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                  }}
+                >
+                  {isTopLevel ? (
+                    current.children.map((group) => (
+                      <button
+                        key={group.category}
+                        onMouseEnter={() => setHoveredNav(`settings-cat-${group.category}`)}
+                        onMouseLeave={() => setHoveredNav(null)}
+                        onClick={() => {
+                          setSettingsSlideDir('forward');
+                          setSettingsSlideKey((k) => k + 1);
+                          setSettingsMenuStack((prev) => [...prev, {
+                            parentLabel: group.category,
+                            children: [group],
+                          }]);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          width: '100%',
+                          padding: '9px 10px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: hoveredNav === `settings-cat-${group.category}` ? C.hover : 'transparent',
+                          color: C.textSecond,
+                          fontWeight: 500,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          transition: 'background 0.15s',
+                        }}
+                      >
+                        <span style={{ flex: 1, textAlign: 'left' }}>{group.category}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </button>
+                    ))
+                  ) : (
+                    current.children.map((group) =>
+                      group.links.map((link) => {
+                        const isLinkActive = pagePath === link.path;
+                        return (
+                          <button
+                            key={link.path}
+                            onMouseEnter={() => setHoveredNav(`settings-link-${link.path}`)}
+                            onMouseLeave={() => setHoveredNav(null)}
+                            onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              width: '100%',
+                              padding: '9px 10px',
+                              borderRadius: 6,
+                              border: 'none',
+                              background: (isLinkActive || hoveredNav === `settings-link-${link.path}`) ? C.hover : 'transparent',
+                              color: isLinkActive ? C.textPrimary : C.textSecond,
+                              fontWeight: isLinkActive ? 600 : 400,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                              transition: 'background 0.15s',
+                              textAlign: 'left',
+                            }}
+                          >
+                            {link.label}
+                          </button>
+                        );
+                      })
+                    )
+                  )}
+                </nav>
+              </div>
+            );
+          })()}
         </aside>
+
+        {/* ═══ SETTINGS SECONDARY SIDEBAR (hidden on small screens) ═══ */}
+        {isSettingsPage && (
+          <aside className="d2-sidebar-scroll d2-settings-sidebar" style={{
+            width: 240,
+            minWidth: 240,
+            background: C.sidebar,
+            borderRight: `1px solid ${C.divider}70`,
+            height: '100vh',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '24px 0',
+          }}>
+            {/* Settings header */}
+            <div style={{ padding: '0 20px 20px 20px' }}>
+              <h2 style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: C.textPrimary,
+                margin: 0,
+                letterSpacing: '-0.01em',
+              }}>
+                General Settings
+              </h2>
+            </div>
+
+            {/* Category groups */}
+            {settingsNav.map((group) => (
+              <div key={group.category} style={{ marginBottom: 16 }}>
+                {/* Category header */}
+                <div style={{
+                  padding: '8px 20px 4px 20px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: C.textDim,
+                  letterSpacing: '0.03em',
+                }}>
+                  {group.category}
+                </div>
+
+                {/* Links */}
+                {group.links.map((link) => {
+                  const isLinkActive = pagePath === link.path;
+                  return (
+                    <button
+                      key={link.path}
+                      onMouseEnter={() => setHoveredSettingsLink(link.path)}
+                      onMouseLeave={() => setHoveredSettingsLink(null)}
+                      onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '7px 20px',
+                        border: 'none',
+                        background: (isLinkActive || hoveredSettingsLink === link.path) ? C.hover : 'transparent',
+                        color: isLinkActive ? C.textPrimary : C.textSecond,
+                        fontWeight: isLinkActive ? 600 : 400,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s, color 0.15s',
+                        borderRadius: 0,
+                      }}
+                    >
+                      {link.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </aside>
+        )}
 
         {/* ═══ MAIN CONTENT ═══ */}
         <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100vh', position: 'relative', background: C.bg }}>
@@ -895,6 +1242,93 @@ export default function DashboardPage() {
             {pagePath === 'business' && (
               <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
                 <BusinessProfileContent C={C} isLight={isLight} />
+              </div>
+            )}
+
+            {/* ── Settings sub-pages ── */}
+            {pagePath === 'settings/timezone' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsTimezoneContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/currency' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsCurrencyContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/multi-tab' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsMultiTabContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/theme' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsThemeContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/display-preferences' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsDisplayPreferencesContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/notifications-actions' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsNotificationsActionsContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/invoice' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsInvoiceContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/subscription' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsSubscriptionContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/payment-gateway' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsPaymentGatewayContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/two-factor' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsTwoFactorContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/encryption' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsEncryptionContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/role' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsRoleContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/team' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsTeamContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/third-party' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsThirdPartyContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/api-access' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsApiAccessContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/email-inapp' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsEmailInappContent C={C} isLight={isLight} />
+              </div>
+            )}
+            {pagePath === 'settings/custom-alerts' && (
+              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <SettingsCustomAlertsContent C={C} isLight={isLight} />
               </div>
             )}
 
