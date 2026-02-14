@@ -102,23 +102,37 @@ func (h *TenantHandler) HandleGetMyTenant(c *gin.Context) {
 	var name, slug, status, plan string
 	var countryCode, regionID, cityID sql.NullString
 	var logoURL, coverURL, registrationNo sql.NullString
+	var logoShape sql.NullString
+	var showBusinessName sql.NullBool
 	var createdAt time.Time
 	err := h.DB.QueryRow(
 		`SELECT name, slug, status, plan, country_code, region_id::text, city_id::text,
-		        COALESCE(logo_url,''), COALESCE(cover_url,''), COALESCE(registration_no,''), created_at
+		        COALESCE(logo_url,''), COALESCE(cover_url,''), COALESCE(registration_no,''),
+		        COALESCE(logo_shape,'square'), COALESCE(show_business_name,true),
+		        created_at
 		 FROM tenants WHERE id = $1`,
 		tenantID,
 	).Scan(&name, &slug, &status, &plan, &countryCode, &regionID, &cityID,
-		&logoURL, &coverURL, &registrationNo, &createdAt)
+		&logoURL, &coverURL, &registrationNo, &logoShape, &showBusinessName, &createdAt)
 	if err != nil {
 		c.JSON(404, gin.H{"error": "Tenant not found"})
 		return
+	}
+
+	shape := "square"
+	if logoShape.Valid && logoShape.String != "" {
+		shape = logoShape.String
+	}
+	showName := true
+	if showBusinessName.Valid {
+		showName = showBusinessName.Bool
 	}
 
 	c.JSON(200, gin.H{
 		"id": tenantID, "name": name, "slug": slug, "status": status, "plan": plan,
 		"countryCode": countryCode.String, "regionId": regionID.String, "cityId": cityID.String,
 		"logoUrl": logoURL.String, "coverUrl": coverURL.String, "registrationNo": registrationNo.String,
+		"logoShape": shape, "showBusinessName": showName,
 		"createdAt": createdAt,
 	})
 }
@@ -132,14 +146,23 @@ func (h *TenantHandler) HandleUpdateMyTenant(c *gin.Context) {
 	}
 
 	var req struct {
-		Name           string `json:"name"`
-		CountryCode    string `json:"countryCode"`
-		RegionID       string `json:"regionId"`
-		CityID         string `json:"cityId"`
-		RegistrationNo string `json:"registrationNo"`
+		Name             string `json:"name"`
+		CountryCode      string `json:"countryCode"`
+		RegionID         string `json:"regionId"`
+		CityID           string `json:"cityId"`
+		RegistrationNo   string `json:"registrationNo"`
+		LogoShape        string `json:"logoShape"`
+		ShowBusinessName *bool  `json:"showBusinessName"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate logo shape
+	validShapes := map[string]bool{"square": true, "circle": true, "rectangle": true}
+	if req.LogoShape != "" && !validShapes[req.LogoShape] {
+		c.JSON(400, gin.H{"error": "Invalid logo shape. Allowed: square, circle, rectangle"})
 		return
 	}
 
@@ -150,9 +173,12 @@ func (h *TenantHandler) HandleUpdateMyTenant(c *gin.Context) {
 			region_id = CASE WHEN $3 = '' THEN region_id ELSE $3::uuid END,
 			city_id = CASE WHEN $4 = '' THEN city_id ELSE $4::uuid END,
 			registration_no = COALESCE(NULLIF($5,''), registration_no),
+			logo_shape = COALESCE(NULLIF($6,''), logo_shape),
+			show_business_name = COALESCE($7, show_business_name),
 			updated_at = NOW()
-		WHERE id = $6`,
-		req.Name, req.CountryCode, req.RegionID, req.CityID, req.RegistrationNo, tenantID,
+		WHERE id = $8`,
+		req.Name, req.CountryCode, req.RegionID, req.CityID, req.RegistrationNo,
+		req.LogoShape, req.ShowBusinessName, tenantID,
 	)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Update failed", "details": err.Error()})

@@ -311,11 +311,10 @@ export function Layout() {
     <button
       key={item.key}
       onClick={() => handleNavItemClick(item)}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-0.5 ${
-        activeKey === item.key
-          ? 'bg-gray-100 text-gray-900 font-medium'
-          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-      }`}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-0.5 ${activeKey === item.key
+        ? 'bg-gray-100 text-gray-900 font-medium'
+        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        }`}
     >
       <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d={item.icon} />
@@ -333,9 +332,8 @@ export function Layout() {
   const subMenuView = currentSubMenu ? (
     <div
       key={subMenuStack.length}
-      className={`absolute inset-0 bg-white flex flex-col ${
-        slideAnim === 'in' ? 'animate-submenu-in' : slideAnim === 'out' ? 'animate-submenu-out' : ''
-      }`}
+      className={`absolute inset-0 bg-white flex flex-col ${slideAnim === 'in' ? 'animate-submenu-in' : slideAnim === 'out' ? 'animate-submenu-out' : ''
+        }`}
     >
       {/* Back button with parent label */}
       <button
@@ -356,9 +354,8 @@ export function Layout() {
             <button
               key={idx}
               onClick={() => handleChildClick(child)}
-              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm transition-colors mb-0.5 ${
-                isActive ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm transition-colors mb-0.5 ${isActive ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-50'
+                }`}
             >
               <span className="font-medium">{child.label}</span>
               {child.children && child.children.length > 0 && (
@@ -403,9 +400,8 @@ export function Layout() {
       {/* Nav area — sub-menu overlays this section only */}
       <div className="flex-1 relative overflow-hidden min-h-0">
         {/* Root nav (hidden when sub-menu is open, animates back from left when returning) */}
-        <nav className={`px-3 py-1 overflow-y-auto h-full ${
-          currentSubMenu ? 'invisible' : slideAnim === 'out' ? 'animate-submenu-out' : ''
-        }`}>
+        <nav className={`px-3 py-1 overflow-y-auto h-full ${currentSubMenu ? 'invisible' : slideAnim === 'out' ? 'animate-submenu-out' : ''
+          }`}>
           {NAV_ITEMS.map((item) => renderNavButton(item))}
           <div className="h-px bg-gray-200 my-3 mx-1" />
           {BOTTOM_NAV_ITEMS.map((item) => renderNavButton(item))}
@@ -556,7 +552,7 @@ export function Layout() {
         </header>
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto relative">
           <Outlet />
         </div>
       </div>

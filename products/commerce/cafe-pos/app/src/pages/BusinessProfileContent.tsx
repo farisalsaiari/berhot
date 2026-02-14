@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from '@berhot/i18n';
 
 /* ──────────────────────────────────────────────────────────────────
    Business Profile — Company settings page
@@ -25,6 +27,7 @@ interface Theme {
   divider: string;
   textPrimary: string;
   textSecond: string;
+  textLight: string;
   textDim: string;
   accent: string;
   btnBg: string;
@@ -32,12 +35,19 @@ interface Theme {
 }
 
 interface Region { id: string; code: string; nameEn: string; nameAr: string }
-interface City   { id: string; nameEn: string; nameAr: string }
+interface City { id: string; nameEn: string; nameAr: string }
+
+interface LogoSettings {
+  logoShape: 'square' | 'circle' | 'rectangle';
+  showBusinessName: boolean;
+}
 
 interface BusinessProfileContentProps {
   C: Theme;
   isLight: boolean;
   onLogoChange?: (url: string, croppedDataUrl?: string) => void;
+  onBusinessNameChange?: (name: string) => void;
+  onLogoSettingsChange?: (settings: LogoSettings) => void;
 }
 
 function getAccessToken(): string {
@@ -48,16 +58,64 @@ function getAccessToken(): string {
   return '';
 }
 
+// Refresh the access token using the refresh token
+async function refreshAccessToken(): Promise<string> {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (!s) return '';
+    const stored = JSON.parse(s);
+    if (!stored.refreshToken) return '';
+
+    const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: stored.refreshToken }),
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    if (data.accessToken) {
+      stored.accessToken = data.accessToken;
+      if (data.refreshToken) stored.refreshToken = data.refreshToken;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+      return data.accessToken;
+    }
+  } catch { /* ignore */ }
+  return '';
+}
+
+// Fetch with automatic token refresh on 401
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  let token = getAccessToken();
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...options.headers as Record<string, string>, Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    token = await refreshAccessToken();
+    if (token) {
+      return fetch(url, {
+        ...options,
+        headers: { ...options.headers as Record<string, string>, Authorization: `Bearer ${token}` },
+      });
+    }
+  }
+  return res;
+}
+
 /* ── Logo Crop Modal ─────────────────────────────────────────────
    Shows a square crop overlay the user can drag & resize over the image.
    Returns { x, y, size } as percentages (0–100) of the original image.
    ─────────────────────────────────────────────────────────────────── */
-function LogoCropModal({ src, C, onConfirm, onSkip, onCancel }: {
+function LogoCropModal({ src, C, isLight, onConfirm, onSkip, onCancel, t, initialCropPct, isReCrop }: {
   src: string;
   C: Theme;
-  onConfirm: (croppedDataUrl: string) => void;
+  isLight: boolean;
+  onConfirm: (croppedDataUrl: string, cropPct: { x: number; y: number; size: number }) => void;
   onSkip: () => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
   onCancel: () => void;
+  initialCropPct?: { x: number; y: number; size: number } | null;
+  isReCrop?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
@@ -65,14 +123,31 @@ function LogoCropModal({ src, C, onConfirm, onSkip, onCancel }: {
   const [crop, setCrop] = useState({ x: 0, y: 0, size: 0 });
   const [dragging, setDragging] = useState<'move' | 'resize' | null>(null);
   const dragStart = useRef({ mx: 0, my: 0, cx: 0, cy: 0, cs: 0 });
+  // If image is already square, hide crop overlay by default
+  const [cropActive, setCropActive] = useState(false);
 
   const onImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     const w = img.clientWidth;
     const h = img.clientHeight;
     setImgSize({ w, h });
-    const s = Math.min(w, h) * 0.7;
-    setCrop({ x: (w - s) / 2, y: (h - s) / 2, size: s });
+    // If re-cropping with a previous crop position, restore it
+    if (isReCrop && initialCropPct) {
+      const cx = (initialCropPct.x / 100) * w;
+      const cy = (initialCropPct.y / 100) * h;
+      const cs = (initialCropPct.size / 100) * Math.min(w, h);
+      setCrop({ x: cx, y: cy, size: cs });
+      setCropActive(true);
+    } else if (isReCrop) {
+      // Re-crop with no saved position — prepare default crop but keep overlay hidden until user toggles it
+      const s = Math.min(w, h) * 0.7;
+      setCrop({ x: (w - s) / 2, y: (h - s) / 2, size: s });
+      setCropActive(false);
+    } else {
+      const s = Math.min(w, h) * 0.7;
+      setCrop({ x: (w - s) / 2, y: (h - s) / 2, size: s });
+      setCropActive(false);
+    }
   };
 
   const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
@@ -107,30 +182,70 @@ function LogoCropModal({ src, C, onConfirm, onSkip, onCancel }: {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [dragging, imgSize]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!imgSize.w || !imgSize.h) return;
     const img = containerRef.current?.querySelector('img');
     if (!img) return;
     const natW = img.naturalWidth;
     const natH = img.naturalHeight;
+
+    // If crop is not active, use the full image as-is (skip cropping)
+    if (!cropActive) {
+      onSkip();
+      return;
+    }
+
     const scaleX = natW / imgSize.w;
     const scaleY = natH / imgSize.h;
-    // Crop on canvas at natural resolution
-    const canvas = document.createElement('canvas');
-    const outputSize = 256; // high-res square output
-    canvas.width = outputSize;
-    canvas.height = outputSize;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(
-      img,
-      crop.x * scaleX, crop.y * scaleY, crop.size * scaleX, crop.size * scaleY,
-      0, 0, outputSize, outputSize,
-    );
-    onConfirm(canvas.toDataURL('image/png'));
+
+    // Save crop position as percentages for restoring later
+    const cropPct = {
+      x: (crop.x / imgSize.w) * 100,
+      y: (crop.y / imgSize.h) * 100,
+      size: (crop.size / Math.min(imgSize.w, imgSize.h)) * 100,
+    };
+
+    // Helper to draw crop on canvas
+    const drawCrop = (source: CanvasImageSource) => {
+      const canvas = document.createElement('canvas');
+      const outputSize = 256; // high-res square output
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(
+        source,
+        crop.x * scaleX, crop.y * scaleY, crop.size * scaleX, crop.size * scaleY,
+        0, 0, outputSize, outputSize,
+      );
+      return canvas.toDataURL('image/png');
+    };
+
+    // Try direct canvas draw first
+    try {
+      const result = drawCrop(img);
+      if (result) { onConfirm(result, cropPct); return; }
+    } catch { /* tainted canvas — fall through to blob fetch */ }
+
+    // Fallback: fetch image as blob to avoid cross-origin taint
+    try {
+      const resp = await fetch(src, { mode: 'cors' });
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const freshImg = new Image();
+      freshImg.onload = () => {
+        try {
+          const result = drawCrop(freshImg);
+          if (result) onConfirm(result, cropPct);
+        } finally {
+          URL.revokeObjectURL(blobUrl);
+        }
+      };
+      freshImg.src = blobUrl;
+    } catch { /* ignore */ }
   };
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', inset: 0, zIndex: 99999,
       background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -140,67 +255,87 @@ function LogoCropModal({ src, C, onConfirm, onSkip, onCancel }: {
         display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.textPrimary }}>
-          Adjust logo area
+          {t('businessProfile.adjustLogoArea')}
         </h3>
         <p style={{ margin: 0, fontSize: 13, color: C.textSecond }}>
-          Drag to position, drag corner to resize. This area will show in the sidebar.
+          {t('businessProfile.cropDescription')}
         </p>
         <div ref={containerRef} style={{ position: 'relative', overflow: 'hidden', borderRadius: 8, background: '#f0f0f0', userSelect: 'none' }}>
-          <img src={src} alt="Crop preview" onLoad={onImgLoad} style={{ display: 'block', maxWidth: '100%', maxHeight: 350 }} draggable={false} />
+          <img src={src} alt="Crop preview" onLoad={onImgLoad} crossOrigin="anonymous" style={{ display: 'block', maxWidth: '100%', maxHeight: 350 }} draggable={false} />
           {imgSize.w > 0 && (<>
-            {/* Dark overlay with hole */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-              <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
-                <defs>
-                  <mask id="crop-mask">
-                    <rect width="100%" height="100%" fill="white" />
-                    <rect x={crop.x} y={crop.y} width={crop.size} height={crop.size} fill="black" rx="4" />
-                  </mask>
-                </defs>
-                <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#crop-mask)" />
-              </svg>
-            </div>
-            {/* Draggable crop area */}
-            <div
-              onMouseDown={(e) => onMouseDown(e, 'move')}
+            {cropActive && (<>
+              {/* Dark overlay with hole */}
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+                  <defs>
+                    <mask id="crop-mask">
+                      <rect width="100%" height="100%" fill="white" />
+                      <rect x={crop.x} y={crop.y} width={crop.size} height={crop.size} fill="black" rx="4" />
+                    </mask>
+                  </defs>
+                  <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#crop-mask)" />
+                </svg>
+              </div>
+              {/* Draggable crop area */}
+              <div
+                onMouseDown={(e) => onMouseDown(e, 'move')}
+                style={{
+                  position: 'absolute',
+                  left: crop.x, top: crop.y, width: crop.size, height: crop.size,
+                  border: '2px solid #fff', borderRadius: 4, cursor: 'move', boxSizing: 'border-box',
+                }}
+              >
+                {/* Resize handle — bottom right */}
+                <div
+                  onMouseDown={(e) => onMouseDown(e, 'resize')}
+                  style={{
+                    position: 'absolute', right: -5, bottom: -5, width: 12, height: 12,
+                    background: '#fff', borderRadius: 3, cursor: 'nwse-resize',
+                    border: '1px solid rgba(0,0,0,0.2)',
+                  }}
+                />
+              </div>
+            </>)}
+            {/* Crop toggle icon — top right of preview */}
+            <button
+              onClick={() => setCropActive(!cropActive)}
+              title={cropActive ? t('businessProfile.hideCrop') : t('businessProfile.showCrop')}
               style={{
-                position: 'absolute',
-                left: crop.x, top: crop.y, width: crop.size, height: crop.size,
-                border: '2px solid #fff', borderRadius: 4, cursor: 'move', boxSizing: 'border-box',
+                position: 'absolute', top: 8, insetInlineEnd: 8,
+                width: 32, height: 32, borderRadius: 8,
+                background: cropActive ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.5)',
+                border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+                zIndex: 2,
               }}
             >
-              {/* Resize handle — bottom right */}
-              <div
-                onMouseDown={(e) => onMouseDown(e, 'resize')}
-                style={{
-                  position: 'absolute', right: -5, bottom: -5, width: 12, height: 12,
-                  background: '#fff', borderRadius: 3, cursor: 'nwse-resize',
-                  border: '1px solid rgba(0,0,0,0.2)',
-                }}
-              />
-            </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={cropActive ? '#1a1a1a' : '#ffffff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6.13 1L6 16a2 2 0 002 2h15" />
+                <path d="M1 6.13L16 6a2 2 0 012 2v15" />
+              </svg>
+            </button>
           </>)}
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button onClick={onCancel} style={{
             padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.divider}`,
             background: 'transparent', color: C.textSecond, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}>Cancel</button>
-          <button onClick={onSkip} style={{
-            padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.divider}`,
-            background: 'transparent', color: C.textSecond, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}>Skip crop</button>
+          }}>{t('businessProfile.cancel')}</button>
           <button onClick={handleConfirm} style={{
             padding: '8px 20px', borderRadius: 8, border: 'none',
-            background: C.btnBg, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}>Apply</button>
+            background: C.accent === '#000000' && !isLight ? '#e5e7eb' : C.accent, color: C.accent === '#000000' && !isLight ? '#000000' : '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}>{t('businessProfile.confirm')}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
-export default function BusinessProfileContent({ C, isLight, onLogoChange }: BusinessProfileContentProps) {
+export default function BusinessProfileContent({ C, isLight, onLogoChange, onBusinessNameChange, onLogoSettingsChange }: BusinessProfileContentProps) {
+  const { t } = useTranslation();
   // ── Form state ──
   const [businessName, setBusinessName] = useState('');
   const [registrationNo, setRegistrationNo] = useState('');
@@ -209,6 +344,9 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
   const [cityId, setCityId] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
+  // ── Logo display settings ──
+  const [logoShape, setLogoShape] = useState<'square' | 'circle' | 'rectangle'>('square');
+  const [showBusinessName, setShowBusinessName] = useState(true);
 
   // ── Dropdown data ──
   const [regions, setRegions] = useState<Region[]>([]);
@@ -225,6 +363,21 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
   const [cropModalSrc, setCropModalSrc] = useState('');
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const [reCropping, setReCropping] = useState(false);
+  // Last crop position as percentages — for restoring on re-crop (persisted in localStorage)
+  const [lastCropPct, setLastCropPct] = useState<{ x: number; y: number; size: number } | null>(() => {
+    try {
+      const saved = localStorage.getItem('berhot_last_crop_pct');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  // Cropped logo data URL — matches what sidebar displays
+  const [logoCroppedUrl, setLogoCroppedUrl] = useState(() => {
+    try { return localStorage.getItem('berhot_sidebar_logo') || ''; } catch { return ''; }
+  });
+  // Original (uncropped) logo data URL — used for re-cropping to avoid progressive zoom
+  const [logoOriginalUrl, setLogoOriginalUrl] = useState(() => {
+    try { return localStorage.getItem('berhot_logo_original') || ''; } catch { return ''; }
+  });
 
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -234,10 +387,11 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
     const token = getAccessToken();
     if (!token) { setLoading(false); return; }
 
-    fetch(`${API_URL}/api/v1/tenants/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
+    authFetch(`${API_URL}/api/v1/tenants/me`)
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch tenant');
+        return r.json();
+      })
       .then(data => {
         setBusinessName(data.name || '');
         setRegistrationNo(data.registrationNo || '');
@@ -246,8 +400,10 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
         setCityId(data.cityId || '');
         setLogoUrl(data.logoUrl || '');
         setCoverUrl(data.coverUrl || '');
+        if (data.logoShape) setLogoShape(data.logoShape);
+        if (typeof data.showBusinessName === 'boolean') setShowBusinessName(data.showBusinessName);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -282,8 +438,8 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
 
   // ── Validate file before upload ──
   const validateFile = (file: File): string | null => {
-    if (file.size > MAX_FILE_SIZE) return 'File too large. Maximum size is 5MB';
-    if (!ALLOWED_TYPES.includes(file.type)) return 'Invalid file type. Allowed: JPG, PNG, SVG, WebP';
+    if (file.size > MAX_FILE_SIZE) return t('businessProfile.fileTooLarge');
+    if (!ALLOWED_TYPES.includes(file.type)) return t('businessProfile.invalidFileType');
     return null;
   };
 
@@ -300,9 +456,8 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(`${API_URL}/api/v1/tenants/me/${type}`, {
+      const res = await authFetch(`${API_URL}/api/v1/tenants/me/${type}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
         body: formData,
       });
 
@@ -338,13 +493,29 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
       const error = validateFile(file);
       if (error) { setUploadError(error); setTimeout(() => setUploadError(''), 3000); return; }
       setPendingLogoFile(file);
-      setCropModalSrc(URL.createObjectURL(file));
+      const objectUrl = URL.createObjectURL(file);
+      setCropModalSrc(objectUrl);
+      // Save original image as data URL for future re-cropping (avoids CORS + progressive zoom)
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setLogoOriginalUrl(dataUrl);
+        try { localStorage.setItem('berhot_logo_original', dataUrl); } catch { /* ignore */ }
+      };
+      reader.readAsDataURL(file);
     }
     e.target.value = '';
   };
 
-  const handleCropConfirm = async (croppedDataUrl: string) => {
+  const handleCropConfirm = async (croppedDataUrl: string, cropPct?: { x: number; y: number; size: number }) => {
     setCropModalSrc('');
+    setLogoCroppedUrl(croppedDataUrl);
+    const pct = cropPct || null;
+    setLastCropPct(pct);
+    try {
+      if (pct) localStorage.setItem('berhot_last_crop_pct', JSON.stringify(pct));
+      else localStorage.removeItem('berhot_last_crop_pct');
+    } catch { /* ignore */ }
     if (reCropping) {
       // Re-cropping existing logo — just update localStorage and sidebar
       try { localStorage.setItem('berhot_sidebar_logo', croppedDataUrl); } catch { /* ignore */ }
@@ -359,6 +530,9 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
 
   const handleCropSkip = async () => {
     setCropModalSrc('');
+    setLogoCroppedUrl('');
+    setLastCropPct(null);
+    try { localStorage.removeItem('berhot_last_crop_pct'); } catch { /* ignore */ }
     if (reCropping) {
       // Re-cropping skipped — clear crop, use original logo
       try { localStorage.removeItem('berhot_sidebar_logo'); } catch { /* ignore */ }
@@ -384,7 +558,9 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
     e.stopPropagation();
     if (!logoUrl) return;
     setReCropping(true);
-    setCropModalSrc(resolveImg(logoUrl));
+    // Use the original uncropped image to avoid progressive zoom on re-crop.
+    // Priority: original data URL (localStorage) > server URL (may have CORS issues)
+    setCropModalSrc(logoOriginalUrl || resolveImg(logoUrl));
   };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -397,11 +573,10 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/tenants/me`, {
+      const res = await authFetch(`${API_URL}/api/v1/tenants/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAccessToken()}`,
         },
         body: JSON.stringify({
           name: businessName,
@@ -409,10 +584,14 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
           countryCode,
           regionId,
           cityId,
+          logoShape,
+          showBusinessName: logoShape === 'rectangle' ? false : showBusinessName,
         }),
       });
       if (!res.ok) throw new Error('Save failed');
       setSaved(true);
+      if (businessName) onBusinessNameChange?.(businessName);
+      onLogoSettingsChange?.({ logoShape, showBusinessName: logoShape === 'rectangle' ? false : showBusinessName });
       setTimeout(() => setSaved(false), 2500);
     } catch { /* silent */ }
     finally { setSaving(false); }
@@ -439,13 +618,15 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
     boxSizing: 'border-box',
   };
 
+  const isRTL = document.documentElement.dir === 'rtl';
+
   const selectStyle: React.CSSProperties = {
     ...inputStyle,
     appearance: 'none' as const,
     backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(C.textSecond)}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 14px center',
-    paddingRight: 36,
+    backgroundPosition: isRTL ? 'left 14px center' : 'right 14px center',
+    paddingInlineEnd: 36,
     cursor: 'pointer',
   };
 
@@ -474,15 +655,15 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
     <div>
       {/* Logo crop modal */}
       {cropModalSrc && (
-        <LogoCropModal src={cropModalSrc} C={C} onConfirm={handleCropConfirm} onSkip={handleCropSkip} onCancel={handleCropCancel} />
+        <LogoCropModal src={cropModalSrc} C={C} isLight={isLight} t={t} onConfirm={handleCropConfirm} onSkip={handleCropSkip} onCancel={handleCropCancel} initialCropPct={reCropping ? lastCropPct : null} isReCrop={reCropping} />
       )}
 
       {/* Page title */}
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
-        Business Profile
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 2px 0' }}>
+        {t('businessProfile.title')}
       </h2>
       <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 28px 0', lineHeight: 1.5 }}>
-        Manage your company information and branding
+        {t('businessProfile.subtitle')}
       </p>
 
       {/* ── Cover photo + Logo (Twitter-style) ── */}
@@ -533,17 +714,20 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
           <input ref={coverRef} type="file" accept={ALLOWED_EXTS} onChange={handleCoverChange} style={{ display: 'none' }} />
         </div>
 
-        {/* Logo — overlaid on bottom-left of cover */}
-        <div style={{ position: 'absolute', bottom: -36, left: 24 }}>
+        {/* Logo — overlaid on bottom-start of cover */}
+        <div style={{ position: 'absolute', bottom: -36, insetInlineStart: 24 }}>
           <div
             onClick={() => !uploadingLogo && logoRef.current?.click()}
             onMouseEnter={() => setHoveredBtn('logo')}
             onMouseLeave={() => setHoveredBtn(null)}
             style={{
-              width: 80, height: 80, borderRadius: 16,
+              width: logoShape === 'rectangle' ? 110 : 80,
+              height: 80,
+              borderRadius: logoShape === 'circle' ? '50%' : 16,
               border: `3px solid ${C.bg}`,
-              background: logoUrl
-                ? `url(${resolveImg(logoUrl)}) center/cover no-repeat`
+              backgroundColor: '#ffffff',
+              background: (logoCroppedUrl || logoOriginalUrl || logoUrl)
+                ? `#ffffff url(${logoCroppedUrl || logoOriginalUrl || resolveImg(logoUrl)}) center/${logoShape === 'rectangle' ? 'contain' : 'cover'} no-repeat`
                 : isLight ? '#f3f4f6' : '#374151',
               cursor: uploadingLogo ? 'wait' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -553,7 +737,7 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
               boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
             }}
           >
-            {!logoUrl && !uploadingLogo && (
+            {!logoUrl && !logoCroppedUrl && !logoOriginalUrl && !uploadingLogo && (
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#9ca3af' : '#6b7280'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
@@ -566,7 +750,7 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'rgba(0,0,0,0.3)',
               opacity: hoveredBtn === 'logo' || uploadingLogo ? 1 : 0,
-              transition: 'opacity 0.15s', borderRadius: 13,
+              transition: 'opacity 0.15s', borderRadius: logoShape === 'circle' ? '50%' : 13,
             }}>
               {uploadingLogo ? (
                 <div style={{
@@ -583,15 +767,15 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
             </div>
             <input ref={logoRef} type="file" accept={ALLOWED_EXTS} onChange={handleLogoChange} style={{ display: 'none' }} />
           </div>
-          {/* Crop adjust icon — bottom-right of logo */}
-          {logoUrl && !uploadingLogo && (
+          {/* Edit icon — bottom-right of logo */}
+          {(logoUrl || logoCroppedUrl || logoOriginalUrl) && !uploadingLogo && (
             <div
               onClick={handleReCrop}
               onMouseEnter={() => setHoveredBtn('crop')}
               onMouseLeave={() => setHoveredBtn(null)}
-              title="Adjust crop"
+              title={t('businessProfile.adjustCrop')}
               style={{
-                position: 'absolute', right: -4, bottom: -4,
+                position: 'absolute', insetInlineEnd: -4, bottom: -4,
                 width: 26, height: 26, borderRadius: 8,
                 background: isLight ? '#1a1a1a' : '#ffffff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -600,8 +784,8 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
                 transform: hoveredBtn === 'crop' ? 'scale(1.1)' : 'scale(1)',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#ffffff' : '#000000'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 2v4H2" /><path d="M6 6h12v12" /><path d="M18 22v-4h4" /><path d="M18 18H6V6" />
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isLight ? '#ffffff' : '#000000'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
               </svg>
             </div>
           )}
@@ -627,10 +811,11 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
 
         {/* Business Name */}
         <div>
-          <label style={labelStyle}>Business Name</label>
+          <label style={labelStyle}>{t('businessProfile.businessName')}</label>
           <input
+            className="d2-input"
             type="text"
-            placeholder="Enter your business name"
+            placeholder={t('businessProfile.businessNamePlaceholder')}
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
             style={inputStyle}
@@ -641,10 +826,11 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
 
         {/* Registration Number */}
         <div>
-          <label style={labelStyle}>Registration Number</label>
+          <label style={labelStyle}>{t('businessProfile.registrationNo')}</label>
           <input
+            className="d2-input"
             type="text"
-            placeholder="Commercial registration number"
+            placeholder={t('businessProfile.registrationNoPlaceholder')}
             value={registrationNo}
             onChange={(e) => setRegistrationNo(e.target.value)}
             style={inputStyle}
@@ -656,20 +842,206 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
         {/* Divider */}
         <div style={{ height: 1, background: C.divider, opacity: 0.5 }} />
 
+        {/* ── Logo Display Settings ── */}
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary, margin: '0 0 4px 0' }}>
+            {t('businessProfile.logoSettings')}
+          </h3>
+          <p style={{ fontSize: 13, color: C.textSecond, margin: '0 0 20px 0' }}>
+            {t('businessProfile.logoSettingsDesc')}
+          </p>
+
+          {/* Live preview */}
+          <div style={{
+            background: isLight ? '#f8f9fa' : '#1a1f2e',
+            border: `1px solid ${C.cardBorder}`,
+            borderRadius: 12,
+            padding: '16px 20px',
+            marginBottom: 20,
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('businessProfile.logoPreview')}
+            </span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 12,
+              padding: '10px 12px',
+              background: C.sidebar,
+              borderRadius: 10,
+              border: `1px solid ${C.cardBorder}`,
+              maxWidth: 240,
+            }}>
+              {/* Preview logo with selected shape */}
+              <div style={{
+                width: logoShape === 'rectangle'
+                  ? (showBusinessName ? 52 : 100)
+                  : 35,
+                height: 35,
+                flexShrink: 0,
+                borderRadius: logoShape === 'circle' ? '50%' : logoShape === 'rectangle' ? 8 : 6,
+                background: (logoCroppedUrl || logoOriginalUrl || logoUrl)
+                  ? `url(${logoCroppedUrl || logoOriginalUrl || resolveImg(logoUrl)}) center/${logoShape === 'rectangle' && !showBusinessName ? 'contain' : 'cover'} no-repeat`
+                  : isLight ? '#e5e7eb' : '#374151',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden',
+              }}>
+                {!logoUrl && !logoCroppedUrl && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                )}
+              </div>
+              {/* Preview name */}
+              {showBusinessName && (
+                <span style={{
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: C.textPrimary,
+                  maxWidth: 120,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  textTransform: 'capitalize',
+                }}>
+                  {businessName || 'Berhot'}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Shape selector */}
+          <label style={{ ...labelStyle, marginBottom: 10 }}>{t('businessProfile.logoShape')}</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+            {(['square', 'circle', 'rectangle'] as const).map((shape) => {
+              const isActive = logoShape === shape;
+              const shapeLabels = { square: t('businessProfile.shapeSquare'), circle: t('businessProfile.shapeCircle'), rectangle: t('businessProfile.shapeRectangle') };
+              const shapeDescs = { square: t('businessProfile.shapeSquareDesc'), circle: t('businessProfile.shapeCircleDesc'), rectangle: t('businessProfile.shapeRectangleDesc') };
+              return (
+                <button
+                  key={shape}
+                  onClick={() => { setLogoShape(shape); if (shape === 'rectangle') setShowBusinessName(false); }}
+                  onMouseEnter={() => setHoveredBtn(`shape-${shape}`)}
+                  onMouseLeave={() => setHoveredBtn(null)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '16px 10px',
+                    borderRadius: 10,
+                    border: `2px solid ${isActive ? (C.accent === '#000000' && !isLight ? '#e5e7eb' : C.accent) : C.cardBorder}`,
+                    background: isActive
+                      ? (isLight ? 'rgba(59,130,246,0.06)' : (C.accent === '#000000' ? 'rgba(229,231,235,0.1)' : `${C.accent}1a`))
+                      : hoveredBtn === `shape-${shape}` ? C.hover : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {/* Shape icon */}
+                  <div style={{
+                    width: shape === 'rectangle' ? 48 : 32,
+                    height: 32,
+                    borderRadius: shape === 'circle' ? '50%' : shape === 'rectangle' ? 6 : 6,
+                    background: isActive ? (C.accent === '#000000' && !isLight ? '#e5e7eb' : C.accent) : (isLight ? '#d1d5db' : '#4b5563'),
+                    transition: 'background 0.15s',
+                    opacity: isActive ? 1 : 0.7,
+                  }} />
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: isActive ? (C.accent === '#000000' && !isLight ? '#e5e7eb' : C.accent) : C.textPrimary,
+                    transition: 'color 0.15s',
+                  }}>
+                    {shapeLabels[shape]}
+                  </span>
+                  <span style={{
+                    fontSize: 10,
+                    color: C.textDim,
+                    textAlign: 'center',
+                    lineHeight: 1.3,
+                  }}>
+                    {shapeDescs[shape]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Show business name toggle — disabled when rectangle (wide) logo */}
+          <div
+            onClick={() => { if (logoShape !== 'rectangle') setShowBusinessName(!showBusinessName); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 16px',
+              borderRadius: 10,
+              border: `1px solid ${C.cardBorder}`,
+              background: C.card,
+              cursor: logoShape === 'rectangle' ? 'not-allowed' : 'pointer',
+              transition: 'border-color 0.15s',
+              opacity: logoShape === 'rectangle' ? 0.45 : 1,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>
+                {t('businessProfile.showBusinessName')}
+              </div>
+              <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>
+                {t('businessProfile.showBusinessNameDesc')}
+              </div>
+            </div>
+            {/* Toggle switch */}
+            <div style={{
+              width: 44,
+              height: 24,
+              borderRadius: 12,
+              background: (showBusinessName && logoShape !== 'rectangle')
+                ? C.accent
+                : (isLight ? '#d1d5db' : '#4b5563'),
+              padding: 2,
+              cursor: logoShape === 'rectangle' ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s',
+              flexShrink: 0,
+              marginInlineStart: 16,
+            }}>
+              <div style={{
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#ffffff',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                transition: 'transform 0.2s',
+                transform: (showBusinessName && logoShape !== 'rectangle')
+                  ? (document.documentElement.dir === 'rtl' ? 'translateX(-20px)' : 'translateX(20px)')
+                  : 'translateX(0)',
+              }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: C.divider, opacity: 0.5 }} />
+
         {/* Location section heading */}
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary, margin: '0 0 4px 0' }}>
-            Location
+            {t('businessProfile.location')}
           </h3>
           <p style={{ fontSize: 13, color: C.textSecond, margin: 0 }}>
-            Where is your business located?
+            {t('businessProfile.locationSubtitle')}
           </p>
         </div>
 
         {/* Country */}
         <div>
-          <label style={labelStyle}>Country</label>
+          <label style={labelStyle}>{t('businessProfile.country')}</label>
           <select
+            className="d2-input"
             value={countryCode}
             onChange={(e) => {
               setCountryCode(e.target.value);
@@ -678,11 +1050,11 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
             }}
             style={selectStyle}
           >
-            <option value="SA">Saudi Arabia</option>
-            <option value="AE">United Arab Emirates</option>
-            <option value="EG">Egypt</option>
-            <option value="US">United States</option>
-            <option value="GB">United Kingdom</option>
+            <option value="SA">{t('businessProfile.saudiArabia')}</option>
+            <option value="AE">{t('businessProfile.uae')}</option>
+            <option value="EG">{t('businessProfile.egypt')}</option>
+            <option value="US">{t('businessProfile.usa')}</option>
+            <option value="GB">{t('businessProfile.uk')}</option>
           </select>
         </div>
 
@@ -690,8 +1062,9 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {/* Region first */}
           <div>
-            <label style={labelStyle}>Region</label>
+            <label style={labelStyle}>{t('businessProfile.region')}</label>
             <select
+              className="d2-input"
               value={regionId}
               onChange={(e) => {
                 setRegionId(e.target.value);
@@ -699,7 +1072,7 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
               }}
               style={selectStyle}
             >
-              <option value="">Select region</option>
+              <option value="">{t('businessProfile.selectRegion')}</option>
               {regions.map(r => (
                 <option key={r.id} value={r.id}>{r.nameEn}</option>
               ))}
@@ -708,8 +1081,9 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
 
           {/* City (depends on region) */}
           <div>
-            <label style={labelStyle}>City</label>
+            <label style={labelStyle}>{t('businessProfile.city')}</label>
             <select
+              className="d2-input"
               value={cityId}
               onChange={(e) => setCityId(e.target.value)}
               disabled={!regionId}
@@ -719,7 +1093,7 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
                 cursor: regionId ? 'pointer' : 'not-allowed',
               }}
             >
-              <option value="">{regionId ? 'Select city' : 'Select region first'}</option>
+              <option value="">{regionId ? t('businessProfile.selectCity') : t('businessProfile.selectRegionFirst')}</option>
               {cities.map(c => (
                 <option key={c.id} value={c.id}>{c.nameEn}</option>
               ))}
@@ -741,8 +1115,8 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
               padding: '12px 32px',
               borderRadius: 8,
               border: 'none',
-              background: isLight ? '#1a1a1a' : '#ffffff',
-              color: isLight ? '#ffffff' : '#000000',
+              background: C.accent === '#000000' && !isLight ? '#e5e7eb' : C.accent,
+              color: C.accent === '#000000' && !isLight ? '#000000' : '#ffffff',
               fontSize: 14,
               fontWeight: 600,
               cursor: saving ? 'not-allowed' : 'pointer',
@@ -750,11 +1124,11 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange }: Bus
               transition: 'opacity 0.15s',
             }}
           >
-            {saving ? 'Saving...' : 'Update Profile'}
+            {saving ? t('businessProfile.saving') : t('businessProfile.updateProfile')}
           </button>
           {saved && (
             <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 500 }}>
-              Profile updated successfully
+              {t('businessProfile.profileUpdated')}
             </span>
           )}
         </div>

@@ -102,7 +102,7 @@ export function DashboardLayout() {
             <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">{t('app.status')}</span>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 relative">
           <Outlet />
         </div>
       </main>

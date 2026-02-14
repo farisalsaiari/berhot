@@ -27,15 +27,15 @@ const maxUploadSize = 5 << 20
 
 // POST /api/v1/tenants/me/logo — upload tenant logo
 func (h *UploadHandler) HandleUploadLogo(c *gin.Context) {
-	h.handleImageUpload(c, "logo", "logo_url")
+	h.handleImageUpload(c, "logo", "logo_url", "logos")
 }
 
 // POST /api/v1/tenants/me/cover — upload tenant cover image
 func (h *UploadHandler) HandleUploadCover(c *gin.Context) {
-	h.handleImageUpload(c, "cover", "cover_url")
+	h.handleImageUpload(c, "cover", "cover_url", "covers")
 }
 
-func (h *UploadHandler) handleImageUpload(c *gin.Context, fieldName string, dbColumn string) {
+func (h *UploadHandler) handleImageUpload(c *gin.Context, fieldName string, dbColumn string, assetDir string) {
 	tenantID := c.GetString("tenantId")
 	if tenantID == "" {
 		c.JSON(401, gin.H{"error": "No tenant in token"})
@@ -62,8 +62,11 @@ func (h *UploadHandler) handleImageUpload(c *gin.Context, fieldName string, dbCo
 		return
 	}
 
-	// Create uploads directory
-	uploadsDir := filepath.Join("uploads", "tenants", tenantID)
+	// Production folder structure: uploads/tenants/{tenantID}/{assetType}/{filename}
+	// e.g. uploads/tenants/abc-123/logos/logo_f8e2a1b3.png
+	//      uploads/tenants/abc-123/covers/cover_d4c7e9f1.jpg
+	//      uploads/tenants/abc-123/products/product_a1b2c3d4.webp
+	uploadsDir := filepath.Join("uploads", "tenants", tenantID, assetDir)
 	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 		c.JSON(500, gin.H{"error": "Failed to create upload directory"})
 		return
@@ -73,7 +76,9 @@ func (h *UploadHandler) handleImageUpload(c *gin.Context, fieldName string, dbCo
 	var oldURL sql.NullString
 	_ = h.DB.QueryRow(fmt.Sprintf("SELECT %s FROM tenants WHERE id = $1", dbColumn), tenantID).Scan(&oldURL)
 	if oldURL.Valid && oldURL.String != "" {
-		os.Remove(oldURL.String)
+		// Strip leading slash for filesystem path (DB stores /uploads/... but disk is uploads/...)
+		oldPath := strings.TrimPrefix(oldURL.String, "/")
+		os.Remove(oldPath)
 	}
 
 	// Generate unique filename
@@ -87,7 +92,7 @@ func (h *UploadHandler) handleImageUpload(c *gin.Context, fieldName string, dbCo
 	}
 
 	// Build the public URL path
-	publicURL := "/uploads/tenants/" + tenantID + "/" + filename
+	publicURL := "/uploads/tenants/" + tenantID + "/" + assetDir + "/" + filename
 
 	// Update database
 	_, err = h.DB.Exec(

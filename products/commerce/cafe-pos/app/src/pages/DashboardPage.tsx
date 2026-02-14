@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SlidePanel, Modal, useSessionTimeout } from '@berhot/ui';
 import { useTranslation } from '@berhot/i18n';
@@ -36,6 +36,7 @@ const darkTheme = {
   textPrimary: '#e7e7e7',
   textSecond: '#a0a0a0',
   textDim: '#949494',
+  textLight: '#757575ff',
   accent: '#3b82f6',
   btnBg: '#2993f0',
   btnBorder: '#3f3f3f',
@@ -57,14 +58,21 @@ const lightTheme = {
   textPrimary: '#1a1a1a',
   textSecond: '#444444',
   textDim: '#999999',
+  textLight: '#9c9c9cff',
   accent: '#3b82f6',
   btnBg: '#2993f0',
   btnBorder: '#d4d4d4',
 };
 
-// ── Read saved theme (before render) ────────────────────────────
+// ── Read saved preferences (before render) ─────────────────────
 const savedTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_theme')) || 'light';
-const C = savedTheme === 'light' ? lightTheme : darkTheme;
+const savedAccent = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_accent')) || '#3b82f6';
+const savedDarkSidebar = typeof localStorage !== 'undefined' && localStorage.getItem('d2_dark_sidebar') === 'true';
+const savedShowHeader = typeof localStorage !== 'undefined' ? localStorage.getItem('d2_show_header') !== 'false' : true;
+const C0 = { ...(savedTheme === 'light' ? lightTheme : darkTheme), accent: savedAccent, btnBg: savedAccent === '#000000' ? '#2993f0' : savedAccent };
+// C0 is the initial theme; inside the component, `C` is shadowed with live-preview values
+// eslint-disable-next-line prefer-const
+let C = C0;
 
 // ── Read user data from auth session ────────────────────────────
 const STORAGE_KEY = 'berhot_auth';
@@ -244,73 +252,72 @@ function SignatureIcon() {
   );
 }
 
-// ── Nav items config ────────────────────────────────────────────
-const navTop: { label: string; icon: React.ReactNode; shortcut?: string }[] = [
-  { label: 'Search', icon: <SearchIcon />, shortcut: '/' },
+// ── Nav items config (use tKey for i18n resolution inside component) ──
+const navTopConfig: { tKey: string; icon: React.ReactNode; shortcut?: string }[] = [
+  { tKey: 'dashboard.search', icon: <SearchIcon />, shortcut: '/' },
 ];
 
-// Nav items with path mappings for active state
-const navMain: { label: string; icon: React.ReactNode; path: string }[] = [
-  { label: 'Dashboard', icon: <GridIcon />, path: 'home' },
-  { label: 'Analytics', icon: <AnalyticsIcon />, path: 'analytics' },
-  { label: 'Products', icon: <ProductsIcon />, path: 'products' },
-  { label: 'Orders', icon: <OrdersIcon />, path: 'orders' },
-  { label: 'Discounts', icon: <DiscountsIcon />, path: 'discounts' },
-  { label: 'Apps', icon: <AppsIcon />, path: 'apps' },
+const navMainConfig: { tKey: string; icon: React.ReactNode; path: string }[] = [
+  { tKey: 'dashboard.home', icon: <GridIcon />, path: 'home' },
+  { tKey: 'dashboard.analytics', icon: <AnalyticsIcon />, path: 'analytics' },
+  { tKey: 'dashboard.products', icon: <ProductsIcon />, path: 'products' },
+  { tKey: 'dashboard.orders', icon: <OrdersIcon />, path: 'orders' },
+  { tKey: 'dashboard.discounts', icon: <DiscountsIcon />, path: 'discounts' },
+  { tKey: 'dashboard.apps', icon: <AppsIcon />, path: 'apps' },
 ];
 
 // ── Settings sidebar navigation config ───────────────────────────
-const settingsNav: { category: string; links: { label: string; path: string }[] }[] = [
+const settingsNavConfig: { categoryKey: string; links: { tKey: string; path: string }[] }[] = [
   {
-    category: 'General',
+    categoryKey: 'settingsNav.general',
     links: [
-      { label: 'Time Zone', path: 'settings/timezone' },
-      { label: 'Currency', path: 'settings/currency' },
-      { label: 'Enable Multi-Tab Login', path: 'settings/multi-tab' },
-      { label: 'Theme Settings', path: 'settings/theme' },
+      { tKey: 'settingsNav.timezone', path: 'settings/timezone' },
+      { tKey: 'settingsNav.currency', path: 'settings/currency' },
+      { tKey: 'settingsNav.multiTab', path: 'settings/multi-tab' },
+      { tKey: 'settingsNav.themeSettings', path: 'settings/theme' },
     ],
   },
   {
-    category: 'Schedules',
+    categoryKey: 'settingsNav.schedules',
     links: [
-      { label: 'Display Preferences', path: 'settings/display-preferences' },
-      { label: 'Notifications & Actions', path: 'settings/notifications-actions' },
+      { tKey: 'settingsNav.displayPreferences', path: 'settings/display-preferences' },
+      { tKey: 'settingsNav.notificationsActions', path: 'settings/notifications-actions' },
     ],
   },
   {
-    category: 'Billing & Payment',
+    categoryKey: 'settingsNav.billingPayment',
     links: [
-      { label: 'Invoice', path: 'settings/invoice' },
-      { label: 'Subscription Management', path: 'settings/subscription' },
-      { label: 'Payment Gateway', path: 'settings/payment-gateway' },
+      { tKey: 'settingsNav.invoice', path: 'settings/invoice' },
+      { tKey: 'settingsNav.subscriptionManagement', path: 'settings/subscription' },
+      { tKey: 'settingsNav.paymentGateway', path: 'settings/payment-gateway' },
     ],
   },
   {
-    category: 'Privacy & Security',
+    categoryKey: 'settingsNav.privacySecurity',
     links: [
-      { label: 'Two-factor Authentication', path: 'settings/two-factor' },
-      { label: 'Data Encryption', path: 'settings/encryption' },
+      { tKey: 'settingsNav.twoFactor', path: 'settings/two-factor' },
+      { tKey: 'settingsNav.dataEncryption', path: 'settings/encryption' },
     ],
   },
   {
-    category: 'User Permissions',
+    categoryKey: 'settingsNav.userPermissions',
     links: [
-      { label: 'Role', path: 'settings/role' },
-      { label: 'Team', path: 'settings/team' },
+      { tKey: 'settingsNav.role', path: 'settings/role' },
+      { tKey: 'settingsNav.team', path: 'settings/team' },
     ],
   },
   {
-    category: 'Integrations',
+    categoryKey: 'settingsNav.integrations',
     links: [
-      { label: 'Third-party', path: 'settings/third-party' },
-      { label: 'API Access', path: 'settings/api-access' },
+      { tKey: 'settingsNav.thirdParty', path: 'settings/third-party' },
+      { tKey: 'settingsNav.apiAccess', path: 'settings/api-access' },
     ],
   },
   {
-    category: 'Notification',
+    categoryKey: 'settingsNav.notification',
     links: [
-      { label: 'Email and In-app', path: 'settings/email-inapp' },
-      { label: 'Custom Alerts', path: 'settings/custom-alerts' },
+      { tKey: 'settingsNav.emailInapp', path: 'settings/email-inapp' },
+      { tKey: 'settingsNav.customAlerts', path: 'settings/custom-alerts' },
     ],
   },
 ];
@@ -319,18 +326,33 @@ const settingsNav: { category: string; links: { label: string; path: string }[] 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { lang: i18nLang, setLang } = useTranslation();
+  const { lang: i18nLang, setLang, t } = useTranslation();
   const lang = i18nLang || window.location.pathname.split('/')[1] || 'en';
+
+  // Resolve nav labels with i18n
+  const navTop = navTopConfig.map(n => ({ ...n, label: t(n.tKey) }));
+  const navMain = navMainConfig.map(n => ({ ...n, label: t(n.tKey) }));
+  const settingsNav = settingsNavConfig.map(g => ({
+    category: t(g.categoryKey),
+    links: g.links.map(l => ({ ...l, label: t(l.tKey) })),
+  }));
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [hoveredPanel, setHoveredPanel] = useState<string | null>(null);
-  const [hoveredSettingsLink, setHoveredSettingsLink] = useState<string | null>(null);
-  // Settings sub-menu stack for small-screen sidebar navigation
-  const [settingsMenuStack, setSettingsMenuStack] = useState<{ parentLabel: string; children: typeof settingsNav }[]>([]);
+  // Settings sub-menu stack for sidebar navigation
+  const [settingsMenuStack, setSettingsMenuStack] = useState<{ parentLabel: string; children: typeof settingsNav; isTopLevel?: boolean }[]>([]);
   const [settingsSlideDir, setSettingsSlideDir] = useState<'forward' | 'back' | ''>('');
   const [settingsSlideKey, setSettingsSlideKey] = useState(0);
   const [settingsClosing, setSettingsClosing] = useState(false);
   const [navReturning, setNavReturning] = useState(false);
   const [isLargeScreen, setIsLargeScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 1366);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuClosing, setMobileMenuClosing] = useState(false);
+  const [hoveredMobileNav, setHoveredMobileNav] = useState<string | null>(null);
+  const [mobileSettingsStack, setMobileSettingsStack] = useState<{ parentLabel: string; children: typeof settingsNavConfig; isTopLevel?: boolean }[]>([]);
+  const [mobileSettingsSlideDir, setMobileSettingsSlideDir] = useState<'forward' | 'back' | ''>('');
+  const [mobileSettingsSlideKey, setMobileSettingsSlideKey] = useState(0);
+  const [mobileSettingsClosing, setMobileSettingsClosing] = useState(false);
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [showLangPanel, setShowLangPanel] = useState(false);
   const [selectedLang, setSelectedLang] = useState(lang);
@@ -344,6 +366,10 @@ export default function DashboardPage() {
   const [switching, setSwitching] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [sidebarLogoUrl, setSidebarLogoUrl] = useState('');
+  const [sidebarBusinessName, setSidebarBusinessName] = useState('');
+  const [sidebarLogoShape, setSidebarLogoShape] = useState<'square' | 'circle' | 'rectangle'>('square');
+  const [sidebarShowName, setSidebarShowName] = useState(true);
+  const [sidebarLoaded, setSidebarLoaded] = useState(false);
   const [sidebarLogoImg, setSidebarLogoImg] = useState(() => {
     try { return localStorage.getItem('berhot_sidebar_logo') || ''; } catch { return ''; }
   });
@@ -351,7 +377,45 @@ export default function DashboardPage() {
   // When URL changes, we show spinner, then update displayedPath after delay.
   const [displayedPath, setDisplayedPath] = useState(location.pathname);
   const pageLoading = displayedPath !== location.pathname;
-  const isLight = savedTheme === 'light';
+
+  // ── Theme live-preview state ──────────────────────────────────
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark' | null>(null);
+  const [previewAccent, setPreviewAccent] = useState<string | null>(null);
+  const [previewDarkSidebar, setPreviewDarkSidebar] = useState<boolean | null>(null);
+  const [previewShowHeader, setPreviewShowHeader] = useState<boolean | null>(null);
+  // Saved values as component state (so we can re-read after save without reload)
+  const [currentTheme, setCurrentTheme] = useState(savedTheme);
+  const [currentAccent, setCurrentAccent] = useState(savedAccent);
+  const [currentDarkSidebar, setCurrentDarkSidebar] = useState(savedDarkSidebar);
+  const [currentShowHeader, setCurrentShowHeader] = useState(savedShowHeader);
+
+  // ── Effective (preview ?? saved) values ────────────────────────
+  const isLight = previewTheme ? previewTheme === 'light' : currentTheme === 'light';
+  const effectiveAccent = previewAccent ?? currentAccent;
+  const effectiveDarkSidebar = previewDarkSidebar ?? currentDarkSidebar;
+  const effectiveShowHeader = previewShowHeader ?? currentShowHeader;
+  const C = { ...(isLight ? lightTheme : darkTheme), accent: effectiveAccent, btnBg: effectiveAccent === '#000000' ? '#2993f0' : effectiveAccent };
+  // Sidebar colors: dark sidebar in light mode uses dark theme colors
+  const SC = (effectiveDarkSidebar && isLight)
+    ? { ...darkTheme, accent: effectiveAccent, btnBg: C.btnBg }
+    : C;
+  // When accent is black on a dark background, use visible fallback (gray) instead of invisible black
+  const sidebarIsDark = !isLight || effectiveDarkSidebar;
+  const accentVisible = (effectiveAccent === '#000000' && sidebarIsDark) ? SC.textSecond : SC.accent;
+  const accentVisibleMain = (effectiveAccent === '#000000' && !isLight) ? C.textSecond : C.accent;
+
+  // ── Live clock (for home page) ─────────────────────────────────
+  const userTimezone = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_timezone')) || 'Asia/Riyadh';
+  const [clockNow, setClockNow] = useState(() => new Date());
+  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    clockRef.current = setInterval(() => setClockNow(new Date()), 1000);
+    return () => { if (clockRef.current) clearInterval(clockRef.current); };
+  }, []);
+  const clockLocale = lang === 'ar' ? 'ar-SA' : 'en-US';
+  const clockTime = clockNow.toLocaleTimeString(clockLocale, { timeZone: userTimezone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const clockDate = clockNow.toLocaleDateString(clockLocale, { timeZone: userTimezone, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const clockTzLabel = userTimezone === 'UTC' ? 'UTC' : 'Riyadh (UTC+3)';
 
   // ── Auth guard — same logic as Layout.tsx ──────────────────────
   useEffect(() => {
@@ -392,20 +456,53 @@ export default function DashboardPage() {
     window.location.href = `${LANDING_URL}/${lang}/signin`;
   }, []);
 
-  // Fetch tenant logo for sidebar
+  // Fetch tenant logo for sidebar (with token refresh on 401)
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return;
-      const token = JSON.parse(stored).accessToken;
-      if (!token) return;
-      fetch(`${API_URL}/api/v1/tenants/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(r => r.json())
-        .then(data => { if (data.logoUrl) setSidebarLogoUrl(data.logoUrl); })
-        .catch(() => {});
-    } catch { /* ignore */ }
+    const fetchLogo = async () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return;
+        let parsed = JSON.parse(stored);
+        let token = parsed.accessToken;
+        if (!token) return;
+
+        let res = await fetch(`${API_URL}/api/v1/tenants/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // If token expired, try refreshing
+        if (res.status === 401 && parsed.refreshToken) {
+          try {
+            const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: parsed.refreshToken }),
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              if (refreshData.accessToken) {
+                parsed.accessToken = refreshData.accessToken;
+                if (refreshData.refreshToken) parsed.refreshToken = refreshData.refreshToken;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+                token = refreshData.accessToken;
+                res = await fetch(`${API_URL}/api/v1/tenants/me`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+              }
+            }
+          } catch { /* ignore refresh error */ }
+        }
+
+        if (!res.ok) { setSidebarLoaded(true); return; }
+        const data = await res.json();
+        if (data.logoUrl) setSidebarLogoUrl(data.logoUrl);
+        if (data.name) setSidebarBusinessName(data.name);
+        if (data.logoShape) setSidebarLogoShape(data.logoShape);
+        if (typeof data.showBusinessName === 'boolean') setSidebarShowName(data.showBusinessName);
+        setSidebarLoaded(true);
+      } catch { setSidebarLoaded(true); }
+    };
+    fetchLogo();
   }, []);
 
   // Determine which page to show — uses displayedPath (not location) to avoid flash
@@ -420,34 +517,51 @@ export default function DashboardPage() {
     }
   }, [pagePath, lang, navigate]);
 
-  // Track screen size for settings sidebar behavior
+  // Track screen size for settings sidebar behavior + mobile
   useEffect(() => {
-    const onResize = () => setIsLargeScreen(window.innerWidth > 1366);
+    const onResize = () => {
+      setIsLargeScreen(window.innerWidth > 1366);
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setMobileMenuOpen(false);
+    };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // Close mobile menu with animation
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuClosing(true);
+    setTimeout(() => {
+      setMobileMenuOpen(false);
+      setMobileMenuClosing(false);
+      setMobileSettingsStack([]);
+      setMobileSettingsSlideDir('');
+      setMobileSettingsClosing(false);
+    }, 180);
+  }, []);
+
   // Auto-open settings submenu on page load if on a settings page (small screens only)
   useEffect(() => {
-    if (!isLargeScreen && isSettingsPage && settingsMenuStack.length === 0 && !settingsClosing) {
+    if (isSettingsPage && settingsMenuStack.length === 0 && !settingsClosing) {
       // Find which category the current page belongs to
       const currentGroup = settingsNav.find((g) => g.links.some((l) => pagePath === l.path));
       if (currentGroup) {
         setSettingsMenuStack([
-          { parentLabel: 'Settings', children: settingsNav },
+          { parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true },
           { parentLabel: currentGroup.category, children: [currentGroup] },
         ]);
       } else {
-        setSettingsMenuStack([{ parentLabel: 'Settings', children: settingsNav }]);
+        setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
       }
     }
     // Close submenu when navigating away from settings or on large screen
-    if ((!isSettingsPage || isLargeScreen) && settingsMenuStack.length > 0) {
+    if (!isSettingsPage && settingsMenuStack.length > 0) {
       setSettingsMenuStack([]);
       setSettingsSlideDir('');
       setSettingsClosing(false);
     }
-  }, [isSettingsPage, pagePath, isLargeScreen]);
+  }, [isSettingsPage, pagePath]);
 
   // Page transition — after URL changes, wait then reveal new content
   useEffect(() => {
@@ -510,12 +624,27 @@ export default function DashboardPage() {
       @keyframes d2-slide-forward { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
       @keyframes d2-slide-back { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
       @keyframes d2-slide-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(40px); opacity: 0; } }
+      @keyframes d2-slide-forward-rtl { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes d2-slide-back-rtl { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes d2-slide-out-rtl { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-40px); opacity: 0; } }
       .d2-slide-forward { animation: d2-slide-forward 0.18s ease-out forwards; }
       .d2-slide-back { animation: d2-slide-back 0.18s ease-out forwards; }
       .d2-slide-out { animation: d2-slide-out 0.08s ease-out forwards; }
-      @keyframes d2-settings-sidebar-in { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-      .d2-settings-sidebar { display: flex; animation: d2-settings-sidebar-in 0.25s ease forwards; }
-      @media (max-width: 1366px) { .d2-settings-sidebar { display: none !important; } }
+      [dir="rtl"] .d2-slide-forward { animation: d2-slide-forward-rtl 0.18s ease-out forwards; }
+      [dir="rtl"] .d2-slide-back { animation: d2-slide-back-rtl 0.18s ease-out forwards; }
+      [dir="rtl"] .d2-slide-out { animation: d2-slide-out-rtl 0.08s ease-out forwards; }
+[dir="rtl"] .d2-arrow { transform: scaleX(-1); }
+      @keyframes d2-mobile-menu-in { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes d2-mobile-menu-out { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(30px); } }
+      .d2-mobile-menu { animation: d2-mobile-menu-in 0.22s ease-out forwards; }
+      .d2-mobile-menu-closing { animation: d2-mobile-menu-out 0.18s ease-in forwards; }
+      @keyframes d2-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes d2-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+      .d2-mobile-overlay { animation: d2-overlay-in 0.2s ease forwards; }
+      .d2-mobile-overlay-closing { animation: d2-overlay-out 0.18s ease forwards; }
+      @media (max-width: 768px) {
+        .d2-left-sidebar { display: none !important; }
+      }
     `}</style>
 
       {/* ═══ THEME SWITCH SPINNER OVERLAY ═══ */}
@@ -566,116 +695,246 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div style={{ background: C.bg, color: C.textPrimary, height: '100vh', display: 'flex', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', overflow: 'hidden' }}>
+      <div style={{ background: C.bg, color: C.textPrimary, height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', overflow: 'hidden' }}>
 
-        {/* ═══ LEFT SIDEBAR ═══ */}
-        <aside style={{
-          width: 280,
-          minWidth: 260,
-          background: C.sidebar,
-          display: 'flex',
-          flexDirection: 'column',
-          borderRight: `1px solid ${C.divider}70`,
-          height: '100vh',
-          overflow: 'hidden',
-          position: 'relative',
-        }}>
-
-          {/* Sidebar header — logo + brand OR back arrow + label when in settings */}
+        {/* ═══ TOP HEADER BAR (full width above sidebar + content) ═══ */}
+        {effectiveShowHeader && !isMobile && (
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '17px 20px 16px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 20px', height: 48, flexShrink: 0,
+            borderBottom: `1px solid ${SC.divider}70`,
+            background: SC.sidebar,
           }}>
-            {!isLargeScreen && (settingsMenuStack.length > 0 || settingsClosing) ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <button
-                  onClick={() => {
-                    if (settingsMenuStack.length <= 1) {
-                      setSettingsClosing(true);
-                      setSettingsSlideDir('back');
-                      setSettingsSlideKey((k) => k + 1);
-                    } else {
-                      setSettingsSlideDir('back');
-                      setSettingsSlideKey((k) => k + 1);
-                      setSettingsMenuStack((prev) => prev.slice(0, -1));
-                    }
-                  }}
-                  onMouseEnter={() => setHoveredNav('settings-back')}
-                  onMouseLeave={() => setHoveredNav(null)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 32,
-                    height: 32,
-                    borderRadius: 6,
-                    border: 'none',
-                    background: hoveredNav === 'settings-back' ? C.hover : 'transparent',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s',
-                    padding: 0,
-                    flexShrink: 0,
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+            {/* Left side: Logo + Business Name + S badge + Page title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Logo + Business name */}
+              <button onClick={() => navigate(`/${lang}/dashboard/business`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: SC.textPrimary }}>
+                {(sidebarLogoImg || sidebarLogoUrl) ? (
+                  <img
+                    src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
+                    alt="Logo"
+                    style={{
+                      width: sidebarLogoShape === 'rectangle' ? (sidebarShowName ? 28 : 40) : 24,
+                      height: 24,
+                      objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
+                      borderRadius: sidebarLogoShape === 'circle' ? '50%' : 4,
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : sidebarLoaded ? (
+                  <svg width="24" height="24" viewBox="0 0 89 90" fill={SC.sidebar === darkTheme.sidebar || !isLight || effectiveDarkSidebar ? '#ffffff' : '#1a1a1a'}>
+                    <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
+                      <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
+                    </g>
                   </svg>
-                </button>
-                <span style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary }}>
-                  {settingsMenuStack.length > 0 ? settingsMenuStack[settingsMenuStack.length - 1].parentLabel : 'Settings'}
-                </span>
+                ) : null}
+                {sidebarShowName && (
+                  <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '-0.02em', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
+                    {sidebarBusinessName || (sidebarLoaded ? 'Berhot' : '')}
+                  </span>
+                )}
+              </button>
+
+              {/* Divider */}
+              <div style={{ width: 1, height: 20, background: SC.divider, opacity: 0.5, flexShrink: 0 }} />
+
+              {/* Accent "S" badge (medium rounded) */}
+              <div style={{
+                width: 24, height: 24, borderRadius: 6,
+                background: effectiveAccent === '#000000' && sidebarIsDark ? '#e5e7eb' : effectiveAccent,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: effectiveAccent === '#000000' && sidebarIsDark ? '#000000' : '#ffffff' }}>S</span>
               </div>
-            ) : (
+
+              {/* Page title (breadcrumb for settings) */}
+              <span style={{ fontSize: 13, fontWeight: 600, color: SC.textSecond, display: 'flex', alignItems: 'center', gap: 0 }}>
+                {(() => {
+                  const found = navMainConfig.find(n => n.path === pagePath);
+                  if (found) return t(found.tKey);
+                  if (pagePath === 'account') return t('dashboard.account');
+                  if (pagePath === 'business') return t('dashboard.business');
+                  if (pagePath.startsWith('settings')) {
+                    // Build breadcrumb: Settings / Category / Page
+                    const parts: string[] = [t('dashboard.settings')];
+                    const group = settingsNavConfig.find(g => g.links.some(l => l.path === pagePath));
+                    if (group) {
+                      parts.push(t(group.categoryKey));
+                      const link = group.links.find(l => l.path === pagePath);
+                      if (link) parts.push(t(link.tKey));
+                    }
+                    return parts.map((p, i) => (
+                      <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                        {i > 0 && <span style={{ margin: '0 6px', opacity: 0.4, fontWeight: 400 }}>/</span>}
+                        <span style={{ opacity: i < parts.length - 1 ? 0.6 : 1 }}>{p}</span>
+                      </span>
+                    ));
+                  }
+                  return t('dashboard.home');
+                })()}
+              </span>
+            </div>
+
+            {/* Right side: Search + Notification icons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 6, border: 'none', background: 'transparent', color: SC.textSecond, cursor: 'pointer' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+              </button>
+              <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 6, border: 'none', background: 'transparent', color: SC.textSecond, cursor: 'pointer' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ SIDEBAR + CONTENT ROW ═══ */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+          {/* ═══ LEFT SIDEBAR ═══ */}
+          <aside className="d2-left-sidebar" style={{
+            width: 280,
+            minWidth: 260,
+            background: SC.sidebar,
+            display: 'flex',
+            flexDirection: 'column',
+            borderInlineEnd: `1px solid ${SC.divider}70`,
+            height: '100%',
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
+
+            {/* Sidebar header — back arrow when in settings, OR logo + brand */}
+            {(settingsMenuStack.length > 0 || settingsClosing) ? (
               <>
-                <button onClick={() => setShowWorkspace(true)} style={{
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px 20px', height: 57, boxSizing: 'border-box' as const }}>
+                  <button
+                    onClick={() => {
+                      if (settingsMenuStack.length <= 1) {
+                        setSettingsClosing(true);
+                        setSettingsSlideDir('back');
+                        setSettingsSlideKey((k) => k + 1);
+                      } else {
+                        setSettingsSlideDir('back');
+                        setSettingsSlideKey((k) => k + 1);
+                        setSettingsMenuStack((prev) => prev.slice(0, -1));
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredNav('settings-back')}
+                    onMouseLeave={() => setHoveredNav(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: hoveredNav === 'settings-back' ? SC.hover : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                      padding: 0,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg className="d2-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SC.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <span style={{ fontWeight: 500, fontSize: 13, color: SC.textPrimary }}>
+                    {settingsMenuStack.length > 0 ? settingsMenuStack[settingsMenuStack.length - 1].parentLabel : t('dashboard.settings')}
+                  </span>
+                </div>
+                <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '0 16px 4px 16px' }} />
+              </>
+            ) : effectiveShowHeader && !isMobile ? null : (
+              <>
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  color: C.textPrimary,
+                  justifyContent: 'space-between',
+                  padding: '14px 16px 10px 20px',
+                  height: 57,
+                  boxSizing: 'border-box' as const,
+                  flexShrink: 0,
                 }}>
-                  {(sidebarLogoImg || sidebarLogoUrl) ? (
-                    <img
-                      src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
-                      alt="Logo"
-                      style={{
-                        width: 35,
-                        height: 35,
-                        objectFit: 'cover',
-                        borderRadius: 6,
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <svg width="26" height="26" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
-                      <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
-                        <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
-                      </g>
+                  <button onClick={() => setShowWorkspace(true)} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    color: SC.textPrimary,
+                    flex: 1,
+                    minWidth: 0,
+                  }}>
+                    {(sidebarLogoImg || sidebarLogoUrl) ? (
+                      <img
+                        src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
+                        alt="Logo"
+                        style={{
+                          width: sidebarLogoShape === 'rectangle' ? (sidebarShowName ? 48 : 70) : 33,
+                          height: 33,
+                          objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
+                          borderRadius: sidebarLogoShape === 'circle' ? '50%' : 5,
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : sidebarLoaded ? (
+                      <svg width="33" height="33" viewBox="0 0 89 90" fill={SC.sidebar === darkTheme.sidebar || !isLight || effectiveDarkSidebar ? '#ffffff' : '#1a1a1a'}>
+                        <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
+                          <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
+                        </g>
+                      </svg>
+                    ) : null}
+                    {sidebarShowName && (
+                      <span style={{
+                        fontWeight: 700,
+                        fontSize: 15,
+                        letterSpacing: '-0.02em',
+                        maxWidth: 140,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        textTransform: 'capitalize',
+                      }}>
+                        {sidebarBusinessName || (sidebarLoaded ? 'Berhot' : '')}
+                      </span>
+                    )}
+                  </button>
+                  {/* Chevron icon on the right */}
+                  <button
+                    onMouseEnter={() => setHoveredNav('sidebar-header-chevron')}
+                    onMouseLeave={() => setHoveredNav(null)}
+                    onClick={() => setShowWorkspace(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: hoveredNav === 'sidebar-header-chevron' ? SC.hover : 'transparent',
+                      color: SC.textDim,
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                      padding: 0,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M7 15l5 5 5-5" /><path d="M7 9l5-5 5 5" />
                     </svg>
-                  )}
-                  <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }}>berhot</span>
-                </button>
-                <div>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#949494" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="4" /><line x1="9" y1="3" x2="9" y2="21" /><path d="M15 10l-2 2 2 2" />
-                  </svg>
+                  </button>
                 </div>
+                <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '0 16px 4px 16px' }} />
               </>
             )}
-          </div>
 
-          {/* Divider between header and nav */}
-          <div style={{ padding: '0 18px' }}>
-            <div style={{ height: 1, background: C.divider, opacity: 0.6 }} />
-          </div>
-
-          {/* Top nav items (Search, Reports, Contracts) */}
-          {/* <nav style={{ padding: '10px 16px', paddingBottom: 10 }}>
+            {/* Top nav items (Search, Reports, Contracts) */}
+            {/* <nav style={{ padding: '10px 16px', paddingBottom: 10 }}>
             {navTop.map((item) => (
               <button
                 key={item.label}
@@ -698,7 +957,7 @@ export default function DashboardPage() {
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center' }}>{item.icon}</span>
-                <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                <span style={{ flex: 1, textAlign: 'start' }}>{item.label}</span>
                 {item.shortcut && (
                   <span style={{
                     fontSize: 12,
@@ -712,50 +971,125 @@ export default function DashboardPage() {
             ))}
           </nav> */}
 
-          {/* Divider */}
-          {/* <div style={{ height: 1, background: C.divider,  }} /> */}
+            {/* Divider */}
+            {/* <div style={{ height: 1, background: C.divider,  }} /> */}
 
 
-          {/* Main nav / Settings nav — only the links area transitions */}
-          <nav className="d2-sidebar-scroll" style={{
-            display: 'flex',
-            flexDirection: 'column', gap: 2, padding: '10px 16px 12px 16px',
-            flex: 1,
-            overflowY: 'auto',
-            minHeight: 0,
-          }}>
-            {!isLargeScreen && settingsMenuStack.length > 0 ? (() => {
-              const current = settingsMenuStack[settingsMenuStack.length - 1];
-              const isTopLevel = current.children === settingsNav;
-              return (
+            {/* Main nav / Settings nav — only the links area transitions */}
+            <nav className="d2-sidebar-scroll" style={{
+              display: 'flex',
+              flexDirection: 'column', gap: 2, padding: '10px 16px 12px 16px',
+              flex: 1,
+              overflowY: 'auto',
+              minHeight: 0,
+            }}>
+              {settingsMenuStack.length > 0 ? (() => {
+                const current = settingsMenuStack[settingsMenuStack.length - 1];
+                const isTopLevel = current.isTopLevel === true;
+                return (
+                  <div
+                    key={settingsSlideKey}
+                    className={settingsClosing ? 'd2-slide-out' : settingsSlideDir === 'forward' ? 'd2-slide-forward' : settingsSlideDir === 'back' ? 'd2-slide-back' : ''}
+                    onAnimationEnd={() => {
+                      if (settingsClosing) {
+                        setSettingsClosing(false);
+                        setSettingsMenuStack([]);
+                        setSettingsSlideDir('');
+                        setNavReturning(true);
+                      } else {
+                        setSettingsSlideDir('');
+                      }
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                  >
+                    {isTopLevel ? (
+                      current.children.map((group) => (
+                        <button
+                          key={group.category}
+                          onMouseEnter={() => setHoveredNav(`settings-cat-${group.category}`)}
+                          onMouseLeave={() => setHoveredNav(null)}
+                          onClick={() => {
+                            setSettingsSlideDir('forward');
+                            setSettingsSlideKey((k) => k + 1);
+                            setSettingsMenuStack((prev) => [...prev, {
+                              parentLabel: group.category,
+                              children: [group],
+                            }]);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            width: '100%',
+                            padding: '9px 10px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: hoveredNav === `settings-cat-${group.category}` ? SC.hover : 'transparent',
+                            color: SC.textSecond,
+                            fontWeight: 500,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                            transition: 'background 0.15s',
+                          }}
+                        >
+                          <span style={{ flex: 1, textAlign: 'start' }}>{group.category}</span>
+                          <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                            <path d="M9 18l6-6-6-6" />
+                          </svg>
+                        </button>
+                      ))
+                    ) : (
+                      current.children.map((group) =>
+                        group.links.map((link) => {
+                          const isLinkActive = pagePath === link.path;
+                          return (
+                            <button
+                              key={link.path}
+                              onMouseEnter={() => setHoveredNav(`settings-link-${link.path}`)}
+                              onMouseLeave={() => setHoveredNav(null)}
+                              onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                width: '100%',
+                                padding: '9px 10px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: (isLinkActive || hoveredNav === `settings-link-${link.path}`) ? SC.hover : 'transparent',
+                                color: isLinkActive ? SC.textPrimary : SC.textSecond,
+                                fontWeight: isLinkActive ? 600 : 400,
+                                fontSize: 13,
+                                cursor: 'pointer',
+                                transition: 'background 0.15s',
+                                textAlign: 'start',
+                              }}
+                            >
+                              {link.label}
+                            </button>
+                          );
+                        })
+                      )
+                    )}
+                  </div>
+                );
+              })() : (
                 <div
-                  key={settingsSlideKey}
-                  className={settingsClosing ? 'd2-slide-out' : settingsSlideDir === 'forward' ? 'd2-slide-forward' : settingsSlideDir === 'back' ? 'd2-slide-back' : ''}
-                  onAnimationEnd={() => {
-                    if (settingsClosing) {
-                      setSettingsClosing(false);
-                      setSettingsMenuStack([]);
-                      setSettingsSlideDir('');
-                      setNavReturning(true);
-                    } else {
-                      setSettingsSlideDir('');
-                    }
-                  }}
-                  style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                  className={navReturning ? 'd2-slide-back' : ''}
+                  onAnimationEnd={() => setNavReturning(false)}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 2, ...(navReturning ? { opacity: 0 } : {}) }}
                 >
-                  {isTopLevel ? (
-                    current.children.map((group) => (
+                  {navMain.map((item) => {
+                    const isActive = pagePath === item.path;
+                    return (
                       <button
-                        key={group.category}
-                        onMouseEnter={() => setHoveredNav(`settings-cat-${group.category}`)}
+                        key={item.label}
+                        onMouseEnter={() => setHoveredNav(item.label)}
                         onMouseLeave={() => setHoveredNav(null)}
                         onClick={() => {
-                          setSettingsSlideDir('forward');
-                          setSettingsSlideKey((k) => k + 1);
-                          setSettingsMenuStack((prev) => [...prev, {
-                            parentLabel: group.category,
-                            children: [group],
-                          }]);
+                          const target = item.path === 'home'
+                            ? `/${lang}/dashboard`
+                            : `/${lang}/dashboard/${item.path}`;
+                          navigate(target);
                         }}
                         style={{
                           display: 'flex',
@@ -765,186 +1099,103 @@ export default function DashboardPage() {
                           padding: '9px 10px',
                           borderRadius: 6,
                           border: 'none',
-                          background: hoveredNav === `settings-cat-${group.category}` ? C.hover : 'transparent',
-                          color: C.textSecond,
-                          fontWeight: 500,
-                          fontSize: 13,
-                          cursor: 'pointer',
+                          background: (isActive || hoveredNav === item.label) ? SC.hover : 'transparent',
+                          color: isActive ? SC.textPrimary : SC.textSecond,
+                          fontWeight: isActive ? 600 : 500,
                           transition: 'background 0.15s',
+                          cursor: 'pointer',
+                          fontSize: 13,
                         }}
                       >
-                        <span style={{ flex: 1, textAlign: 'left' }}>{group.category}</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
+                        <span style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          width: 18,
+                          justifyContent: 'center',
+                          color: isActive ? accentVisible : SC.textSecond,
+                          transition: 'color 0.15s',
+                        }}>{item.icon}</span>
+                        <span style={{ flex: 1, textAlign: 'start' }}>{item.label}</span>
                       </button>
-                    ))
-                  ) : (
-                    current.children.map((group) =>
-                      group.links.map((link) => {
-                        const isLinkActive = pagePath === link.path;
-                        return (
-                          <button
-                            key={link.path}
-                            onMouseEnter={() => setHoveredNav(`settings-link-${link.path}`)}
-                            onMouseLeave={() => setHoveredNav(null)}
-                            onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              width: '100%',
-                              padding: '9px 10px',
-                              borderRadius: 6,
-                              border: 'none',
-                              background: (isLinkActive || hoveredNav === `settings-link-${link.path}`) ? C.hover : 'transparent',
-                              color: isLinkActive ? C.textPrimary : C.textSecond,
-                              fontWeight: isLinkActive ? 600 : 400,
-                              fontSize: 13,
-                              cursor: 'pointer',
-                              transition: 'background 0.15s',
-                              textAlign: 'left',
-                            }}
-                          >
-                            {link.label}
-                          </button>
-                        );
-                      })
-                    )
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })() : (
-              <div
-                className={navReturning ? 'd2-slide-back' : ''}
-                onAnimationEnd={() => setNavReturning(false)}
-                style={{ display: 'flex', flexDirection: 'column', gap: 2, ...(navReturning ? { opacity: 0 } : {}) }}
-              >
-                {navMain.map((item) => {
-                  const isActive = pagePath === item.path;
-                  return (
-                    <button
-                      key={item.label}
-                      onMouseEnter={() => setHoveredNav(item.label)}
-                      onMouseLeave={() => setHoveredNav(null)}
-                      onClick={() => {
-                        const target = item.path === 'home'
-                          ? `/${lang}/dashboard`
-                          : `/${lang}/dashboard/${item.path}`;
-                        navigate(target);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        width: '100%',
-                        padding: '9px 10px',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: (isActive || hoveredNav === item.label) ? C.hover : 'transparent',
-                        color: isActive ? C.textPrimary : C.textSecond,
-                        fontWeight: isActive ? 600 : 500,
-                        transition: 'background 0.15s',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                      }}
-                    >
-                      <span style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        width: 18,
-                        justifyContent: 'center',
-                        color: isActive ? C.accent : C.textSecond,
-                        transition: 'color 0.15s',
-                      }}>{item.icon}</span>
-                      <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </nav>
+              )}
+            </nav>
 
-          {/* ── Sidebar footer — Settings, Support, User card, Icon bar (sticky) ── */}
-          <div style={{ flexShrink: 0, padding: '0 16px 16px 16px' }}>
-            {/* Settings + Support — same gap as main nav items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Settings link */}
-              <button
-                onMouseEnter={() => setHoveredNav('footer-settings')}
-                onMouseLeave={() => setHoveredNav(null)}
-                onClick={() => {
-                  if (isLargeScreen) {
-                    // Large screen: just navigate, secondary sidebar handles the rest
-                    navigate(`/${lang}/dashboard/${settingsNav[0].links[0].path}`);
-                  } else {
-                    // Small/tablet: use sliding navigation
+            {/* ── Sidebar footer — Settings, Support, User card, Icon bar (sticky) ── */}
+            <div style={{ flexShrink: 0, padding: '0 16px 16px 16px' }}>
+              {/* Settings + Support — same gap as main nav items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Settings link */}
+                <button
+                  onMouseEnter={() => setHoveredNav('footer-settings')}
+                  onMouseLeave={() => setHoveredNav(null)}
+                  onClick={() => {
                     setSettingsSlideDir('forward');
                     setSettingsSlideKey((k) => k + 1);
-                    setSettingsMenuStack([{ parentLabel: 'Settings', children: settingsNav }]);
-                  }
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  width: '100%',
-                  padding: '9px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: (isSettingsActive || hoveredNav === 'footer-settings') ? C.hover : 'transparent',
-                  color: isSettingsActive ? C.textPrimary : C.textSecond,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: isSettingsActive ? 600 : 500,
-                  transition: 'background 0.15s',
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: isSettingsActive ? C.accent : C.textSecond }}><SettingsIcon /></span>
-                <span style={{ flex: 1, textAlign: 'left' }}>Settings</span>
-                {!isLargeScreen && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '9px 10px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: (isSettingsActive || hoveredNav === 'footer-settings') ? SC.hover : 'transparent',
+                    color: isSettingsActive ? SC.textPrimary : SC.textSecond,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: isSettingsActive ? 600 : 500,
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: isSettingsActive ? accentVisible : SC.textSecond }}><SettingsIcon /></span>
+                  <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.settings')}</span>
+                  <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <path d="M9 18l6-6-6-6" />
                   </svg>
-                )}
-              </button>
+                </button>
 
-              {/* Support link */}
-              <button
-                onMouseEnter={() => setHoveredNav('footer-support')}
-                onMouseLeave={() => setHoveredNav(null)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  width: '100%',
-                  padding: '9px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: hoveredNav === 'footer-support' ? C.hover : 'transparent',
-                  color: C.textSecond,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  transition: 'background 0.15s',
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center' }}><SupportIcon /></span>
-                <span style={{ flex: 1, textAlign: 'left' }}>Support</span>
-              </button>
-            </div>
+                {/* Support link */}
+                <button
+                  onMouseEnter={() => setHoveredNav('footer-support')}
+                  onMouseLeave={() => setHoveredNav(null)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '9px 10px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: hoveredNav === 'footer-support' ? SC.hover : 'transparent',
+                    color: SC.textSecond,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center' }}><SupportIcon /></span>
+                  <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.support')}</span>
+                </button>
+              </div>
 
-            {/* Divider */}
-            {/* <div style={{ height: 1, background: C.divider, opacity: 0.4, margin: '10px 0' }} /> */}
+              {/* Divider */}
+              {/* <div style={{ height: 1, background: C.divider, opacity: 0.4, margin: '10px 0' }} /> */}
 
-            {/* User profile card — photo/name/email are text, only chevron is clickable */}
-            {/* <div style={{
+              {/* User profile card — photo/name/email are text, only chevron is clickable */}
+              {/* <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: 12,
               padding: '8px 6px',
             }}> */}
-            {/* Avatar */}
-            {/* <div style={{
+              {/* Avatar */}
+              {/* <div style={{
               width: 40,
               height: 40,
               borderRadius: '50%',
@@ -955,14 +1206,14 @@ export default function DashboardPage() {
               flexShrink: 0,
               overflow: 'hidden',
             }}> */}
-            {/* <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              {/* <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg> */}
-            {/* </div> */}
+              {/* </div> */}
 
-            {/* Name + email */}
-            {/* <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Name + email */}
+              {/* <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{
                     fontSize: 13,
@@ -988,8 +1239,8 @@ export default function DashboardPage() {
                 </div>
               </div> */}
 
-            {/* Chevron arrow — only clickable element, navigates to business profile */}
-            {/* <button
+              {/* Chevron arrow — only clickable element, navigates to business profile */}
+              {/* <button
                 onMouseEnter={() => setHoveredNav('footer-chevron')}
                 onMouseLeave={() => setHoveredNav(null)}
                 onClick={() => navigate(`/${lang}/dashboard/business`)}
@@ -1010,340 +1261,745 @@ export default function DashboardPage() {
               >
                 <ChevronRightIcon />
               </button> */}
-            {/* </div> */}
+              {/* </div> */}
 
-            {/* Divider */}
-            <div style={{ height: 1, background: C.divider, opacity: 0.4, margin: '10px 0 6px 0' }} />
+              {/* Divider */}
+              <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '10px 0 6px 0' }} />
 
-            {/* Icon bar — small icons with tooltips */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
-              {([
-                {
-                  key: 'notif',
-                  tooltip: 'Notifications',
-                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>,
-                },
-                {
-                  key: 'globe',
-                  tooltip: 'Language',
-                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>,
-                },
-                {
-                  key: 'search',
-                  tooltip: 'Search',
-                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
-                },
-                {
-                  key: 'help',
-                  tooltip: 'Support',
-                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
-                },
-                {
-                  key: 'rewards',
-                  tooltip: 'Rewards',
-                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>,
-                },
-              ] as { key: string; tooltip: string; icon: React.ReactNode }[]).map((item, idx) => (
-                <div key={item.key} style={{ position: 'relative' }}>
+              {/* Icon bar — small icons with tooltips */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
+                {([
+                  {
+                    key: 'notif',
+                    tooltip: t('dashboard.tooltipNotifications'),
+                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>,
+                  },
+                  {
+                    key: 'globe',
+                    tooltip: t('dashboard.tooltipLanguage'),
+                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>,
+                  },
+                  {
+                    key: 'search',
+                    tooltip: t('dashboard.tooltipSearch'),
+                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+                  },
+                  {
+                    key: 'help',
+                    tooltip: t('dashboard.tooltipSupport'),
+                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
+                  },
+                  {
+                    key: 'rewards',
+                    tooltip: t('dashboard.tooltipRewards'),
+                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>,
+                  },
+                ] as { key: string; tooltip: string; icon: React.ReactNode }[]).map((item, idx) => (
+                  <div key={item.key} style={{ position: 'relative' }}>
+                    <button
+                      onMouseEnter={() => setHoveredNav(`icon-${item.key}`)}
+                      onMouseLeave={() => setHoveredNav(null)}
+                      onClick={() => {
+                        if (item.key === 'globe') {
+                          setSelectedLang(lang);
+                          setShowLangPanel(true);
+                        } else if (item.key === 'help') {
+                          navigate(`/${lang}/dashboard/business`);
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 34,
+                        height: 34,
+                        borderRadius: 6,
+                        border: 'none',
+                        background: hoveredNav === `icon-${item.key}` ? SC.hover : 'transparent',
+                        color: SC.textSecond,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s, color 0.15s',
+                        padding: 0,
+                      }}
+                    >
+                      {item.icon}
+                    </button>
+                    {/* Tooltip — first icon aligns left to avoid clipping */}
+                    {hoveredNav === `icon-${item.key}` && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        ...(idx === 0
+                          ? { insetInlineStart: 0 }
+                          : { left: '50%', transform: 'translateX(-50%)' }),
+                        marginBottom: 6,
+                        padding: '5px 10px',
+                        background: (isLight && !effectiveDarkSidebar) ? '#1a1a1a' : '#e7e7e7',
+                        color: (isLight && !effectiveDarkSidebar) ? '#ffffff' : '#000000',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        borderRadius: 6,
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                      }}>
+                        {item.tooltip}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Old settings overlay removed — settings now renders inline in the nav area above */}
+          </aside>
+
+          {/* Secondary settings sidebar removed — unified into main sidebar */}
+
+          {/* ═══ MAIN CONTENT ═══ */}
+          <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100%', position: 'relative', background: C.bg, paddingBottom: isMobile ? 56 : 0 }}>
+
+            {/* Page transition spinner — centered in main content area (sidebar stays visible) */}
+            {pageLoading ? (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <div style={{
+                  width: 33,
+                  height: 33,
+                  border: `3px solid ${C.divider}`,
+                  borderTopColor: C.btnBg,
+                  borderRadius: '50%',
+                  animation: 'd2-spin 0.6s linear infinite',
+                }} />
+              </div>
+            ) : (<div key={displayedPath} className="d2-page-in" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+
+              {/* ── Page: Home (Dashboard) ── */}
+              {pagePath === 'home' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+                    {t('dashboard.homeTitle')}
+                  </h2>
+                  <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 20px 0', lineHeight: 1.5 }}>
+                    {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
+                  </p>
+
+                  {/* Live date & time */}
+                  <div style={{
+                    background: C.card,
+                    border: `1px solid ${C.cardBorder}`,
+                    borderRadius: 12,
+                    padding: '20px 24px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                  }}>
+                    {/* Clock icon */}
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 10,
+                      background: isLight ? '#f3f4f6' : '#1d1d1d',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                        {clockTime}
+                      </div>
+                      <div style={{ fontSize: 13, color: C.textSecond, marginTop: 2 }}>
+                        {clockDate}
+                      </div>
+                    </div>
+                    {/* Timezone badge */}
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, color: C.textDim,
+                      background: isLight ? '#f3f4f6' : '#1d1d1d',
+                      padding: '4px 10px', borderRadius: 6, flexShrink: 0,
+                    }}>
+                      {clockTzLabel}
+                    </span>
+                  </div>
+
+                  {/* Dashboard cards grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                    <div style={{
+                      background: C.card,
+                      border: `1px solid ${C.cardBorder}`,
+                      borderRadius: 12,
+                      height: 160,
+                    }} />
+                    <div style={{
+                      background: C.card,
+                      border: `1px solid ${C.cardBorder}`,
+                      borderRadius: 12,
+                      height: 160,
+                    }} />
+                  </div>
+
+                  <div style={{
+                    background: C.card,
+                    border: `1px solid ${C.cardBorder}`,
+                    borderRadius: 12,
+                    height: 200,
+                    marginBottom: 16,
+                  }} />
+
+                  <div style={{
+                    background: C.card,
+                    border: `1px solid ${C.cardBorder}`,
+                    borderRadius: 12,
+                    height: 160,
+                  }} />
+                </div>
+              )}
+
+              {/* ── Page: Account Settings ── */}
+              {pagePath === 'account' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <AccountSettingsContent C={C} isLight={isLight} userEmail={authUser.email} />
+                </div>
+              )}
+
+              {/* ── Page: Business Profile ── */}
+              {pagePath === 'business' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <BusinessProfileContent C={C} isLight={isLight} onLogoChange={(url, croppedDataUrl) => { setSidebarLogoUrl(url); setSidebarLogoImg(croppedDataUrl || ''); }} onBusinessNameChange={(name) => setSidebarBusinessName(name)} onLogoSettingsChange={(s) => { setSidebarLogoShape(s.logoShape); setSidebarShowName(s.showBusinessName); }} />
+                </div>
+              )}
+
+              {/* ── Settings sub-pages ── */}
+              {pagePath === 'settings/timezone' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsTimezoneContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/currency' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsCurrencyContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/multi-tab' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsMultiTabContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/theme' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsThemeContent C={C} isLight={isLight}
+                    onThemePreview={(t) => setPreviewTheme(t)}
+                    onAccentPreview={(c) => setPreviewAccent(c)}
+                    onDarkSidebarPreview={(v) => setPreviewDarkSidebar(v)}
+                    onShowHeaderPreview={(v) => setPreviewShowHeader(v)}
+                    onSave={() => {
+                      setCurrentTheme(localStorage.getItem('d2_theme') || 'light');
+                      setCurrentAccent(localStorage.getItem('d2_accent') || '#3b82f6');
+                      setCurrentDarkSidebar(localStorage.getItem('d2_dark_sidebar') === 'true');
+                      setCurrentShowHeader(localStorage.getItem('d2_show_header') !== 'false');
+                      setPreviewTheme(null);
+                      setPreviewAccent(null);
+                      setPreviewDarkSidebar(null);
+                      setPreviewShowHeader(null);
+                    }}
+                  />
+                </div>
+              )}
+              {pagePath === 'settings/display-preferences' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsDisplayPreferencesContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/notifications-actions' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsNotificationsActionsContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/invoice' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsInvoiceContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/subscription' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsSubscriptionContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/payment-gateway' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsPaymentGatewayContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/two-factor' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsTwoFactorContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/encryption' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsEncryptionContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/role' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsRoleContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/team' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsTeamContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/third-party' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsThirdPartyContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/api-access' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsApiAccessContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/email-inapp' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsEmailInappContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/custom-alerts' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsCustomAlertsContent C={C} isLight={isLight} />
+                </div>
+              )}
+
+            </div>)}
+          </main>
+
+        </div>{/* close SIDEBAR + CONTENT ROW */}
+
+        {/* ═══ MOBILE BOTTOM BAR ═══ */}
+        {isMobile && (
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 52,
+            background: C.sidebar,
+            borderTop: `1px solid ${C.divider}70`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            zIndex: 9998,
+          }}>
+            {/* Hamburger + page name */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px 0',
+                color: C.textPrimary,
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>
+                {(() => {
+                  const found = navMainConfig.find(n => n.path === pagePath);
+                  if (found) return t(found.tKey);
+                  if (pagePath === 'account') return t('dashboard.account');
+                  if (pagePath === 'business') return t('dashboard.business');
+                  if (isSettingsPage) return t('dashboard.settings');
+                  return t('dashboard.home');
+                })()}
+              </span>
+            </button>
+            {/* Notification bell */}
+            <button
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 6,
+                color: C.textSecond,
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* ═══ MOBILE SLIDE-OUT MENU ═══ */}
+        {isMobile && mobileMenuOpen && (
+          <>
+            {/* Dark overlay backdrop — click to close */}
+            <div
+              className={mobileMenuClosing ? 'd2-mobile-overlay-closing' : 'd2-mobile-overlay'}
+              onClick={closeMobileMenu}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 99998,
+                background: 'rgba(0,0,0,0.5)',
+              }}
+            />
+            {/* Menu panel — anchored to bottom, auto height */}
+            <div className={mobileMenuClosing ? 'd2-mobile-menu-closing' : 'd2-mobile-menu'} style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 99999,
+              background: C.sidebar,
+              borderTop: `1px solid ${C.divider}70`,
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '85vh',
+              overflow: 'auto',
+            }}>
+              {/* Top bar — X/back + logo + icons */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 16px',
+                borderBottom: `1px solid ${C.divider}70`,
+              }}>
+                {mobileSettingsStack.length > 0 ? (
+                  /* Back arrow when in settings */
                   <button
-                    onMouseEnter={() => setHoveredNav(`icon-${item.key}`)}
-                    onMouseLeave={() => setHoveredNav(null)}
+                    onMouseEnter={() => setHoveredMobileNav('mob-back')}
+                    onMouseLeave={() => setHoveredMobileNav(null)}
                     onClick={() => {
-                      if (item.key === 'globe') {
-                        setSelectedLang(lang);
-                        setShowLangPanel(true);
-                      } else if (item.key === 'help') {
-                        navigate(`/${lang}/dashboard/business`);
+                      if (mobileSettingsStack.length <= 1) {
+                        setMobileSettingsClosing(true);
+                        setMobileSettingsSlideDir('back');
+                        setMobileSettingsSlideKey((k) => k + 1);
+                      } else {
+                        setMobileSettingsSlideDir('back');
+                        setMobileSettingsSlideKey((k) => k + 1);
+                        setMobileSettingsStack((prev) => prev.slice(0, -1));
                       }
                     }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
+                      gap: 8,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      color: C.textPrimary,
+                    }}
+                  >
+                    <span style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 32, height: 32, borderRadius: 6,
+                      background: hoveredMobileNav === 'mob-back' ? C.hover : 'transparent',
+                      transition: 'background 0.15s',
+                    }}>
+                      <svg className="d2-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+                      </svg>
+                    </span>
+                    <span style={{ fontWeight: 500, fontSize: 13 }}>
+                      {mobileSettingsStack[mobileSettingsStack.length - 1].parentLabel}
+                    </span>
+                  </button>
+                ) : (
+                  /* X close button */
+                  <button
+                    onMouseEnter={() => setHoveredMobileNav('mob-close')}
+                    onMouseLeave={() => setHoveredMobileNav(null)}
+                    onClick={closeMobileMenu}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
-                      width: 34,
-                      height: 34,
+                      width: 32,
+                      height: 32,
                       borderRadius: 6,
                       border: 'none',
-                      background: hoveredNav === `icon-${item.key}` ? C.hover : 'transparent',
-                      color: C.textSecond,
                       cursor: 'pointer',
-                      transition: 'background 0.15s, color 0.15s',
+                      background: hoveredMobileNav === 'mob-close' ? C.hover : 'transparent',
+                      color: C.textPrimary,
+                      transition: 'background 0.15s',
                       padding: 0,
                     }}
                   >
-                    {item.icon}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
                   </button>
-                  {/* Tooltip — first icon aligns left to avoid clipping */}
-                  {hoveredNav === `icon-${item.key}` && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '100%',
-                      ...(idx === 0
-                        ? { left: 0 }
-                        : { left: '50%', transform: 'translateX(-50%)' }),
-                      marginBottom: 6,
-                      padding: '5px 10px',
-                      background: isLight ? '#1a1a1a' : '#e7e7e7',
-                      color: isLight ? '#ffffff' : '#000000',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      borderRadius: 6,
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      zIndex: 10,
-                    }}>
-                      {item.tooltip}
-                    </div>
+                )}
+                {/* Logo + divider + Icon bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {/* Logo — links to business page */}
+                  {mobileSettingsStack.length === 0 && (
+                    <>
+                      <button
+                        onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/business`); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                      >
+                        {(sidebarLogoImg || sidebarLogoUrl) ? (
+                          <img
+                            src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
+                            alt="Logo"
+                            style={{
+                              width: sidebarLogoShape === 'rectangle'
+                                ? (sidebarShowName ? 37 : 57)
+                                : 25,
+                              height: 25,
+                              objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
+                              borderRadius: sidebarLogoShape === 'circle' ? '50%' : 4,
+                              flexShrink: 0,
+                            }}
+                          />
+                        ) : sidebarLoaded ? (
+                          <svg width="21" height="21" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
+                            <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
+                              <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
+                            </g>
+                          </svg>
+                        ) : null}
+                      </button>
+                      {/* Vertical divider */}
+                      <div style={{ width: 1, height: 20, background: C.divider, opacity: 0.5, flexShrink: 0, margin: '0 4px' }} />
+                    </>
                   )}
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </button>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 01-3.46 0" />
+                    </svg>
+                  </button>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/account`); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}
+                  >
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Old settings overlay removed — settings now renders inline in the nav area above */}
-        </aside>
-
-        {/* ═══ SETTINGS SECONDARY SIDEBAR (hidden on small screens) ═══ */}
-        {isSettingsPage && (
-          <aside className="d2-sidebar-scroll d2-settings-sidebar" style={{
-            width: 260,
-            minWidth: 260,
-            background: C.sidebar,
-            borderRight: `1px solid ${C.divider}70`,
-            height: '100vh',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '24px 0',
-          }}>
-            {/* Settings header */}
-            <div style={{ padding: '0 20px 20px 20px' }}>
-              <h2 style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: C.textPrimary,
-                margin: 0,
-                letterSpacing: '-0.01em',
-              }}>
-                General Settings
-              </h2>
-            </div>
-
-            {/* Category groups */}
-            {settingsNav.map((group) => (
-              <div key={group.category} style={{ marginBottom: 16 }}>
-                {/* Category header */}
-                <div style={{
-                  padding: '8px 20px 4px 20px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: C.textDim,
-                  letterSpacing: '0.03em',
-                }}>
-                  {group.category}
-                </div>
-
-                {/* Links */}
-                {group.links.map((link) => {
-                  const isLinkActive = pagePath === link.path;
-                  return (
-                    <button
-                      key={link.path}
-                      onMouseEnter={() => setHoveredSettingsLink(link.path)}
-                      onMouseLeave={() => setHoveredSettingsLink(null)}
-                      onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '7px 20px',
-                        border: 'none',
-                        background: (isLinkActive || hoveredSettingsLink === link.path) ? C.hover : 'transparent',
-                        color: isLinkActive ? C.textPrimary : C.textSecond,
-                        fontWeight: isLinkActive ? 600 : 400,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        transition: 'background 0.15s, color 0.15s',
-                        borderRadius: 0,
-                      }}
-                    >
-                      {link.label}
-                    </button>
-                  );
-                })}
               </div>
-            ))}
-          </aside>
+
+              {/* Logo is now in the top bar — no separate section needed */}
+
+              {/* Nav items or Settings sliding panels */}
+              {mobileSettingsStack.length > 0 ? (
+                /* Settings multi-layer sliding menu */
+                <div style={{ padding: '10px 16px 20px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {(() => {
+                    const current = mobileSettingsStack[mobileSettingsStack.length - 1];
+                    const isTopLevel = current.isTopLevel === true;
+                    return (
+                      <div
+                        key={mobileSettingsSlideKey}
+                        className={mobileSettingsClosing ? 'd2-slide-out' : mobileSettingsSlideDir === 'forward' ? 'd2-slide-forward' : mobileSettingsSlideDir === 'back' ? 'd2-slide-back' : ''}
+                        onAnimationEnd={() => {
+                          if (mobileSettingsClosing) {
+                            setMobileSettingsClosing(false);
+                            setMobileSettingsStack([]);
+                            setMobileSettingsSlideDir('');
+                          } else {
+                            setMobileSettingsSlideDir('');
+                          }
+                        }}
+                        style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                      >
+                        {isTopLevel ? (
+                          current.children.map((group) => (
+                            <button
+                              key={group.categoryKey}
+                              onMouseEnter={() => setHoveredMobileNav(`mob-cat-${group.categoryKey}`)}
+                              onMouseLeave={() => setHoveredMobileNav(null)}
+                              onClick={() => {
+                                setMobileSettingsSlideDir('forward');
+                                setMobileSettingsSlideKey((k) => k + 1);
+                                setMobileSettingsStack((prev) => [...prev, {
+                                  parentLabel: t(group.categoryKey),
+                                  children: [group],
+                                }]);
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                width: '100%',
+                                padding: '9px 10px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: hoveredMobileNav === `mob-cat-${group.categoryKey}` ? C.hover : 'transparent',
+                                color: C.textSecond,
+                                fontWeight: 500,
+                                fontSize: 13,
+                                cursor: 'pointer',
+                                transition: 'background 0.15s',
+                              }}
+                            >
+                              <span style={{ flex: 1, textAlign: 'start' }}>{t(group.categoryKey)}</span>
+                              <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                                <path d="M9 18l6-6-6-6" />
+                              </svg>
+                            </button>
+                          ))
+                        ) : (
+                          current.children.map((group) =>
+                            group.links.map((link) => {
+                              const isLinkActive = pagePath === link.path;
+                              return (
+                                <button
+                                  key={link.path}
+                                  onMouseEnter={() => setHoveredMobileNav(`mob-link-${link.path}`)}
+                                  onMouseLeave={() => setHoveredMobileNav(null)}
+                                  onClick={() => {
+                                    closeMobileMenu();
+                                    navigate(`/${lang}/dashboard/${link.path}`);
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    width: '100%',
+                                    padding: '9px 10px',
+                                    borderRadius: 6,
+                                    border: 'none',
+                                    background: (isLinkActive || hoveredMobileNav === `mob-link-${link.path}`) ? C.hover : 'transparent',
+                                    color: isLinkActive ? C.textPrimary : C.textSecond,
+                                    fontWeight: isLinkActive ? 600 : 500,
+                                    fontSize: 13,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.15s',
+                                    textAlign: 'start',
+                                  }}
+                                >
+                                  {t(link.tKey)}
+                                </button>
+                              );
+                            })
+                          )
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                /* Main nav items */
+                <div style={{ padding: '10px 16px 32px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {navMainConfig.map((item) => {
+                    const isActive = item.path === 'home'
+                      ? (pagePath === 'home' || pagePath === '')
+                      : pagePath === item.path;
+                    return (
+                      <button
+                        key={item.path}
+                        onMouseEnter={() => setHoveredMobileNav(item.path)}
+                        onMouseLeave={() => setHoveredMobileNav(null)}
+                        onClick={() => {
+                          closeMobileMenu();
+                          const target = item.path === 'home'
+                            ? `/${lang}/dashboard`
+                            : `/${lang}/dashboard/${item.path}`;
+                          navigate(target);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '9px 10px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: (isActive || hoveredMobileNav === item.path) ? C.hover : 'transparent',
+                          color: isActive ? C.textPrimary : C.textSecond,
+                          fontWeight: isActive ? 600 : 500,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          width: '100%',
+                          textAlign: 'start',
+                          transition: 'background 0.15s',
+                        }}
+                      >
+                        <span style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          width: 18,
+                          justifyContent: 'center',
+                          color: isActive ? accentVisibleMain : C.textSecond,
+                          transition: 'color 0.15s',
+                        }}>{item.icon}</span>
+                        <span style={{ flex: 1, textAlign: 'start' }}>{t(item.tKey)}</span>
+                      </button>
+                    );
+                  })}
+
+                  {/* Settings — opens sliding menu */}
+                  <button
+                    onMouseEnter={() => setHoveredMobileNav('settings')}
+                    onMouseLeave={() => setHoveredMobileNav(null)}
+                    onClick={() => {
+                      setMobileSettingsSlideDir('forward');
+                      setMobileSettingsSlideKey((k) => k + 1);
+                      setMobileSettingsStack([{ parentLabel: t('dashboard.settings'), children: settingsNavConfig, isTopLevel: true }]);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '9px 10px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: (isSettingsPage || hoveredMobileNav === 'settings') ? C.hover : 'transparent',
+                      color: isSettingsPage ? C.textPrimary : C.textSecond,
+                      fontWeight: isSettingsPage ? 600 : 500,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      width: '100%',
+                      textAlign: 'start',
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <span style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: 18,
+                      justifyContent: 'center',
+                      color: isSettingsPage ? accentVisibleMain : C.textSecond,
+                      transition: 'color 0.15s',
+                    }}><SettingsIcon /></span>
+                    <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.settings')}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
-
-        {/* ═══ MAIN CONTENT ═══ */}
-        <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100vh', position: 'relative', background: C.bg }}>
-
-          {/* Page transition spinner — centered in main content area (sidebar stays visible) */}
-          {pageLoading ? (
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <div style={{
-                width: 28,
-                height: 28,
-                border: `3px solid ${C.divider}`,
-                borderTopColor: C.btnBg,
-                borderRadius: '50%',
-                animation: 'd2-spin 0.6s linear infinite',
-              }} />
-            </div>
-          ) : (<div key={displayedPath} className="d2-page-in" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-
-            {/* ── Page: Home (Dashboard) ── */}
-            {pagePath === 'home' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
-                  Home
-                </h2>
-                <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 28px 0', lineHeight: 1.5 }}>
-                  Welcome back, {capitalize(authUser.firstName) || 'there'}! 👋
-                </p>
-
-                {/* Dashboard cards grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                  <div style={{
-                    background: C.card,
-                    border: `1px solid ${C.cardBorder}`,
-                    borderRadius: 12,
-                    height: 160,
-                  }} />
-                  <div style={{
-                    background: C.card,
-                    border: `1px solid ${C.cardBorder}`,
-                    borderRadius: 12,
-                    height: 160,
-                  }} />
-                </div>
-
-                <div style={{
-                  background: C.card,
-                  border: `1px solid ${C.cardBorder}`,
-                  borderRadius: 12,
-                  height: 200,
-                  marginBottom: 16,
-                }} />
-
-                <div style={{
-                  background: C.card,
-                  border: `1px solid ${C.cardBorder}`,
-                  borderRadius: 12,
-                  height: 160,
-                }} />
-              </div>
-            )}
-
-            {/* ── Page: Account Settings ── */}
-            {pagePath === 'account' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <AccountSettingsContent C={C} isLight={isLight} userEmail={authUser.email} />
-              </div>
-            )}
-
-            {/* ── Page: Business Profile ── */}
-            {pagePath === 'business' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <BusinessProfileContent C={C} isLight={isLight} onLogoChange={(url, croppedDataUrl) => { setSidebarLogoUrl(url); if (croppedDataUrl) setSidebarLogoImg(croppedDataUrl); }} />
-              </div>
-            )}
-
-            {/* ── Settings sub-pages ── */}
-            {pagePath === 'settings/timezone' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsTimezoneContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/currency' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsCurrencyContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/multi-tab' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsMultiTabContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/theme' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsThemeContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/display-preferences' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsDisplayPreferencesContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/notifications-actions' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsNotificationsActionsContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/invoice' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsInvoiceContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/subscription' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsSubscriptionContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/payment-gateway' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsPaymentGatewayContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/two-factor' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsTwoFactorContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/encryption' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsEncryptionContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/role' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsRoleContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/team' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsTeamContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/third-party' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsThirdPartyContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/api-access' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsApiAccessContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/email-inapp' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsEmailInappContent C={C} isLight={isLight} />
-              </div>
-            )}
-            {pagePath === 'settings/custom-alerts' && (
-              <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                <SettingsCustomAlertsContent C={C} isLight={isLight} />
-              </div>
-            )}
-
-          </div>)}
-        </main>
       </div>
 
       {/* ═══ WORKSPACE SLIDE PANEL ═══ */}
@@ -1398,32 +2054,32 @@ export default function DashboardPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="8" width="18" height="13" rx="2" /><path d="M12 8V5a3 3 0 00-3-3h0a3 3 0 00-3 3v0" /><path d="M18 8V5a3 3 0 00-3-3h0a3 3 0 00-3 3v0" /><line x1="12" y1="8" x2="12" y2="21" /><path d="M3 12h18" />
               </svg>
-              Earn rewards
+              {t('dashboard.earnRewards')}
             </button>
           </div>
 
           {/* Owner name + role */}
           <div style={{ padding: '10px 30px 12px 30px' }}>
             <div style={{ fontSize: 16, color: C.textPrimary, fontWeight: 700 }}>{capitalize(authUser.firstName)} {capitalize(authUser.lastName)}</div>
-            <div style={{ fontSize: 13, color: C.textSecond, fontWeight: 400, marginTop: 2 }}>Owner</div>
+            <div style={{ fontSize: 13, color: C.textSecond, fontWeight: 400, marginTop: 2 }}>{t('dashboard.owner')}</div>
           </div>
 
           {/* Menu items */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-            {[
-              'Account settings',
-              'Feature log',
-              'Roadmap',
-              'Cookie preferences',
-              'Community',
-              'Order hardware',
-            ].map((item, i, arr) => (
-              <div key={item}>
+            {([
+              { key: 'accountSettings', tKey: 'dashboard.accountSettings' },
+              { key: 'featureLog', tKey: 'dashboard.featureLog' },
+              { key: 'roadmap', tKey: 'dashboard.roadmap' },
+              { key: 'cookiePreferences', tKey: 'dashboard.cookiePreferences' },
+              { key: 'community', tKey: 'dashboard.community' },
+              { key: 'orderHardware', tKey: 'dashboard.orderHardware' },
+            ]).map((item, i, arr) => (
+              <div key={item.key}>
                 <button
-                  onMouseEnter={() => setHoveredPanel(item)}
+                  onMouseEnter={() => setHoveredPanel(item.key)}
                   onMouseLeave={() => setHoveredPanel(null)}
                   onClick={() => {
-                    if (item === 'Account settings') {
+                    if (item.key === 'accountSettings') {
                       setShowWorkspace(false);
                       navigate(`/${lang}/dashboard/account`);
                     }
@@ -1431,9 +2087,9 @@ export default function DashboardPage() {
                   style={{
                     display: 'block',
                     width: '100%',
-                    textAlign: 'left',
+                    textAlign: 'start',
                     padding: '12px 10px',
-                    background: hoveredPanel === item ? C.hover : 'none',
+                    background: hoveredPanel === item.key ? C.hover : 'none',
                     border: 'none',
                     borderRadius: 0,
                     color: C.textPrimary,
@@ -1443,7 +2099,7 @@ export default function DashboardPage() {
                     transition: 'background 0.15s',
                   }}
                 >
-                  {item}
+                  {t(item.tKey)}
                 </button>
                 {i < arr.length - 1 && (
                   <div style={{ height: '0.5px', background: C.divider }} />
@@ -1461,7 +2117,7 @@ export default function DashboardPage() {
               justifyContent: 'space-between',
               padding: '12px 10px',
             }}>
-              <span style={{ color: C.textPrimary, fontSize: 15, fontWeight: 500 }}>Theme</span>
+              <span style={{ color: C.textPrimary, fontSize: 15, fontWeight: 500 }}>{t('dashboard.theme')}</span>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1534,15 +2190,15 @@ export default function DashboardPage() {
             {/* Sign out */}
             <div>
               <button
-                onMouseEnter={() => setHoveredPanel('Sign out')}
+                onMouseEnter={() => setHoveredPanel('signout')}
                 onMouseLeave={() => setHoveredPanel(null)}
                 onClick={performLogout}
                 style={{
                   display: 'block',
                   width: '100%',
-                  textAlign: 'left',
+                  textAlign: 'start',
                   padding: '12px 10px',
-                  background: hoveredPanel === 'Sign out' ? C.hover : 'none',
+                  background: hoveredPanel === 'signout' ? C.hover : 'none',
                   border: 'none',
                   borderRadius: 0,
                   color: '#ef4444',
@@ -1552,7 +2208,7 @@ export default function DashboardPage() {
                   transition: 'background 0.15s',
                 }}
               >
-                Sign out
+                {t('dashboard.signOut')}
               </button>
             </div>
           </div>
@@ -1578,10 +2234,10 @@ export default function DashboardPage() {
           </div>
 
           <h2 style={{ fontSize: 20, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
-            Session expiring soon
+            {t('dashboard.sessionExpiring')}
           </h2>
           <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.5, margin: '0 0 8px 0' }}>
-            Your session will expire in
+            {t('dashboard.sessionExpireIn')}
           </p>
 
           {/* Countdown display */}
@@ -1615,15 +2271,15 @@ export default function DashboardPage() {
             onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
           >
-            Continue Session
+            {t('dashboard.continueSession')}
           </button>
 
           {/* Extension time options (pill buttons) */}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
             {[
-              { label: '+5 min', ms: 5 * 60_000 },
-              { label: '+15 min', ms: 15 * 60_000 },
-              { label: '+30 min', ms: 30 * 60_000 },
+              { label: t('dashboard.plus5min'), ms: 5 * 60_000 },
+              { label: t('dashboard.plus15min'), ms: 15 * 60_000 },
+              { label: t('dashboard.plus30min'), ms: 30 * 60_000 },
             ].map((opt) => (
               <button
                 key={opt.label}
@@ -1661,7 +2317,7 @@ export default function DashboardPage() {
             onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
             onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
           >
-            Sign out now
+            {t('dashboard.signOutNow')}
           </button>
         </div>
       </Modal>
@@ -1693,7 +2349,7 @@ export default function DashboardPage() {
             style={{
               position: 'absolute',
               top: 16,
-              left: 16,
+              insetInlineStart: 16,
               background: 'none',
               border: `1.5px solid ${C.divider}`,
               borderRadius: '50%',
@@ -1724,10 +2380,10 @@ export default function DashboardPage() {
           </div>
 
           <h2 style={{ fontSize: 20, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
-            Session timeout
+            {t('dashboard.sessionTimeout')}
           </h2>
           <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.5, margin: '0 0 24px 0' }}>
-            You have been signed out due to inactivity. Please sign in again.
+            {t('dashboard.sessionExpiredMessage')}
           </p>
 
           {/* Sign In button */}
@@ -1748,7 +2404,7 @@ export default function DashboardPage() {
             onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
           >
-            Sign In
+            {t('dashboard.signIn')}
           </button>
         </div>
       </Modal>
@@ -1789,14 +2445,14 @@ export default function DashboardPage() {
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-            <span style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>Language</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>{t('dashboard.language')}</span>
           </div>
 
           {/* Language options */}
           <div style={{ flex: 1, padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {([
-              { value: 'en' as const, label: 'English', nativeLabel: 'English', flag: '🇺🇸' },
-              { value: 'ar' as const, label: 'العربية', nativeLabel: 'Arabic', flag: '🇸🇦' },
+              { value: 'en' as const, label: t('dashboard.english'), nativeLabel: 'English', flag: '🇺🇸' },
+              { value: 'ar' as const, label: t('dashboard.arabic'), nativeLabel: t('dashboard.arabicNative'), flag: '🇸🇦' },
             ]).map((option) => {
               const isSelected = selectedLang === option.value;
               return (
@@ -1812,13 +2468,13 @@ export default function DashboardPage() {
                     width: '100%',
                     padding: '14px 16px',
                     borderRadius: 12,
-                    border: `1.5px solid ${isSelected ? C.accent : C.cardBorder}`,
+                    border: `1.5px solid ${isSelected ? accentVisibleMain : C.cardBorder}`,
                     background: isSelected
                       ? (isLight ? 'rgba(59, 130, 246, 0.06)' : 'rgba(59, 130, 246, 0.10)')
                       : hoveredPanel === `lang-${option.value}` ? C.hover : 'transparent',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
-                    textAlign: 'left',
+                    textAlign: 'start',
                   }}
                 >
                   {/* Flag */}
@@ -1835,7 +2491,7 @@ export default function DashboardPage() {
                     width: 20,
                     height: 20,
                     borderRadius: '50%',
-                    border: `2px solid ${isSelected ? C.accent : C.cardBorder}`,
+                    border: `2px solid ${isSelected ? accentVisibleMain : C.cardBorder}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1847,7 +2503,7 @@ export default function DashboardPage() {
                         width: 10,
                         height: 10,
                         borderRadius: '50%',
-                        background: C.accent,
+                        background: accentVisibleMain,
                       }} />
                     )}
                   </div>
@@ -1888,7 +2544,7 @@ export default function DashboardPage() {
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >
-              {selectedLang === lang ? 'Done' : 'Save & Apply'}
+              {selectedLang === lang ? t('dashboard.done') : t('dashboard.saveApply')}
             </button>
           </div>
         </div>

@@ -194,7 +194,7 @@ export function Layout() {
             <a href={`${LANDING_URL}/pos`} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">{t('app.newOrder')}</a>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 relative">
           <Outlet />
         </div>
       </main>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Modal, OtpInput, type OtpInputHandle } from '@berhot/ui';
+import { useTranslation } from '@berhot/i18n';
 
 /* ──────────────────────────────────────────────────────────────────
    Account Settings Content — renders inside DashboardPage2 <main>
@@ -27,6 +28,7 @@ interface Theme {
   divider: string;
   textPrimary: string;
   textSecond: string;
+  textLight: string;
   textDim: string;
   accent: string;
   btnBg: string;
@@ -87,7 +89,7 @@ function ActionLink({ children, color, hoverColor, onClick }: { children: string
 
 // ── Floating label input (inline-styled) ────────────────────────
 function FloatingInput({
-  label, value, onChange, error, errorMessage, onBlur,
+  label, value, onChange, error, errorMessage, onBlur, accentColor,
 }: {
   label: string;
   value: string;
@@ -95,6 +97,7 @@ function FloatingInput({
   error?: boolean;
   errorMessage?: string;
   onBlur?: () => void;
+  accentColor?: string;
 }) {
   const [focused, setFocused] = useState(false);
   const floated = focused || value.length > 0;
@@ -103,7 +106,7 @@ function FloatingInput({
     <div>
       <div style={{
         position: 'relative',
-        border: `1.5px solid ${error ? '#ef4444' : focused ? '#1a1a1a' : '#d1d5db'}`,
+        border: `1.5px solid ${error ? '#ef4444' : focused ? (accentColor || '#1a1a1a') : '#d1d5db'}`,
         borderRadius: 12,
         padding: '20px 16px 8px 16px',
         background: '#ffffff',
@@ -111,7 +114,7 @@ function FloatingInput({
       }}>
         <label style={{
           position: 'absolute',
-          left: 16,
+          insetInlineStart: 16,
           transition: 'all 0.15s',
           pointerEvents: 'none',
           ...(floated
@@ -152,6 +155,7 @@ function FloatingInput({
 
 // ── Main content component ──────────────────────────────────────
 export default function AccountSettingsContent({ C, isLight, userEmail }: { C: Theme; isLight: boolean; userEmail?: string }) {
+  const { t } = useTranslation();
   // Detect phone-only user (no real email — backend sends phone in the email field)
   const hasNoEmail = !userEmail || !userEmail.includes('@');
 
@@ -382,9 +386,9 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       } else if (res.status === 409) {
         // Email already taken
         const data = await res.json().catch(() => ({}));
-        setNewEmailError(data.message || 'This email is already associated with another account.');
+        setNewEmailError(data.message || t('account.emailTaken'));
       } else {
-        setNewEmailError('Something went wrong. Please try again.');
+        setNewEmailError(t('account.somethingWrong'));
       }
     } catch { /* silently fail */ }
     setVerifyLoading(false);
@@ -436,12 +440,12 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       const isValid10 = cleaned.length === 10 && cleaned.startsWith('05');
       const isValid9 = cleaned.length === 9 && cleaned.startsWith('5');
       if (!isValid10 && !isValid9) {
-        setPhoneError('Enter a valid Saudi number (05XXXXXXXX or 5XXXXXXXX)');
+        setPhoneError(t('account.invalidSaudiNumber'));
         return;
       }
     } else {
       if (cleaned.length < 7 || cleaned.length > 12) {
-        setPhoneError('Enter a valid phone number');
+        setPhoneError(t('account.invalidPhoneNumber'));
         return;
       }
     }
@@ -462,7 +466,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       if (res.ok) {
         const data = await res.json();
         if (data.taken) {
-          setPhoneError('This phone number is already associated with another account.');
+          setPhoneError(t('account.phoneTaken'));
           setPhoneLoading(false);
           return;
         }
@@ -479,7 +483,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
 
   const handleOtpComplete = async (code: string) => {
     if (code !== '1234') {
-      setOtpError('Invalid code. Try again.');
+      setOtpError(t('account.invalidCode'));
       otpRef.current?.reset();
       return;
     }
@@ -509,14 +513,14 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
         setTimeout(() => setPhoneModalOpen(false), 800);
       } else if (res.status === 409) {
         const data = await res.json().catch(() => ({}));
-        setPhoneError(data.error || 'This phone number is already associated with another account.');
+        setPhoneError(data.error || t('account.phoneTaken'));
         setPhoneModalStep('form');
       } else {
-        setPhoneError('Failed to save phone number. Please try again.');
+        setPhoneError(t('account.saveFailed'));
         setPhoneModalStep('form');
       }
     } catch {
-      setPhoneError('Network error. Please try again.');
+      setPhoneError(t('account.networkError'));
       setPhoneModalStep('form');
     }
   };
@@ -531,13 +535,13 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       </h1> */}
 
       {/* ═══════════ SECTION 1: Sign in ═══════════ */}
-      <SectionTitle color={C.textPrimary}>Account settings</SectionTitle>
+      <SectionTitle color={C.textPrimary}>{t('account.title')}</SectionTitle>
       <div style={{ marginTop: 14 }}>
         {/* Email row */}
         <div style={{ padding: '16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>Email</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.email')}</span>
               {emailStatus === 'verified' ? (
                 <span style={{
                   fontSize: 12,
@@ -553,7 +557,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
-                  Verified
+                  {t('account.verified')}
                 </span>
               ) : emailStatus === 'no_email' ? null : emailStatus === 'verification_needed' ? (
                 <span style={{
@@ -570,7 +574,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
-                  Verification needed
+                  {t('account.verificationNeeded')}
                 </span>
               ) : (
                 <span style={{
@@ -587,33 +591,33 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                   </svg>
-                  Pending verification
+                  {t('account.pendingVerification')}
                 </span>
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {emailStatus === 'no_email' ? (
-                <ActionLink color={C.textPrimary} onClick={handleOpenEmailModal}>Add</ActionLink>
+                <ActionLink color={C.textPrimary} onClick={handleOpenEmailModal}>{t('account.add')}</ActionLink>
               ) : emailStatus === 'verified' ? (
-                <ActionLink color={C.textPrimary} onClick={handleOpenEmailModal}>Update</ActionLink>
+                <ActionLink color={C.textPrimary} onClick={handleOpenEmailModal}>{t('account.update')}</ActionLink>
               ) : emailStatus === 'verification_needed' ? (
-                <ActionLink color={C.textPrimary} onClick={handleVerify}>{verifyLoading ? 'Sending...' : 'Verify'}</ActionLink>
+                <ActionLink color={C.textPrimary} onClick={handleVerify}>{verifyLoading ? t('account.sending') : t('account.verify')}</ActionLink>
               ) : resendCountdown > 0 ? (
                 <span style={{ fontSize: 15, fontWeight: 600, color: '#9ca3af', cursor: 'default' }}>
-                  Resend ({resendCountdown})
+                  {t('account.resendCountdown', { count: resendCountdown })}
                 </span>
               ) : (
-                <ActionLink color={C.textPrimary} onClick={handleResend}>Resend</ActionLink>
+                <ActionLink color={C.textPrimary} onClick={handleResend}>{t('account.resend')}</ActionLink>
               )}
               {emailStatus !== 'verified' && emailStatus !== 'no_email' && (
                 <>
                   <span style={{ color: C.divider }}>|</span>
-                  <ActionLink color={C.textPrimary} onClick={handleOpenEmailModal}>Update</ActionLink>
+                  <ActionLink color={C.textPrimary} onClick={handleOpenEmailModal}>{t('account.update')}</ActionLink>
                 </>
               )}
             </div>
           </div>
-          <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>{displayEmail || 'No email address'}</div>
+          <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>{displayEmail || t('account.noEmail')}</div>
         </div>
         <Divider color={C.divider} />
 
@@ -621,7 +625,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
         <div style={{ padding: '16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>Phone</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.phone')}</span>
               {phoneVerified && displayPhone && (
                 <span style={{
                   fontSize: 12, fontWeight: 500, color: '#16a34a',
@@ -632,22 +636,22 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
-                  Verified
+                  {t('account.verified')}
                 </span>
               )}
             </div>
             <ActionLink color={C.textPrimary} onClick={handleOpenPhoneModal}>
-              {displayPhone ? 'Update' : 'Add'}
+              {displayPhone ? t('account.update') : t('account.add')}
             </ActionLink>
           </div>
-          <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>{displayPhone || 'No phone number'}</div>
+          <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>{displayPhone || t('account.noPhone')}</div>
         </div>
         <Divider color={C.divider} />
 
         {/* Password row */}
         <div style={{ padding: '16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>Password</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.password')}</span>
             {hasPassword === true ? (
               <ActionLink color={C.textPrimary} onClick={() => {
                 setNewPassword('');
@@ -657,7 +661,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                 setShowNewPassword(false);
                 setShowConfirmPassword(false);
                 setPasswordModalOpen(true);
-              }}>Update</ActionLink>
+              }}>{t('account.update')}</ActionLink>
             ) : hasPassword === false && emailStatus === 'verified' ? (
               <ActionLink color={C.textPrimary} onClick={() => {
                 setNewPassword('');
@@ -667,18 +671,18 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                 setShowNewPassword(false);
                 setShowConfirmPassword(false);
                 setPasswordModalOpen(true);
-              }}>Add</ActionLink>
+              }}>{t('account.add')}</ActionLink>
             ) : hasPassword === false ? (
               <span style={{ fontSize: 14, color: C.textDim, cursor: 'default' }}>—</span>
             ) : null}
           </div>
           <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>
             {hasPassword === true
-              ? 'Password is set'
+              ? t('account.passwordIsSet')
               : hasPassword === false && emailStatus === 'verified'
-                ? 'No password set. Add a password to sign in with your email.'
+                ? t('account.noPasswordSet')
                 : hasPassword === false
-                  ? 'Add and verify an email address first to set a password.'
+                  ? t('account.addEmailFirst')
                   : ''}
           </div>
         </div>
@@ -687,10 +691,9 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
 
       {/* ═══════════ SECTION 2: Personal POS Passcode ═══════════ */}
       <div style={{ marginTop: 48 }}>
-        <SectionTitle color={C.textPrimary}>Personal POS Passcode for Lunor</SectionTitle>
+        <SectionTitle color={C.textPrimary}>{t('account.posPasscodeTitle')}</SectionTitle>
         <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 20px 0' }}>
-          Your personal POS passcode is used to log in and clock in on the Lunor point of sale.
-          Please don't share this passcode with anyone.
+          {t('account.posPasscodeDesc')}
         </p>
         <button style={{
           padding: '12px 24px',
@@ -702,17 +705,15 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
           fontWeight: 600,
           cursor: 'pointer',
         }}>
-          Add passcode
+          {t('account.addPasscode')}
         </button>
       </div>
 
       {/* ═══════════ SECTION 3: Passkeys ═══════════ */}
       <div style={{ marginTop: 48 }}>
-        <SectionTitle color={C.textPrimary} badge={{ label: 'Beta', color: '#16a34a', bg: isLight ? '#dcfce7' : '#14532d40' }}>Passkeys</SectionTitle>
+        <SectionTitle color={C.textPrimary} badge={{ label: t('account.beta'), color: '#16a34a', bg: isLight ? '#dcfce7' : '#14532d40' }}>{t('account.passkeys')}</SectionTitle>
         <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 20px 0' }}>
-          Sign in quickly and securely with passkeys. No passwords are required. Just use your
-          fingerprint, face or PIN. Passkeys are safe from phishing and password breaches, and your
-          biometrics stay private. Sync up to five passkeys across devices.
+          {t('account.passkeysDesc')}
         </p>
 
         {/* Passkey row */}
@@ -727,11 +728,11 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
             </svg>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>Passkeys</div>
-              <div style={{ fontSize: 13, color: C.textSecond }}>No passkey</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.passkeys')}</div>
+              <div style={{ fontSize: 13, color: C.textSecond }}>{t('account.noPasskey')}</div>
             </div>
           </div>
-          <ActionLink color={C.textPrimary}>Create a passkey</ActionLink>
+          <ActionLink color={C.textPrimary}>{t('account.createPasskey')}</ActionLink>
         </div>
       </div>
       <div style={{ margin: '28px 0' }}>
@@ -739,24 +740,23 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       </div>
       {/* ═══════════ SECTION 4: Two-step verification ═══════════ */}
       <div style={{ marginTop: 30 }}>
-        <SectionTitle color={C.textPrimary} badge={{ label: 'Recommended', color: '#6366f1', bg: isLight ? '#e0e7ff' : '#312e8140' }}>Two-step verification</SectionTitle>
+        <SectionTitle color={C.textPrimary} badge={{ label: t('account.recommended'), color: '#6366f1', bg: isLight ? '#e0e7ff' : '#312e8140' }}>{t('account.twoStepTitle')}</SectionTitle>
         <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 4px 0' }}>
-          An extra layer to boost your account security. A verification code will be required in
-          addition to your password each time you sign in.{' '}
-          <ActionLink color={C.textPrimary}>Learn more</ActionLink>
+          {t('account.twoStepDesc')}{' '}
+          <ActionLink color={C.textPrimary}>{t('account.learnMore')}</ActionLink>
         </p>
         <button style={{
           marginTop: 20,
           padding: '12px 28px',
           borderRadius: 24,
           border: 'none',
-          background: isLight ? C.textPrimary : '#ffffff',
-          color: isLight ? '#ffffff' : '#000000',
+          background: C.accent,
+          color: '#ffffff',
           fontSize: 14,
           fontWeight: 600,
           cursor: 'pointer',
         }}>
-          Enable
+          {t('account.enable')}
         </button>
       </div>
 
@@ -766,30 +766,28 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
 
       {/* ═══════════ SECTION 5: Sign out everywhere ═══════════ */}
       <div>
-        <SectionTitle color={C.textPrimary}>Sign out everywhere</SectionTitle>
+        <SectionTitle color={C.textPrimary}>{t('account.signOutEverywhere')}</SectionTitle>
         <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 16px 0' }}>
-          If you lost a device or left logged in to a public computer, you can sign out everywhere except
-          your current browser.
+          {t('account.signOutEverywhereDesc')}
         </p>
-        <ActionLink color="#ef4444">Sign out everywhere</ActionLink>
+        <ActionLink color="#ef4444">{t('account.signOutEverywhere')}</ActionLink>
       </div>
       <div style={{ margin: '28px 0' }}>
         <Divider color={C.divider} />
       </div>
       {/* ═══════════ SECTION 6: Security ═══════════ */}
       <div style={{ marginTop: 30 }}>
-        <SectionTitle color={C.textPrimary}>Security</SectionTitle>
+        <SectionTitle color={C.textPrimary}>{t('account.security')}</SectionTitle>
         <h3 style={{ fontSize: 18, fontWeight: 700, color: C.textPrimary, margin: '16px 0 8px 0' }}>
-          Ways to verify it's you
+          {t('account.waysToVerify')}
         </h3>
         <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '0 0 16px 0' }}>
-          Berhot can contact you if there's unusual activity in your account, help you access and
-          recover your account and send you other transactional messages about your account.
+          {t('account.securityDesc')}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ActionLink color={C.textPrimary}>Add phone number</ActionLink>
+          <ActionLink color={C.textPrimary}>{t('account.addPhone')}</ActionLink>
           <span style={{ color: C.divider }}>|</span>
-          <ActionLink color={C.textPrimary}>Add email address</ActionLink>
+          <ActionLink color={C.textPrimary}>{t('account.addEmail')}</ActionLink>
         </div>
       </div>
 
@@ -855,25 +853,24 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                       <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
                     </svg>
                   )}
-                  {verifyLoading ? 'Sending...' : 'Confirm'}
+                  {verifyLoading ? t('account.sending') : t('account.confirm')}
                 </button>
               </div>
 
               {/* Title */}
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
-                {emailStatus === 'no_email' ? 'Add email address' : 'Change email address'}
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 2px 0' }}>
+                {emailStatus === 'no_email' ? t('account.addEmailTitle') : t('account.changeEmailTitle')}
               </h2>
 
               {/* Description */}
               <p style={{ fontSize: 15, color: '#6b7280', lineHeight: 1.6, margin: '0 0 24px 0' }}>
                 {emailStatus === 'no_email' ? (
-                  'Add an email address to your account for login, receipts, account and marketing emails.'
+                  t('account.addEmailDesc')
                 ) : (
                   <>
-                    Enter a new email address that you'd like to associate with your account
-                    for login, receipts, account and marketing emails.{' '}
+                    {t('account.changeEmailDesc')}{' '}
                     <strong style={{ color: '#1a1a1a' }}>
-                      You will no longer be able to log in with {displayEmail}.
+                      {t('account.noLoginWith', { email: displayEmail || '' })}
                     </strong>
                   </>
                 )}
@@ -882,19 +879,19 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               {/* New Email input */}
               <div style={{ marginBottom: 16 }}>
                 <FloatingInput
-                  label={emailStatus === 'no_email' ? 'Email Address' : 'New Email Address'}
+                  label={emailStatus === 'no_email' ? t('account.emailAddress') : t('account.newEmailAddress')}
                   value={newEmail}
                   onChange={(val) => {
                     setNewEmail(val);
                     if (newEmailTouched) {
-                      setNewEmailError(val.length > 0 && !isValidEmail(val) ? 'Enter a valid email.' : '');
+                      setNewEmailError(val.length > 0 && !isValidEmail(val) ? t('account.invalidEmail') : '');
                     }
                     // Also re-validate confirm if it was touched
                     if (confirmEmailTouched && confirmEmail.length > 0) {
                       if (!isValidEmail(confirmEmail)) {
-                        setConfirmEmailError('Enter a valid email.');
+                        setConfirmEmailError(t('account.invalidEmail'));
                       } else if (val !== confirmEmail) {
-                        setConfirmEmailError('Emails do not match.');
+                        setConfirmEmailError(t('account.emailsNoMatch'));
                       } else {
                         setConfirmEmailError('');
                       }
@@ -903,28 +900,29 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   onBlur={() => {
                     setNewEmailTouched(true);
                     if (newEmail.length > 0 && !isValidEmail(newEmail)) {
-                      setNewEmailError('Enter a valid email.');
+                      setNewEmailError(t('account.invalidEmail'));
                     } else {
                       setNewEmailError('');
                     }
                   }}
                   error={!!newEmailError}
                   errorMessage={newEmailError}
+                  accentColor={C.accent}
                 />
               </div>
 
               {/* Confirm Email input */}
               <div>
                 <FloatingInput
-                  label="Confirm Email Address"
+                  label={t('account.confirmEmailAddress')}
                   value={confirmEmail}
                   onChange={(val) => {
                     setConfirmEmail(val);
                     if (confirmEmailTouched) {
                       if (val.length > 0 && !isValidEmail(val)) {
-                        setConfirmEmailError('Enter a valid email.');
+                        setConfirmEmailError(t('account.invalidEmail'));
                       } else if (val.length > 0 && newEmail !== val) {
-                        setConfirmEmailError('Emails do not match.');
+                        setConfirmEmailError(t('account.emailsNoMatch'));
                       } else {
                         setConfirmEmailError('');
                       }
@@ -933,15 +931,16 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   onBlur={() => {
                     setConfirmEmailTouched(true);
                     if (confirmEmail.length > 0 && !isValidEmail(confirmEmail)) {
-                      setConfirmEmailError('Enter a valid email.');
+                      setConfirmEmailError(t('account.invalidEmail'));
                     } else if (confirmEmail.length > 0 && newEmail !== confirmEmail) {
-                      setConfirmEmailError('Emails do not match.');
+                      setConfirmEmailError(t('account.emailsNoMatch'));
                     } else {
                       setConfirmEmailError('');
                     }
                   }}
                   error={!!confirmEmailError}
                   errorMessage={confirmEmailError}
+                  accentColor={C.accent}
                 />
               </div>
             </>
@@ -949,10 +948,10 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
             /* ── Step 2: "Check your email" success ── */
             <>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 12px 0' }}>
-                Check your email
+                {t('account.checkYourEmail')}
               </h2>
               <p style={{ fontSize: 15, color: '#6b7280', lineHeight: 1.6, margin: '0 0 32px 0' }}>
-                We've sent a verification email with instructions to{' '}
+                {t('account.verificationSent')}{' '}
                 <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{newEmail}</span>
               </p>
 
@@ -973,7 +972,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   transition: 'opacity 0.15s',
                 }}
               >
-                Close
+                {t('account.close')}
               </button>
 
               {/* Resend verification button */}
@@ -993,7 +992,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   transition: 'color 0.15s',
                 }}
               >
-                {resendCountdown > 0 ? `Resend verification (${resendCountdown})` : 'Resend verification'}
+                {resendCountdown > 0 ? t('account.resendVerificationCountdown', { count: resendCountdown }) : t('account.resendVerification')}
               </button>
             </>
           )}
@@ -1020,11 +1019,11 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               onClick={async () => {
                 // Validate
                 if (newPassword.length < 8) {
-                  setNewPasswordError('Password must be at least 8 characters.');
+                  setNewPasswordError(t('account.passwordMinLength'));
                   return;
                 }
                 if (newPassword !== confirmPassword) {
-                  setConfirmPasswordError('Passwords do not match.');
+                  setConfirmPasswordError(t('account.passwordsNoMatch'));
                   return;
                 }
                 setNewPasswordError('');
@@ -1041,10 +1040,10 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                     setPasswordModalOpen(false);
                   } else {
                     const data = await res.json().catch(() => ({}));
-                    setNewPasswordError(data.error || 'Failed to set password. Please try again.');
+                    setNewPasswordError(data.error || t('account.failedSetPassword'));
                   }
                 } catch {
-                  setNewPasswordError('Network error. Please try again.');
+                  setNewPasswordError(t('account.networkError'));
                 }
                 setPasswordSaving(false);
               }}
@@ -1077,20 +1076,20 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
               )}
-              {passwordSaving ? 'Saving...' : 'Confirm'}
+              {passwordSaving ? t('account.savingPassword') : t('account.confirm')}
             </button>
           </div>
 
           {/* Title */}
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
-            {hasPassword ? 'Update password' : 'Set a password'}
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 2px 0' }}>
+            {hasPassword ? t('account.updatePassword') : t('account.setPassword')}
           </h2>
 
           {/* Description */}
           <p style={{ fontSize: 15, color: '#6b7280', lineHeight: 1.6, margin: '0 0 24px 0' }}>
             {hasPassword
-              ? 'Enter a new password for your account.'
-              : 'Create a password to sign in with your email address instead of phone OTP.'}
+              ? t('account.updatePasswordDesc')
+              : t('account.setPasswordDesc')}
           </p>
 
           {/* Password input */}
@@ -1104,11 +1103,11 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               transition: 'border-color 0.15s',
             }}>
               <label style={{
-                position: 'absolute', left: 16, top: 8,
+                position: 'absolute', insetInlineStart: 16, top: 8,
                 fontSize: 12, color: newPasswordError ? '#ef4444' : '#6b7280',
                 pointerEvents: 'none',
               }}>
-                Password
+                {t('account.password')}
               </label>
               <input
                 type={showNewPassword ? 'text' : 'password'}
@@ -1165,11 +1164,11 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               transition: 'border-color 0.15s',
             }}>
               <label style={{
-                position: 'absolute', left: 16, top: 8,
+                position: 'absolute', insetInlineStart: 16, top: 8,
                 fontSize: 12, color: confirmPasswordError ? '#ef4444' : '#6b7280',
                 pointerEvents: 'none',
               }}>
-                Confirm Password
+                {t('account.confirmPassword')}
               </label>
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -1216,7 +1215,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
 
           {/* Password requirements hint */}
           <p style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5, marginTop: 16 }}>
-            Password must be at least 8 characters long.
+            {t('account.passwordHint')}
           </p>
         </div>
       </Modal>
@@ -1251,16 +1250,15 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                       <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
                     </svg>
                   )}
-                  {phoneLoading ? 'Checking...' : 'Continue'}
+                  {phoneLoading ? t('account.checking') : t('account.continue')}
                 </button>
               </div>
 
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
-                Add phone number
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 2px 0' }}>
+                {t('account.addPhoneTitle')}
               </h2>
               <p style={{ fontSize: 15, color: '#6b7280', lineHeight: 1.6, margin: '0 0 24px 0' }}>
-                You can use this phone number to sign in to your Berhot account. We'll send you a
-                one-time verification code now to verify this phone number is yours.
+                {t('account.addPhoneDesc')}
               </p>
 
               {/* Country selector + Phone input */}
@@ -1288,7 +1286,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   </button>
                   {countryDropdownOpen && (
                     <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, minWidth: 240,
+                      position: 'absolute', top: '100%', insetInlineStart: 0, insetInlineEnd: 0, minWidth: 240,
                       background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12,
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, marginTop: 4,
                       maxHeight: 200, overflowY: 'auto',
@@ -1318,7 +1316,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => { setPhoneNumber(e.target.value); setPhoneError(''); }}
-                  placeholder="Mobile phone number"
+                  placeholder={t('account.phonePlaceholder')}
                   style={{
                     flex: 1, padding: '14px 16px', borderRadius: 12,
                     border: `1.5px solid ${phoneError ? '#ef4444' : '#d1d5db'}`,
@@ -1337,8 +1335,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               )}
 
               <p style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5, marginTop: 16 }}>
-                Message and data rates may apply. Message frequency varies. Reply HELP for help or STOP to
-                opt out.
+                {t('account.smsDisclaimer')}
               </p>
             </>
           ) : phoneModalStep === 'otp' ? (
@@ -1355,15 +1352,15 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                 </button>
               </div>
 
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0', textAlign: 'center' }}>
-                Verify your phone
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', margin: '0 0 2px 0', textAlign: 'center' }}>
+                {t('account.verifyPhone')}
               </h2>
               <p style={{ fontSize: 15, color: '#6b7280', lineHeight: 1.6, margin: '0 0 24px 0', textAlign: 'center' }}>
-                Enter the 4-digit code sent to{' '}
+                {t('account.enterCode')}{' '}
                 <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{selectedCountry.dial} {phoneNumber}</span>
               </p>
               <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', marginBottom: 24 }}>
-                Dev mode: use code <strong style={{ color: '#1a1a1a' }}>1234</strong>
+                {t('account.devModeCode')} <strong style={{ color: '#1a1a1a' }}>1234</strong>
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -1386,7 +1383,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                 <circle cx="20" cy="20" r="16" fill="none" stroke="#e5e7eb" strokeWidth="3" />
                 <path d="M20 4a16 16 0 0 1 16 16" fill="none" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" />
               </svg>
-              <p style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>Verifying...</p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>{t('account.verifying')}</p>
             </div>
           )}
         </div>

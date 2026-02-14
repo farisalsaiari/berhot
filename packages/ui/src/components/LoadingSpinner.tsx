@@ -17,10 +17,10 @@ export function LoadingSpinner({
   label,
   className = '',
 }: LoadingSpinnerProps) {
-  const spinner = (
+  const spinnerEl = (
     <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
       <div
-        className={`${SIZES[size]} rounded-full border-gray-200 border-t-blue-600 animate-spin`}
+        className={`${SIZES[size]} rounded-full border-gray-200 border-t-gray-900 animate-spin`}
       />
       {(label || size === 'lg') && (
         <span className="text-sm text-gray-500 animate-pulse">
@@ -33,10 +33,14 @@ export function LoadingSpinner({
   if (fullScreen) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-        {spinner}
+        {spinnerEl}
       </div>
     );
   }
 
-  return spinner;
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      {spinnerEl}
+    </div>
+  );
 }
