@@ -5,6 +5,8 @@ import { useTranslation } from '@berhot/i18n';
 import AccountSettingsContent from './AccountSettingsContent';
 import BusinessProfileContent from './BusinessProfileContent';
 import {
+  SettingsPasswordContent, SettingsAccountNotificationsContent,
+  SettingsStoreInfoContent, SettingsLocationsContent,
   SettingsTimezoneContent, SettingsCurrencyContent, SettingsMultiTabContent, SettingsThemeContent,
   SettingsDisplayPreferencesContent, SettingsNotificationsActionsContent,
   SettingsInvoiceContent, SettingsSubscriptionContent, SettingsPaymentGatewayContent,
@@ -12,7 +14,9 @@ import {
   SettingsRoleContent, SettingsTeamContent,
   SettingsThirdPartyContent, SettingsApiAccessContent,
   SettingsEmailInappContent, SettingsCustomAlertsContent,
+  SettingsMarketContent, SettingsTransactionsContent,
 } from './SettingsContent';
+import RevenueContent from './RevenueContent';
 
 /* ──────────────────────────────────────────────────────────────────
    Dashboard — Dark / Light theme, Lunor-style layout
@@ -269,6 +273,22 @@ const navMainConfig: { tKey: string; icon: React.ReactNode; path: string }[] = [
 // ── Settings sidebar navigation config ───────────────────────────
 const settingsNavConfig: { categoryKey: string; links: { tKey: string; path: string }[] }[] = [
   {
+    categoryKey: 'settingsNav.account',
+    links: [
+      { tKey: 'settingsNav.profile', path: 'settings/account/profile' },
+      { tKey: 'settingsNav.password', path: 'settings/account/password' },
+      { tKey: 'settingsNav.accountNotifications', path: 'settings/account/notifications' },
+    ],
+  },
+  {
+    categoryKey: 'settingsNav.business',
+    links: [
+      { tKey: 'settingsNav.businessProfile', path: 'settings/business/profile' },
+      { tKey: 'settingsNav.storeInfo', path: 'settings/business/store-info' },
+      { tKey: 'settingsNav.locations', path: 'settings/business/locations' },
+    ],
+  },
+  {
     categoryKey: 'settingsNav.general',
     links: [
       { tKey: 'settingsNav.timezone', path: 'settings/timezone' },
@@ -287,6 +307,9 @@ const settingsNavConfig: { categoryKey: string; links: { tKey: string; path: str
   {
     categoryKey: 'settingsNav.billingPayment',
     links: [
+      { tKey: 'settingsNav.revenue', path: 'settings/revenue' },
+      { tKey: 'settingsNav.market', path: 'settings/market' },
+      { tKey: 'settingsNav.transactions', path: 'settings/transactions' },
       { tKey: 'settingsNav.invoice', path: 'settings/invoice' },
       { tKey: 'settingsNav.subscriptionManagement', path: 'settings/subscription' },
       { tKey: 'settingsNav.paymentGateway', path: 'settings/payment-gateway' },
@@ -345,6 +368,8 @@ export default function DashboardPage() {
   const [settingsClosing, setSettingsClosing] = useState(false);
   const [navReturning, setNavReturning] = useState(false);
   const [isLargeScreen, setIsLargeScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 1366);
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [settingsPanelClosing, setSettingsPanelClosing] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileMenuClosing, setMobileMenuClosing] = useState(false);
@@ -376,6 +401,7 @@ export default function DashboardPage() {
   // Page transition: displayedPath holds the path currently rendered.
   // When URL changes, we show spinner, then update displayedPath after delay.
   const [displayedPath, setDisplayedPath] = useState(location.pathname);
+  const prevDisplayedPathRef = useRef(location.pathname);
   const pageLoading = displayedPath !== location.pathname;
 
   // ── Theme live-preview state ──────────────────────────────────
@@ -508,7 +534,7 @@ export default function DashboardPage() {
   // Determine which page to show — uses displayedPath (not location) to avoid flash
   const pagePath = displayedPath.replace(`/${lang}/dashboard`, '').replace(/^\//, '') || 'home';
   const isSettingsPage = pagePath.startsWith('settings');
-  const isSettingsActive = pagePath === 'account' || isSettingsPage;
+  const isSettingsActive = isSettingsPage;
 
   // Redirect bare /settings to /settings/timezone
   useEffect(() => {
@@ -541,32 +567,61 @@ export default function DashboardPage() {
     }, 180);
   }, []);
 
-  // Auto-open settings submenu on page load if on a settings page (small screens only)
+  // Auto-open settings: second panel on large screens, sliding stack on smaller screens
   useEffect(() => {
-    if (isSettingsPage && settingsMenuStack.length === 0 && !settingsClosing) {
-      // Find which category the current page belongs to
-      const currentGroup = settingsNav.find((g) => g.links.some((l) => pagePath === l.path));
-      if (currentGroup) {
-        setSettingsMenuStack([
-          { parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true },
-          { parentLabel: currentGroup.category, children: [currentGroup] },
-        ]);
+    if (isSettingsPage) {
+      if (isLargeScreen) {
+        // Large screen: open second settings panel, keep main sidebar nav intact
+        if (!settingsPanelOpen && !settingsPanelClosing) {
+          setSettingsPanelOpen(true);
+        }
+        // Clear sliding stack if it was set (e.g. resized from small → large)
+        if (settingsMenuStack.length > 0) {
+          setSettingsMenuStack([]);
+          setSettingsSlideDir('');
+          setSettingsClosing(false);
+        }
       } else {
-        setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
+        // Non-large screen: use existing sliding-layer behavior
+        if (settingsMenuStack.length === 0 && !settingsClosing) {
+          const currentGroup = settingsNav.find((g) => g.links.some((l) => pagePath === l.path));
+          if (currentGroup) {
+            setSettingsMenuStack([
+              { parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true },
+              { parentLabel: currentGroup.category, children: [currentGroup] },
+            ]);
+          } else {
+            setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
+          }
+        }
+        // Close panel if it was open (e.g. resized from large → small)
+        if (settingsPanelOpen) {
+          setSettingsPanelOpen(false);
+          setSettingsPanelClosing(false);
+        }
       }
     }
-    // Close submenu when navigating away from settings or on large screen
-    if (!isSettingsPage && settingsMenuStack.length > 0) {
-      setSettingsMenuStack([]);
-      setSettingsSlideDir('');
-      setSettingsClosing(false);
+    // Navigating away from settings
+    if (!isSettingsPage) {
+      if (settingsPanelOpen) {
+        setSettingsPanelOpen(false);
+        setSettingsPanelClosing(true);
+      }
+      if (settingsMenuStack.length > 0) {
+        setSettingsMenuStack([]);
+        setSettingsSlideDir('');
+        setSettingsClosing(false);
+      }
     }
-  }, [isSettingsPage, pagePath]);
+  }, [isSettingsPage, pagePath, isLargeScreen]);
 
   // Page transition — after URL changes, wait then reveal new content
   useEffect(() => {
     if (displayedPath !== location.pathname) {
-      const timer = setTimeout(() => setDisplayedPath(location.pathname), 180);
+      const timer = setTimeout(() => {
+        prevDisplayedPathRef.current = displayedPath;
+        setDisplayedPath(location.pathname);
+      }, 180);
       return () => clearTimeout(timer);
     }
   }, [location.pathname, displayedPath]);
@@ -708,7 +763,7 @@ export default function DashboardPage() {
             {/* Left side: Logo + Business Name + S badge + Page title */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {/* Logo + Business name */}
-              <button onClick={() => navigate(`/${lang}/dashboard/business`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: SC.textPrimary }}>
+              <button onClick={() => navigate(`/${lang}/dashboard/settings/business/profile`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: SC.textPrimary }}>
                 {(sidebarLogoImg || sidebarLogoUrl) ? (
                   <img
                     src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
@@ -752,8 +807,6 @@ export default function DashboardPage() {
                 {(() => {
                   const found = navMainConfig.find(n => n.path === pagePath);
                   if (found) return t(found.tKey);
-                  if (pagePath === 'account') return t('dashboard.account');
-                  if (pagePath === 'business') return t('dashboard.business');
                   if (pagePath.startsWith('settings')) {
                     // Build breadcrumb: Settings / Category / Page
                     const parts: string[] = [t('dashboard.settings')];
@@ -804,7 +857,7 @@ export default function DashboardPage() {
           }}>
 
             {/* Sidebar header — back arrow when in settings, OR logo + brand */}
-            {(settingsMenuStack.length > 0 || settingsClosing) ? (
+            {(!isLargeScreen && (settingsMenuStack.length > 0 || settingsClosing)) ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px 20px', height: 57, boxSizing: 'border-box' as const }}>
                   <button
@@ -983,7 +1036,7 @@ export default function DashboardPage() {
               overflowY: 'auto',
               minHeight: 0,
             }}>
-              {settingsMenuStack.length > 0 ? (() => {
+              {(!isLargeScreen && settingsMenuStack.length > 0) ? (() => {
                 const current = settingsMenuStack[settingsMenuStack.length - 1];
                 const isTopLevel = current.isTopLevel === true;
                 return (
@@ -1124,7 +1177,7 @@ export default function DashboardPage() {
             </nav>
 
             {/* ── Sidebar footer — Settings, Support, User card, Icon bar (sticky) ── */}
-            <div style={{ flexShrink: 0, padding: '0 16px 16px 16px' }}>
+            <div style={{ flexShrink: 0, padding: '0 16px 8px 16px' }}>
               {/* Settings + Support — same gap as main nav items */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {/* Settings link */}
@@ -1132,9 +1185,20 @@ export default function DashboardPage() {
                   onMouseEnter={() => setHoveredNav('footer-settings')}
                   onMouseLeave={() => setHoveredNav(null)}
                   onClick={() => {
-                    setSettingsSlideDir('forward');
-                    setSettingsSlideKey((k) => k + 1);
-                    setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
+                    if (isLargeScreen) {
+                      // Large screen: toggle panel open/close
+                      if (settingsPanelOpen) {
+                        setSettingsPanelOpen(false);
+                        setSettingsPanelClosing(true);
+                      } else if (!settingsPanelClosing) {
+                        setSettingsPanelOpen(true);
+                      }
+                    } else {
+                      // Non-large: sliding layers
+                      setSettingsSlideDir('forward');
+                      setSettingsSlideKey((k) => k + 1);
+                      setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
+                    }
                   }}
                   style={{
                     display: 'flex',
@@ -1177,8 +1241,7 @@ export default function DashboardPage() {
                     fontSize: 13,
                     fontWeight: 500,
                     transition: 'background 0.15s',
-                  }}
-                >
+                  }}>
                   <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center' }}><SupportIcon /></span>
                   <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.support')}</span>
                 </button>
@@ -1243,7 +1306,7 @@ export default function DashboardPage() {
               {/* <button
                 onMouseEnter={() => setHoveredNav('footer-chevron')}
                 onMouseLeave={() => setHoveredNav(null)}
-                onClick={() => navigate(`/${lang}/dashboard/business`)}
+                onClick={() => navigate(`/${lang}/dashboard/settings/business/profile`)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1264,7 +1327,7 @@ export default function DashboardPage() {
               {/* </div> */}
 
               {/* Divider */}
-              <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '10px 0 6px 0' }} />
+              <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '10px 0 3px 0' }} />
 
               {/* Icon bar — small icons with tooltips */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
@@ -1286,8 +1349,8 @@ export default function DashboardPage() {
                   },
                   {
                     key: 'help',
-                    tooltip: t('dashboard.tooltipSupport'),
-                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
+                    tooltip: t('dashboard.business'),
+                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" /></svg>,
                   },
                   {
                     key: 'rewards',
@@ -1304,7 +1367,7 @@ export default function DashboardPage() {
                           setSelectedLang(lang);
                           setShowLangPanel(true);
                         } else if (item.key === 'help') {
-                          navigate(`/${lang}/dashboard/business`);
+                          navigate(`/${lang}/dashboard/settings/business/profile`);
                         }
                       }}
                       style={{
@@ -1354,7 +1417,111 @@ export default function DashboardPage() {
             {/* Old settings overlay removed — settings now renders inline in the nav area above */}
           </aside>
 
-          {/* Secondary settings sidebar removed — unified into main sidebar */}
+          {/* ═══ SETTINGS SECOND PANEL (large screens only) ═══ */}
+          {isLargeScreen && (
+            <div
+              onTransitionEnd={() => {
+                if (settingsPanelClosing && !settingsPanelOpen) {
+                  setSettingsPanelClosing(false);
+                }
+              }}
+              style={{
+                width: settingsPanelOpen ? 260 : 0,
+                minWidth: settingsPanelOpen ? 260 : 0,
+                transition: 'width 0.28s cubic-bezier(0.22,0.61,0.36,1), min-width 0.28s cubic-bezier(0.22,0.61,0.36,1)',
+                overflow: 'hidden',
+                height: '100%',
+                position: 'relative',
+              }}
+            >
+              <aside style={{
+                width: 260,
+                background: SC.sidebar,
+                borderInlineEnd: `1px solid ${SC.divider}70`,
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                opacity: settingsPanelOpen ? 1 : 0,
+                transform: settingsPanelOpen ? 'translateX(0)' : 'translateX(-20px)',
+                transition: 'opacity 0.25s ease, transform 0.28s cubic-bezier(0.22,0.61,0.36,1)',
+              }}>
+                {/* Panel header */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '14px 16px 10px 16px',
+                  height: 57,
+                  boxSizing: 'border-box' as const,
+                  flexShrink: 0,
+                }}>
+                  <span style={{
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: SC.textPrimary,
+                    letterSpacing: '-0.01em',
+                  }}>
+                    {t('dashboard.settings')}
+                  </span>
+                </div>
+                <div style={{ height: 1, background: SC.divider, opacity: 0.5, margin: '0 12px' }} />
+
+                {/* Scrollable categories + links */}
+                <nav className="d2-sidebar-scroll" style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '4px 12px 16px 12px',
+                }}>
+                  {settingsNav.map((group, groupIdx) => (
+                    <div key={group.category} style={{ marginBottom: groupIdx < settingsNav.length - 1 ? 12 : 0 }}>
+                      {/* Category header */}
+                      <div style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: SC.textSecond,
+                        letterSpacing: '0.01em',
+                        padding: '8px 8px 4px 8px',
+                        opacity: 0.45,
+                      }}>
+                        {group.category}
+                      </div>
+                      {/* Sub-links */}
+                      {group.links.map((link) => {
+                        const isLinkActive = pagePath === link.path;
+                        return (
+                          <button
+                            key={link.path}
+                            onMouseEnter={() => setHoveredNav(`sp-${link.path}`)}
+                            onMouseLeave={() => setHoveredNav(null)}
+                            onClick={() => navigate(`/${lang}/dashboard/${link.path}`)}
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              padding: '7px 8px',
+                              borderRadius: 6,
+                              border: 'none',
+                              background: isLinkActive
+                                ? SC.hover
+                                : hoveredNav === `sp-${link.path}`
+                                  ? SC.hover
+                                  : 'transparent',
+                              color: isLinkActive ? SC.textPrimary : SC.textSecond,
+                              fontWeight: isLinkActive ? 600 : 500,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                              transition: 'background 0.15s, color 0.15s',
+                              textAlign: 'start' as const,
+                            }}
+                          >
+                            {link.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </nav>
+              </aside>
+            </div>
+          )}
 
           {/* ═══ MAIN CONTENT ═══ */}
           <main className="d2-main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto', height: '100%', position: 'relative', background: C.bg, paddingBottom: isMobile ? 56 : 0 }}>
@@ -1380,101 +1547,236 @@ export default function DashboardPage() {
 
               {/* ── Page: Home (Dashboard) ── */}
               {pagePath === 'home' && (
-                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
-                    {t('dashboard.homeTitle')}
-                  </h2>
-                  <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 20px 0', lineHeight: 1.5 }}>
-                    {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
-                  </p>
+                <div style={{ padding: '30px 30px 60px 30px' }}>
+                  <div style={{ maxWidth: 700 }}>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+                      {t('dashboard.homeTitle')}
+                    </h2>
+                    <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 20px 0', lineHeight: 1.5 }}>
+                      {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
+                    </p>
 
-                  {/* Live date & time */}
-                  <div style={{
-                    background: C.card,
-                    border: `1px solid ${C.cardBorder}`,
-                    borderRadius: 12,
-                    padding: '20px 24px',
-                    marginBottom: 20,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                  }}>
-                    {/* Clock icon */}
+                    {/* Live date & time */}
                     <div style={{
-                      width: 44, height: 44, borderRadius: 10,
-                      background: isLight ? '#f3f4f6' : '#1d1d1d',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      background: C.card,
+                      border: `1px solid ${C.cardBorder}`,
+                      borderRadius: 12,
+                      padding: '20px 24px',
+                      marginBottom: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
                     }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                      </svg>
+                      {/* Clock icon */}
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 10,
+                        background: isLight ? '#f3f4f6' : '#1d1d1d',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 24, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                          {clockTime}
+                        </div>
+                        <div style={{ fontSize: 13, color: C.textSecond, marginTop: 2 }}>
+                          {clockDate}
+                        </div>
+                      </div>
+                      {/* Timezone badge */}
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, color: C.textDim,
+                        background: isLight ? '#f3f4f6' : '#1d1d1d',
+                        padding: '4px 10px', borderRadius: 6, flexShrink: 0,
+                      }}>
+                        {clockTzLabel}
+                      </span>
                     </div>
+                  </div>
+
+                  {/* ── Performance + Sidebar row ── */}
+                  <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+                    {/* Main performance card */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                        {clockTime}
+                      {/* Prompt bar */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '12px 16px',
+                        background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12,
+                        marginBottom: 20,
+                      }}>
+                        <span style={{ flex: 1, fontSize: 13, color: C.textDim }}>How do I add someone to my team?</span>
+                        <button style={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          background: isLight ? '#f3f4f6' : '#1d1d1d',
+                          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: C.textDim, cursor: 'pointer',
+                        }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        </button>
                       </div>
-                      <div style={{ fontSize: 13, color: C.textSecond, marginTop: 2 }}>
-                        {clockDate}
+
+                      {/* Performance card */}
+                      <div style={{
+                        background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12,
+                        padding: '20px 24px',
+                      }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, margin: '0 0 16px 0' }}>Performance</h3>
+
+                        {/* Filter chips */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 8, marginBottom: 20 }}>
+                          {[
+                            { label: 'Date', value: `${new Date().getDate()} ${new Date().toLocaleString('en', { month: 'short' })}` },
+                            { label: 'vs', value: 'Prior to day' },
+                            { label: 'Bills', value: 'Closed' },
+                          ].map((chip) => (
+                            <div key={chip.label} style={{
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              padding: '5px 10px', background: isLight ? '#f9fafb' : '#1d1d1d',
+                              border: `1px solid ${C.cardBorder}`, borderRadius: 8, fontSize: 13,
+                            }}>
+                              <span style={{ color: C.textDim }}>{chip.label}</span>
+                              <span style={{ fontWeight: 600, color: C.textPrimary }}>{chip.value}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Net sales */}
+                        <div style={{ marginBottom: 20 }}>
+                          <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>Net sales</div>
+                          <div style={{ fontSize: 28, fontWeight: 700, color: C.textPrimary }}>US$0.00</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill={C.textDim}><path d="M7 14l5-5 5 5H7z" /></svg>
+                            <span style={{ fontSize: 12, color: C.textDim, fontWeight: 500 }}>N/A</span>
+                          </div>
+                        </div>
+
+                        {/* Chart placeholder */}
+                        <div style={{
+                          height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: C.textDim, fontSize: 13, borderBottom: `1px solid ${C.divider}`,
+                          marginBottom: 16,
+                        }}>
+                          No data available for timeframe selected
+                        </div>
+
+                        {/* Chart legend */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 10, height: 10, background: '#3b82f6', borderRadius: 2 }} />
+                            <span style={{ fontSize: 12, color: C.textDim }}>Today</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 10, height: 10, background: '#93c5fd', borderRadius: 2 }} />
+                            <span style={{ fontSize: 12, color: C.textDim }}>
+                              {(() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.toLocaleString('en', { weekday: 'short' })}, ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })} ${d.getFullYear()}`; })()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Time labels */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.textDim, marginBottom: 24 }}>
+                          {['8 am', '9 am', '10 am', '11 am', '12 pm', '1 pm', '2 pm'].map((h) => (
+                            <span key={h}>{h}</span>
+                          ))}
+                        </div>
+
+                        {/* Stats grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                          {[
+                            { label: 'Gross sales', value: 'US$0.00' },
+                            { label: 'Transactions', value: '0' },
+                            { label: 'Labour % of net sales', value: '0.00%' },
+                            { label: 'Average sale', value: 'US$0.00' },
+                            { label: 'Comps & discounts', value: 'US$0.00' },
+                            { label: 'Tips', value: 'US$0.00' },
+                          ].map((stat) => (
+                            <div key={stat.label}>
+                              <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{stat.label}</div>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: C.textPrimary }}>{stat.value}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill={C.textDim}><path d="M7 14l5-5 5 5H7z" /></svg>
+                                <span style={{ fontSize: 11, color: C.textDim, fontWeight: 500 }}>N/A</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    {/* Timezone badge */}
-                    <span style={{
-                      fontSize: 11, fontWeight: 600, color: C.textDim,
-                      background: isLight ? '#f3f4f6' : '#1d1d1d',
-                      padding: '4px 10px', borderRadius: 6, flexShrink: 0,
-                    }}>
-                      {clockTzLabel}
-                    </span>
+
+                    {/* Right sidebar cards */}
+                    <div style={{ width: 260, flexShrink: 0 }}>
+                      {/* Banking card */}
+                      <div style={{
+                        background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12,
+                        padding: '20px', marginBottom: 16,
+                      }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: '0 0 12px 0' }}>Banking</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 13, color: C.textDim }}>Total balance</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>$0.00</span>
+                        </div>
+                      </div>
+
+                      {/* Quick actions card */}
+                      <div style={{
+                        background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12,
+                        padding: '20px',
+                      }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: '0 0 12px 0' }}>Quick actions</h3>
+                        {['Take a payment', 'Edit a menu', 'Add an item'].map((action, i, arr) => (
+                          <button key={action} style={{
+                            display: 'block', width: '100%', textAlign: 'left' as const,
+                            padding: '10px 0', fontSize: 13, color: C.textSecond,
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            borderBottom: i < arr.length - 1 ? `1px solid ${C.divider}` : 'none',
+                          }}>
+                            {action}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Dashboard cards grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div style={{
-                      background: C.card,
-                      border: `1px solid ${C.cardBorder}`,
-                      borderRadius: 12,
-                      height: 160,
-                    }} />
-                    <div style={{
-                      background: C.card,
-                      border: `1px solid ${C.cardBorder}`,
-                      borderRadius: 12,
-                      height: 160,
-                    }} />
-                  </div>
-
-                  <div style={{
-                    background: C.card,
-                    border: `1px solid ${C.cardBorder}`,
-                    borderRadius: 12,
-                    height: 200,
-                    marginBottom: 16,
-                  }} />
-
-                  <div style={{
-                    background: C.card,
-                    border: `1px solid ${C.cardBorder}`,
-                    borderRadius: 12,
-                    height: 160,
-                  }} />
                 </div>
               )}
 
-              {/* ── Page: Account Settings ── */}
-              {pagePath === 'account' && (
+              {/* ── Settings sub-pages: Account ── */}
+              {pagePath === 'settings/account/profile' && (
                 <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
                   <AccountSettingsContent C={C} isLight={isLight} userEmail={authUser.email} />
                 </div>
               )}
+              {pagePath === 'settings/account/password' && (
+                <div style={{ maxWidth: 900, padding: '30px 30px 60px 30px' }}>
+                  <SettingsPasswordContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/account/notifications' && (
+                <div style={{ maxWidth: 820, padding: '30px 30px 60px 30px' }}>
+                  <SettingsAccountNotificationsContent C={C} isLight={isLight} />
+                </div>
+              )}
 
-              {/* ── Page: Business Profile ── */}
-              {pagePath === 'business' && (
+              {/* ── Settings sub-pages: Business ── */}
+              {pagePath === 'settings/business/profile' && (
                 <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
                   <BusinessProfileContent C={C} isLight={isLight} onLogoChange={(url, croppedDataUrl) => { setSidebarLogoUrl(url); setSidebarLogoImg(croppedDataUrl || ''); }} onBusinessNameChange={(name) => setSidebarBusinessName(name)} onLogoSettingsChange={(s) => { setSidebarLogoShape(s.logoShape); setSidebarShowName(s.showBusinessName); }} />
                 </div>
               )}
+              {pagePath === 'settings/business/store-info' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsStoreInfoContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/business/locations' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsLocationsContent C={C} isLight={isLight} />
+                </div>
+              )}
 
-              {/* ── Settings sub-pages ── */}
+              {/* ── Settings sub-pages: General ── */}
               {pagePath === 'settings/timezone' && (
                 <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
                   <SettingsTimezoneContent C={C} isLight={isLight} />
@@ -1518,6 +1820,21 @@ export default function DashboardPage() {
               {pagePath === 'settings/notifications-actions' && (
                 <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
                   <SettingsNotificationsActionsContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/revenue' && (
+                <div style={{ maxWidth: 1100, padding: '30px 30px 60px 30px' }}>
+                  <RevenueContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/market' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsMarketContent C={C} isLight={isLight} />
+                </div>
+              )}
+              {pagePath === 'settings/transactions' && (
+                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                  <SettingsTransactionsContent C={C} isLight={isLight} />
                 </div>
               )}
               {pagePath === 'settings/invoice' && (
@@ -1620,8 +1937,6 @@ export default function DashboardPage() {
                 {(() => {
                   const found = navMainConfig.find(n => n.path === pagePath);
                   if (found) return t(found.tKey);
-                  if (pagePath === 'account') return t('dashboard.account');
-                  if (pagePath === 'business') return t('dashboard.business');
                   if (isSettingsPage) return t('dashboard.settings');
                   return t('dashboard.home');
                 })()}
@@ -1659,7 +1974,7 @@ export default function DashboardPage() {
                 background: 'rgba(0,0,0,0.5)',
               }}
             />
-            {/* Menu panel — anchored to bottom, auto height */}
+            {/* Menu panel — anchored to bottom, consistent height */}
             <div className={mobileMenuClosing ? 'd2-mobile-menu-closing' : 'd2-mobile-menu'} style={{
               position: 'fixed',
               bottom: 0,
@@ -1670,8 +1985,8 @@ export default function DashboardPage() {
               borderTop: `1px solid ${C.divider}70`,
               display: 'flex',
               flexDirection: 'column',
-              maxHeight: '85vh',
-              overflow: 'auto',
+              height: '55vh',
+              overflow: 'hidden',
             }}>
               {/* Top bar — X/back + logo + icons */}
               <div style={{
@@ -1681,6 +1996,7 @@ export default function DashboardPage() {
                 padding: '8px 16px',
                 borderBottom: `1px solid ${C.divider}70`,
               }}>
+                {/* Left side: Logo or Back arrow */}
                 {mobileSettingsStack.length > 0 ? (
                   /* Back arrow when in settings */
                   <button
@@ -1723,7 +2039,62 @@ export default function DashboardPage() {
                     </span>
                   </button>
                 ) : (
-                  /* X close button */
+                  /* Logo on the left */
+                  <button
+                    onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/settings/business/profile`); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                  >
+                    {(sidebarLogoImg || sidebarLogoUrl) ? (
+                      <img
+                        src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
+                        alt="Logo"
+                        style={{
+                          width: sidebarLogoShape === 'rectangle'
+                            ? (sidebarShowName ? 37 : 57)
+                            : 25,
+                          height: 25,
+                          objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
+                          borderRadius: sidebarLogoShape === 'circle' ? '50%' : 4,
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : sidebarLoaded ? (
+                      <svg width="21" height="21" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
+                        <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
+                          <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
+                        </g>
+                      </svg>
+                    ) : null}
+                  </button>
+                )}
+                {/* Right side: Icons + divider + X close */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {mobileSettingsStack.length === 0 && (
+                    <>
+                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                      </button>
+                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                          <path d="M13.73 21a2 2 0 01-3.46 0" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/settings/account/profile`); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}
+                      >
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+                        </svg>
+                      </button>
+                      {/* Divider before X */}
+                      <div style={{ width: 1, height: 20, background: C.divider, opacity: 0.5, flexShrink: 0, margin: '0 6px' }} />
+                    </>
+                  )}
+                  {/* X close button */}
                   <button
                     onMouseEnter={() => setHoveredMobileNav('mob-close')}
                     onMouseLeave={() => setHoveredMobileNav(null)}
@@ -1748,66 +2119,6 @@ export default function DashboardPage() {
                       <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                   </button>
-                )}
-                {/* Logo + divider + Icon bar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {/* Logo — links to business page */}
-                  {mobileSettingsStack.length === 0 && (
-                    <>
-                      <button
-                        onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/business`); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
-                      >
-                        {(sidebarLogoImg || sidebarLogoUrl) ? (
-                          <img
-                            src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
-                            alt="Logo"
-                            style={{
-                              width: sidebarLogoShape === 'rectangle'
-                                ? (sidebarShowName ? 37 : 57)
-                                : 25,
-                              height: 25,
-                              objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
-                              borderRadius: sidebarLogoShape === 'circle' ? '50%' : 4,
-                              flexShrink: 0,
-                            }}
-                          />
-                        ) : sidebarLoaded ? (
-                          <svg width="21" height="21" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
-                            <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
-                              <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
-                            </g>
-                          </svg>
-                        ) : null}
-                      </button>
-                      {/* Vertical divider */}
-                      <div style={{ width: 1, height: 20, background: C.divider, opacity: 0.5, flexShrink: 0, margin: '0 4px' }} />
-                    </>
-                  )}
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                  </button>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                      <path d="M13.73 21a2 2 0 01-3.46 0" />
-                    </svg>
-                  </button>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/account`); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}
-                  >
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </button>
                 </div>
               </div>
 
@@ -1816,7 +2127,7 @@ export default function DashboardPage() {
               {/* Nav items or Settings sliding panels */}
               {mobileSettingsStack.length > 0 ? (
                 /* Settings multi-layer sliding menu */
-                <div style={{ padding: '10px 16px 20px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ padding: '10px 16px 20px 16px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflowY: 'auto' }}>
                   {(() => {
                     const current = mobileSettingsStack[mobileSettingsStack.length - 1];
                     const isTopLevel = current.isTopLevel === true;
@@ -1912,7 +2223,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 /* Main nav items */
-                <div style={{ padding: '10px 16px 32px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ padding: '10px 16px 32px 16px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflowY: 'auto' }}>
                   {navMainConfig.map((item) => {
                     const isActive = item.path === 'home'
                       ? (pagePath === 'home' || pagePath === '')
@@ -2081,7 +2392,7 @@ export default function DashboardPage() {
                   onClick={() => {
                     if (item.key === 'accountSettings') {
                       setShowWorkspace(false);
-                      navigate(`/${lang}/dashboard/account`);
+                      navigate(`/${lang}/dashboard/settings/account/profile`);
                     }
                   }}
                   style={{

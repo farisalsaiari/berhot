@@ -32,8 +32,8 @@ interface ThemeSettingsProps {
 function SarSymbol({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 1124 1257" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
-      <path d="M699.62,1113.02h0c-20.06,44.48-33.32,92.75-38.4,143.37l424.51-90.24c20.06-44.47,33.31-92.75,38.4-143.37l-424.51,90.24Z"/>
-      <path d="M1085.73,895.8c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.33v-135.2l292.27-62.11c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.27V66.13c-50.67,28.45-95.67,66.32-132.25,110.99v403.35l-132.25,28.11V0c-50.67,28.44-95.67,66.32-132.25,110.99v525.69l-295.91,62.88c-20.06,44.47-33.33,92.75-38.42,143.37l334.33-71.05v170.26l-358.3,76.14c-20.06,44.47-33.32,92.75-38.4,143.37l375.04-79.7c30.53-6.35,56.77-24.4,73.83-49.24l68.78-101.97v-.02c7.14-10.55,11.3-23.27,11.3-36.97v-149.98l132.25-28.11v270.4l424.53-90.28Z"/>
+      <path d="M699.62,1113.02h0c-20.06,44.48-33.32,92.75-38.4,143.37l424.51-90.24c20.06-44.47,33.31-92.75,38.4-143.37l-424.51,90.24Z" />
+      <path d="M1085.73,895.8c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.33v-135.2l292.27-62.11c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.27V66.13c-50.67,28.45-95.67,66.32-132.25,110.99v403.35l-132.25,28.11V0c-50.67,28.44-95.67,66.32-132.25,110.99v525.69l-295.91,62.88c-20.06,44.47-33.33,92.75-38.42,143.37l334.33-71.05v170.26l-358.3,76.14c-20.06,44.47-33.32,92.75-38.4,143.37l375.04-79.7c30.53-6.35,56.77-24.4,73.83-49.24l68.78-101.97v-.02c7.14-10.55,11.3-23.27,11.3-36.97v-149.98l132.25-28.11v270.4l424.53-90.28Z" />
     </svg>
   );
 }
@@ -46,7 +46,7 @@ function Divider({ color }: { color: string }) {
 function SectionTitle({ children, badge, color }: { children: string; color: string; badge?: { label: string; color: string; bg: string } }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color, margin: 0 }}>{children}</h2>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color, margin: 0 }}>{children}</h2>
       {badge && (
         <span style={{
           fontSize: 12,
@@ -149,8 +149,8 @@ function CustomSelect({ C, options, value, onChange, isOpen, setIsOpen, isLight 
           borderRadius: 8,
           background: C.bg,
           color: C.textPrimary,
-          fontSize: 12,
-          fontWeight: 700,
+          fontSize: 13,
+          fontWeight: 500,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -197,8 +197,8 @@ function CustomSelect({ C, options, value, onChange, isOpen, setIsOpen, isLight 
                 border: 'none',
                 background: value === opt.value ? C.hover : 'transparent',
                 color: C.textPrimary,
-                fontSize: 12,
-                fontWeight: value === opt.value ? 700 : 500,
+                fontSize: 13,
+                fontWeight: value === opt.value ? 600 : 400,
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'background 0.1s',
@@ -272,8 +272,8 @@ function DefaultConfigurationsTab({ C, isLight }: { C: Theme; isLight: boolean }
 
   // Language options
   const langOptions = [
-    { value: 'en', label: 'English', symbol: <span style={{ fontSize: 14, lineHeight: 1 }}>EN</span> },
-    { value: 'ar', label: '\u0627\u0644\u0639\u0631\u0628\u064A\u0629 (Arabic)', symbol: <span style={{ fontSize: 14, lineHeight: 1 }}>AR</span> },
+    { value: 'en', label: 'English' },
+    { value: 'ar', label: '\u0627\u0644\u0639\u0631\u0628\u064A\u0629 (Arabic)' },
   ];
 
   // Timezone options
@@ -293,9 +293,9 @@ function DefaultConfigurationsTab({ C, isLight }: { C: Theme; isLight: boolean }
       {/* Language Section */}
       <div style={{ padding: '0px 0 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Language</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Language</span>
         </div>
-        <p style={{ fontSize: 13, color: C.textDim, marginTop: 8, margin: 0 }}>
+        <p style={{ fontSize: 13, color: C.textDim, marginTop: 4, margin: 0 }}>
           Select the display language for the application
         </p>
         <div style={{ marginTop: 10 }}>
@@ -307,9 +307,9 @@ function DefaultConfigurationsTab({ C, isLight }: { C: Theme; isLight: boolean }
       {/* Timezone Section */}
       <div style={{ padding: '24px 0 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Time zone</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Time zone</span>
         </div>
-        <p style={{ fontSize: 13, color: C.textDim, marginTop: 8, margin: 0 }}>
+        <p style={{ fontSize: 13, color: C.textDim, marginTop: 4, margin: 0 }}>
           Set the time zone for dates and times across the system
         </p>
         <div style={{ marginTop: 10 }}>
@@ -321,9 +321,9 @@ function DefaultConfigurationsTab({ C, isLight }: { C: Theme; isLight: boolean }
       {/* Currency Section */}
       <div style={{ padding: '24px 0 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Currency</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Currency</span>
         </div>
-        <p style={{ fontSize: 13, color: C.textDim, marginTop: 8, margin: 0 }}>
+        <p style={{ fontSize: 13, color: C.textDim, marginTop: 4, margin: 0 }}>
           Set the default currency for prices and transactions
         </p>
         <div style={{ marginTop: 10 }}>
@@ -475,11 +475,11 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
   return (
     <div style={{ marginTop: 0 }}>
       {/* Theme Section */}
-      <div style={{ padding: '0 0 30px 0', paddingTop: 0 }}>
+      <div style={{ padding: '0 0 20px 0', paddingTop: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Theme</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Theme</span>
         </div>
-        <p style={{ fontSize: 12, color: C.textDim, marginTop: 0, margin: 0 }}>
+        <p style={{ fontSize: 13, color: C.textDim, marginTop: 4, margin: 0 }}>
           Customize your application appearance
         </p>
 
@@ -590,11 +590,11 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
       <Divider color={C.divider} />
 
       {/* Accent Color Section */}
-      <div style={{ padding: '30px 0' }}>
+      <div style={{ padding: '20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Accent Color</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Accent Color</span>
         </div>
-        <p style={{ fontSize: 12, color: C.textDim, marginTop: 8, margin: 0 }}>
+        <p style={{ fontSize: 13, color: C.textDim, marginTop: 4, margin: 0 }}>
           Set Primary Color for Highlights and Accents.
         </p>
 
@@ -674,8 +674,8 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Dark sidebar</span>
-              <span style={{ fontSize: 12, color: C.textDim, fontWeight: 400 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Dark sidebar</span>
+              <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>
                 Use a dark-colored sidebar even in light mode
               </span>
             </div>
@@ -727,8 +727,8 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Top header bar</span>
-              <span style={{ fontSize: 12, color: C.textDim, fontWeight: 400 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Top header bar</span>
+              <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>
                 Show a full-width header with logo and navigation icons
               </span>
             </div>
@@ -765,9 +765,9 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
       {/* Animation Speed Section */}
       <div style={{ padding: '30px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Animation Speed</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Animation Speed</span>
         </div>
-        <p style={{ fontSize: 12, color: C.textDim, marginTop: 8, margin: 0 }}>
+        <p style={{ fontSize: 13, color: C.textDim, marginTop: 4, margin: 0 }}>
           Control page transitions and navigation animations speed.
         </p>
 
@@ -785,8 +785,8 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
               borderRadius: 8,
               background: C.bg,
               color: C.textPrimary,
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: 13,
+              fontWeight: 500,
               appearance: 'none',
               WebkitAppearance: 'none',
               MozAppearance: 'none',
@@ -854,14 +854,14 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
 
 // ── Main Component ──────────────────────────────────────────────
 export default function ThemeSettings({ C, isLight, onAccentPreview, onDarkSidebarPreview, onShowHeaderPreview, onThemePreview, onSave }: ThemeSettingsProps) {
-  const [activeTab, setActiveTab] = useState<'configurations' | 'theme'>('configurations');
-  const [previousTab, setPreviousTab] = useState<'configurations' | 'theme'>('configurations');
+  const [activeTab, setActiveTab] = useState<'configurations' | 'theme'>('theme');
+  const [previousTab, setPreviousTab] = useState<'configurations' | 'theme' | null>(null);
   const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
 
   const tabs = [
     // { id: 'personal', label: 'Personal Information' },
-    { id: 'configurations', label: 'Default Configurations' },
     { id: 'theme', label: 'Theme Settings' },
+    { id: 'configurations', label: 'Default Configurations' },
   ] as const;
 
   const updateUnderline = (tabId: string) => {
@@ -889,12 +889,13 @@ export default function ThemeSettings({ C, isLight, onAccentPreview, onDarkSideb
     <>
       {/* Page title */}
       <SectionTitle color={C.textPrimary}>Appearance</SectionTitle>
-      <p style={{ fontSize: 14, color: C.textLight, lineHeight: 1.4, margin: '2px 0 30px 0' }}>
+      {/* <p style={{ fontSize: 14, color: C.textLight, lineHeight: 1.4, margin: '2px 0 30px 0' }}>
         Set or customize your visual preferences for the system
-      </p>
+      </p> */}
 
       {/* Tab Navigation */}
       <div style={{
+        marginTop: 28,
         borderBottom: `1px solid ${C.divider}`,
         marginBottom: 24,
         position: 'relative',
@@ -961,19 +962,21 @@ export default function ThemeSettings({ C, isLight, onAccentPreview, onDarkSideb
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const isPrevious = previousTab === tab.id;
-          const shouldRender = isActive || isPrevious;
+          const shouldRender = isActive || (previousTab !== null && isPrevious);
 
           if (!shouldRender) return null;
 
           const currentIndex = tabs.findIndex(t => t.id === activeTab);
-          const previousIndex = tabs.findIndex(t => t.id === previousTab);
+          const previousIndex = previousTab ? tabs.findIndex(t => t.id === previousTab) : currentIndex;
           const isForward = currentIndex > previousIndex;
 
-          // Active tab always animates in
-          // Previous tab animates out
-          const animation = isActive
-            ? `${isForward ? 'tab-slide-forward-in' : 'tab-slide-back-in'} 0.18s ease-out forwards`
-            : `${'tab-slide-out'} 0.15s ease-out forwards`;
+          // Skip animation on initial mount (previousTab is null)
+          // Active tab animates in, previous tab animates out
+          const animation = previousTab === null
+            ? 'none'
+            : isActive
+              ? `${isForward ? 'tab-slide-forward-in' : 'tab-slide-back-in'} 0.18s ease-out forwards`
+              : `${'tab-slide-out'} 0.15s ease-out forwards`;
 
           return (
             <div
