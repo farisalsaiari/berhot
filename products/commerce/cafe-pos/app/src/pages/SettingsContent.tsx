@@ -34,12 +34,13 @@ interface SettingsContentProps {
 function SettingsPlaceholder({ C, title, description, comingSoon }: { C: Theme; title: string; description: string; comingSoon: string }) {
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
         {title}
       </h2>
-      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 14px 0', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 18px 0', lineHeight: 1.5 }}>
         {description}
       </p>
+      <div style={{ height: 1, background: C.divider, opacity: 0.4, marginBottom: 20 }} />
       <div style={{
         background: C.card,
         border: `1px solid ${C.cardBorder}`,
@@ -155,40 +156,59 @@ export function SettingsAccountNotificationsContent({ C, isLight }: SettingsCont
   const { t } = useTranslation();
 
   // Email notification toggles
-  const [emailNews, setEmailNews] = useState(true);
-  const [emailTips, setEmailTips] = useState(true);
-  const [emailResearch, setEmailResearch] = useState(true);
-  const [emailComments, setEmailComments] = useState(false);
-  const [emailReminders, setEmailReminders] = useState(false);
+  const [emailDailyReport, setEmailDailyReport] = useState(true);
+  const [emailWeeklyReport, setEmailWeeklyReport] = useState(true);
+  const [emailLowStock, setEmailLowStock] = useState(true);
+  const [emailExpiring, setEmailExpiring] = useState(false);
+  const [emailTipReport, setEmailTipReport] = useState(false);
+  const [emailBilling, setEmailBilling] = useState(true);
+  const [emailNewFeatures, setEmailNewFeatures] = useState(false);
 
   // Push notification toggles
-  const [pushComments, setPushComments] = useState(true);
-  const [pushReminders, setPushReminders] = useState(true);
-  const [pushActivity, setPushActivity] = useState(false);
+  const [pushNewOrder, setPushNewOrder] = useState(true);
+  const [pushOrderReady, setPushOrderReady] = useState(true);
+  const [pushLowStock, setPushLowStock] = useState(true);
+  const [pushPeakHour, setPushPeakHour] = useState(true);
+  const [pushDeviceOffline, setPushDeviceOffline] = useState(true);
+  const [pushStaffLogin, setPushStaffLogin] = useState(false);
+  const [pushShiftHandover, setPushShiftHandover] = useState(false);
+  const [pushDailySummary, setPushDailySummary] = useState(true);
+
+  // Order & POS alert toggles
+  const [alertLargeOrder, setAlertLargeOrder] = useState(true);
+  const [alertRefund, setAlertRefund] = useState(true);
+  const [alertVoidItem, setAlertVoidItem] = useState(true);
+  const [alertDiscountAbuse, setAlertDiscountAbuse] = useState(false);
+  const [alertCashDrawer, setAlertCashDrawer] = useState(false);
+
+  // Customer toggles
+  const [customerLoyalty, setCustomerLoyalty] = useState(false);
+  const [customerSlowItem, setCustomerSlowItem] = useState(false);
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
         {t('settingsNav.accountNotifications')}
       </h2>
-      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 14px 0', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 18px 0', lineHeight: 1.5 }}>
         {t('settingsPages.accountNotificationsDesc')}
       </p>
-
-      <div style={{ height: 1, background: C.divider, opacity: 0.4, margin: '0 0 20px 0' }} />
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
 
       {/* Email notifications */}
       <NotifSection
         C={C}
         isLight={isLight}
-        sectionTitle="Email notifications"
-        sectionDesc="Get emails to find out what's going on when you're not online. You can turn these off."
+        sectionTitle={t('notif.emailTitle')}
+        sectionDesc={t('notif.emailDesc')}
         items={[
-          { key: 'news', title: 'News and updates', desc: 'News about product and feature updates.', on: emailNews, onChange: setEmailNews },
-          { key: 'tips', title: 'Tips and tutorials', desc: 'Tips on getting more out of your dashboard.', on: emailTips, onChange: setEmailTips },
-          { key: 'research', title: 'User research', desc: 'Get involved in our beta testing program or participate in paid product user research.', on: emailResearch, onChange: setEmailResearch },
-          { key: 'comments', title: 'Comments', desc: 'Comments on your posts and replies to comments.', on: emailComments, onChange: setEmailComments },
-          { key: 'reminders', title: 'Reminders', desc: 'These are notifications to remind you of updates you might have missed.', on: emailReminders, onChange: setEmailReminders },
+          { key: 'daily-report', title: t('notif.dailyReport'), desc: t('notif.dailyReportDesc'), on: emailDailyReport, onChange: setEmailDailyReport },
+          { key: 'weekly-report', title: t('notif.weeklyReport'), desc: t('notif.weeklyReportDesc'), on: emailWeeklyReport, onChange: setEmailWeeklyReport },
+          { key: 'low-stock-email', title: t('notif.lowStockAlert'), desc: t('notif.lowStockAlertEmailDesc'), on: emailLowStock, onChange: setEmailLowStock },
+          { key: 'expiring-email', title: t('notif.expiringIngredients'), desc: t('notif.expiringIngredientsDesc'), on: emailExpiring, onChange: setEmailExpiring },
+          { key: 'tip-report', title: t('notif.tipReport'), desc: t('notif.tipReportDesc'), on: emailTipReport, onChange: setEmailTipReport },
+          { key: 'billing', title: t('notif.billing'), desc: t('notif.billingDesc'), on: emailBilling, onChange: setEmailBilling },
+          { key: 'new-features', title: t('notif.newFeatures'), desc: t('notif.newFeaturesDesc'), on: emailNewFeatures, onChange: setEmailNewFeatures },
         ]}
       />
 
@@ -198,12 +218,48 @@ export function SettingsAccountNotificationsContent({ C, isLight }: SettingsCont
       <NotifSection
         C={C}
         isLight={isLight}
-        sectionTitle="Push notifications"
-        sectionDesc="Get push notifications in-app to find out what's going on when you're online."
+        sectionTitle={t('notif.pushTitle')}
+        sectionDesc={t('notif.pushDesc')}
         items={[
-          { key: 'push-comments', title: 'Comments', desc: 'Comments on your posts and replies to comments.', on: pushComments, onChange: setPushComments },
-          { key: 'push-reminders', title: 'Reminders', desc: 'These are notifications to remind you of updates you might have missed.', on: pushReminders, onChange: setPushReminders },
-          { key: 'push-activity', title: 'More activity about you', desc: 'These are notifications for posts on your profile, likes and other reactions to your posts, and more.', on: pushActivity, onChange: setPushActivity },
+          { key: 'push-new-order', title: t('notif.newOrder'), desc: t('notif.newOrderDesc'), on: pushNewOrder, onChange: setPushNewOrder },
+          { key: 'push-order-ready', title: t('notif.orderReady'), desc: t('notif.orderReadyDesc'), on: pushOrderReady, onChange: setPushOrderReady },
+          { key: 'push-low-stock', title: t('notif.lowStockAlert'), desc: t('notif.lowStockAlertPushDesc'), on: pushLowStock, onChange: setPushLowStock },
+          { key: 'push-peak-hour', title: t('notif.peakHour'), desc: t('notif.peakHourDesc'), on: pushPeakHour, onChange: setPushPeakHour },
+          { key: 'push-device-offline', title: t('notif.deviceOffline'), desc: t('notif.deviceOfflineDesc'), on: pushDeviceOffline, onChange: setPushDeviceOffline },
+          { key: 'push-staff-login', title: t('notif.staffLogin'), desc: t('notif.staffLoginDesc'), on: pushStaffLogin, onChange: setPushStaffLogin },
+          { key: 'push-shift-handover', title: t('notif.shiftHandover'), desc: t('notif.shiftHandoverDesc'), on: pushShiftHandover, onChange: setPushShiftHandover },
+          { key: 'push-daily-summary', title: t('notif.dailySummary'), desc: t('notif.dailySummaryDesc'), on: pushDailySummary, onChange: setPushDailySummary },
+        ]}
+      />
+
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
+
+      {/* Order & POS alerts */}
+      <NotifSection
+        C={C}
+        isLight={isLight}
+        sectionTitle={t('notif.orderAlertsTitle')}
+        sectionDesc={t('notif.orderAlertsDesc')}
+        items={[
+          { key: 'large-order', title: t('notif.largeOrder'), desc: t('notif.largeOrderDesc'), on: alertLargeOrder, onChange: setAlertLargeOrder },
+          { key: 'refund', title: t('notif.refundRequest'), desc: t('notif.refundRequestDesc'), on: alertRefund, onChange: setAlertRefund },
+          { key: 'void-item', title: t('notif.voidItem'), desc: t('notif.voidItemDesc'), on: alertVoidItem, onChange: setAlertVoidItem },
+          { key: 'discount-abuse', title: t('notif.discountAbuse'), desc: t('notif.discountAbuseDesc'), on: alertDiscountAbuse, onChange: setAlertDiscountAbuse },
+          { key: 'cash-drawer', title: t('notif.cashDrawer'), desc: t('notif.cashDrawerDesc'), on: alertCashDrawer, onChange: setAlertCashDrawer },
+        ]}
+      />
+
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
+
+      {/* Customer & Menu insights */}
+      <NotifSection
+        C={C}
+        isLight={isLight}
+        sectionTitle={t('notif.insightsTitle')}
+        sectionDesc={t('notif.insightsDesc')}
+        items={[
+          { key: 'loyalty-milestone', title: t('notif.loyaltyMilestone'), desc: t('notif.loyaltyMilestoneDesc'), on: customerLoyalty, onChange: setCustomerLoyalty },
+          { key: 'slow-item', title: t('notif.slowItem'), desc: t('notif.slowItemDesc'), on: customerSlowItem, onChange: setCustomerSlowItem },
         ]}
       />
     </div>

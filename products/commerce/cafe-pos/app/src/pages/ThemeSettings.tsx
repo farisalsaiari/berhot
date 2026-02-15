@@ -887,11 +887,14 @@ export default function ThemeSettings({ C, isLight, onAccentPreview, onDarkSideb
 
   return (
     <>
-      {/* Page title */}
-      <SectionTitle color={C.textPrimary}>Appearance</SectionTitle>
-      {/* <p style={{ fontSize: 14, color: C.textLight, lineHeight: 1.4, margin: '2px 0 30px 0' }}>
-        Set or customize your visual preferences for the system
-      </p> */}
+      {/* ── Page Header ── */}
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
+        Appearance
+      </h2>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 18px 0', lineHeight: 1.5 }}>
+        Set or customize your visual preferences for the system.
+      </p>
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
 
       {/* Tab Navigation */}
       <div style={{

@@ -1548,54 +1548,40 @@ export default function DashboardPage() {
               {/* ── Page: Home (Dashboard) ── */}
               {pagePath === 'home' && (
                 <div style={{ padding: '30px 30px 60px 30px' }}>
-                  <div style={{ maxWidth: 700 }}>
-                    <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
-                      {t('dashboard.homeTitle')}
-                    </h2>
-                    <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 20px 0', lineHeight: 1.5 }}>
+                  {/* ── Page Header (full width) ── */}
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
+                    {t('dashboard.homeTitle')}
+                  </h2>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 18px 0' }}>
+                    <p style={{ fontSize: 14, color: C.textSecond, margin: 0, lineHeight: 1.5 }}>
                       {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
                     </p>
-
-                    {/* Live date & time */}
-                    <div style={{
-                      background: C.card,
-                      border: `1px solid ${C.cardBorder}`,
-                      borderRadius: 12,
-                      padding: '20px 24px',
-                      marginBottom: 24,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 16,
-                    }}>
-                      {/* Clock icon */}
-                      <div style={{
-                        width: 44, height: 44, borderRadius: 10,
-                        background: isLight ? '#f3f4f6' : '#1d1d1d',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      }}>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    {/* Live date & time – stacked vertically, right-aligned */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                      {/* Top row: clock icon + time */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                         </svg>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 24, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
                           {clockTime}
-                        </div>
-                        <div style={{ fontSize: 13, color: C.textSecond, marginTop: 2 }}>
-                          {clockDate}
-                        </div>
+                        </span>
                       </div>
-                      {/* Timezone badge */}
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, color: C.textDim,
-                        background: isLight ? '#f3f4f6' : '#1d1d1d',
-                        padding: '4px 10px', borderRadius: 6, flexShrink: 0,
-                      }}>
-                        {clockTzLabel}
-                      </span>
+                      {/* Bottom row: date + timezone */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 12, color: C.textSecond }}>
+                          {clockDate}
+                        </span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, color: C.textDim,
+                          background: isLight ? '#f3f4f6' : '#1d1d1d',
+                          padding: '2px 6px', borderRadius: 4,
+                        }}>
+                          {clockTzLabel}
+                        </span>
+                      </div>
                     </div>
                   </div>
-
                   {/* ── Performance + Sidebar row ── */}
                   <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
                     {/* Main performance card */}

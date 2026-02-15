@@ -659,12 +659,13 @@ export default function BusinessProfileContent({ C, isLight, onLogoChange, onBus
       )}
 
       {/* Page title */}
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
         {t('businessProfile.title')}
       </h2>
-      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 14px 0', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 18px 0', lineHeight: 1.5 }}>
         {t('businessProfile.subtitle')}
       </p>
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
 
       {/* ── Cover photo + Logo (Twitter-style) ── */}
       <div style={{ marginBottom: 32, position: 'relative' }}>

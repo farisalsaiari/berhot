@@ -12,6 +12,20 @@ import type { Region, City } from '../lib/api';
 
 const STORAGE_KEY = 'berhot_auth';
 
+/* ── Shared inline-style constants (matching SecuritySettings typography) ── */
+const PAGE_TITLE = { fontSize: 22, fontWeight: 700 as const, margin: '0 0 4px 0' };
+const PAGE_DESC = { fontSize: 14, margin: '0 0 18px 0', lineHeight: 1.5 };
+const SECTION_TITLE = { fontSize: 14, fontWeight: 600 as const, marginBottom: 16 };
+const LABEL = { fontSize: 13, fontWeight: 500 as const, marginBottom: 6, display: 'block' as const };
+const INPUT_BASE = {
+  width: '100%', fontSize: 13, padding: '10px 14px', borderRadius: 8,
+  outline: 'none', transition: 'border-color 0.15s',
+};
+const BTN_PRIMARY = {
+  padding: '10px 24px', borderRadius: 24, border: 'none',
+  fontSize: 14, fontWeight: 600 as const, cursor: 'pointer' as const, transition: 'background 0.15s',
+};
+
 export default function ProfilePage() {
   const { t, lang } = useTranslation();
 
@@ -41,7 +55,7 @@ export default function ProfilePage() {
         setLastName(user.lastName || '');
         setEmail(user.email || '');
       })
-      .catch(() => {});
+      .catch(() => { });
 
     fetchMyTenant()
       .then((tenant) => {
@@ -60,12 +74,12 @@ export default function ProfilePage() {
             if (tenant.regionId) {
               fetchCities(tenant.regionId)
                 .then((c) => setCities(c))
-                .catch(() => {});
+                .catch(() => { });
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleRegionChange = (rid: string) => {
@@ -75,7 +89,7 @@ export default function ProfilePage() {
     if (rid) {
       fetchCities(rid)
         .then((c) => setCities(c))
-        .catch(() => {});
+        .catch(() => { });
     }
   };
 
@@ -126,77 +140,117 @@ export default function ProfilePage() {
 
   const planLabel = currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1);
 
-  return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t('titles.profile')}</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {t('profile.subtitle') === 'profile.subtitle'
-            ? 'Manage your personal and business information'
-            : t('profile.subtitle')}
-        </p>
-      </div>
+  // Simple light-mode palette (matching SecuritySettings defaults)
+  const textPrimary = '#111827';
+  const textSecond = '#6b7280';
+  const textDim = '#9ca3af';
+  const divider = '#e5e7eb';
+  const cardBorder = '#e5e7eb';
+  const inputBorder = '#d1d5db';
+  const accent = '#111827';
+  const bg = '#ffffff';
 
-      {/* Current plan badge */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
-        <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+  return (
+    <div style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
+      {/* ── Page Header ── */}
+      <h2 style={{ ...PAGE_TITLE, color: textPrimary }}>
+        {t('titles.profile')}
+      </h2>
+      <p style={{ ...PAGE_DESC, color: textSecond }}>
+        {t('profile.subtitle') === 'profile.subtitle'
+          ? 'Manage your personal and business information'
+          : t('profile.subtitle')}
+      </p>
+      <div style={{ height: 1, background: divider, opacity: 0.4 }} />
+
+      {/* ── Current plan badge ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '10px 16px', background: '#eff6ff', border: '1px solid #bfdbfe',
+        borderRadius: 12, marginBottom: 24,
+      }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="1.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
         </svg>
-        <span className="text-sm font-medium text-blue-700">
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#1d4ed8' }}>
           {t('plan.currentPlan')}: {planLabel}
         </span>
         <a
           href={`/${lang}/dashboard2/upgrade-plan`}
-          className="ml-auto text-sm font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2"
+          style={{
+            marginInlineStart: 'auto', fontSize: 13, fontWeight: 600,
+            color: '#2563eb', textDecoration: 'underline', textUnderlineOffset: 2,
+          }}
         >
           {t('plan.upgrade')}
         </a>
       </div>
 
-      {/* Personal Information */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.personalInfo')}</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+      {/* ══════════════════════════════════════════════════════════════
+         Personal Information
+         ══════════════════════════════════════════════════════════════ */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ ...SECTION_TITLE, color: textPrimary }}>
+          {t('profile.personalInfo')}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.firstName')}</label>
+              <label style={{ ...LABEL, color: textSecond }}>{t('profile.firstName')}</label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-gray-900 transition-colors"
+                style={{
+                  ...INPUT_BASE,
+                  border: `1.5px solid ${inputBorder}`, background: bg, color: textPrimary,
+                }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.lastName')}</label>
+              <label style={{ ...LABEL, color: textSecond }}>{t('profile.lastName')}</label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-gray-900 transition-colors"
+                style={{
+                  ...INPUT_BASE,
+                  border: `1.5px solid ${inputBorder}`, background: bg, color: textPrimary,
+                }}
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.email')}</label>
+            <label style={{ ...LABEL, color: textSecond }}>{t('profile.email')}</label>
             <input
               type="email"
               value={email}
               disabled
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+              style={{
+                ...INPUT_BASE,
+                border: `1.5px solid ${cardBorder}`, background: '#f9fafb', color: textDim,
+                cursor: 'not-allowed',
+              }}
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={handleSavePersonal}
               disabled={personalSaving}
-              className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60"
+              style={{
+                ...BTN_PRIMARY,
+                background: personalSaving ? '#d1d5db' : accent,
+                color: '#ffffff',
+                opacity: personalSaving ? 0.6 : 1,
+              }}
             >
               {personalSaving ? t('profile.saving') : t('profile.save')}
             </button>
             {personalMsg && (
-              <span className={`text-sm ${personalMsg === t('profile.saved') ? 'text-green-600' : 'text-red-600'}`}>
+              <span style={{
+                fontSize: 13, fontWeight: 500,
+                color: personalMsg === t('profile.saved') ? '#10b981' : '#ef4444',
+              }}>
                 {personalMsg}
               </span>
             )}
@@ -204,32 +258,52 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Business Information */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.businessInfo')}</h2>
-        <div className="space-y-4">
+      <div style={{ height: 1, background: divider, opacity: 0.3, margin: '0 0 28px 0' }} />
+
+      {/* ══════════════════════════════════════════════════════════════
+         Business Information
+         ══════════════════════════════════════════════════════════════ */}
+      <div>
+        <div style={{ ...SECTION_TITLE, color: textPrimary }}>
+          {t('profile.businessInfo')}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.businessName')}</label>
+            <label style={{ ...LABEL, color: textSecond }}>{t('profile.businessName')}</label>
             <input
               type="text"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-gray-900 transition-colors"
+              style={{
+                ...INPUT_BASE,
+                border: `1.5px solid ${inputBorder}`, background: bg, color: textPrimary,
+              }}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.country')}</label>
-            <div className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-gray-50">
+            <label style={{ ...LABEL, color: textSecond }}>{t('profile.country')}</label>
+            <div style={{
+              ...INPUT_BASE,
+              border: `1.5px solid ${cardBorder}`, background: '#f9fafb', color: textDim,
+            }}>
               {'\u{1F1F8}\u{1F1E6}'} Saudi Arabia
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.region')}</label>
+              <label style={{ ...LABEL, color: textSecond }}>{t('profile.region')}</label>
               <select
                 value={regionId}
                 onChange={(e) => handleRegionChange(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-white"
+                style={{
+                  ...INPUT_BASE,
+                  border: `1.5px solid ${inputBorder}`, background: bg, color: textPrimary,
+                  cursor: 'pointer', appearance: 'none' as const,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 14px center',
+                  paddingInlineEnd: 36,
+                }}
               >
                 <option value="">{t('profile.selectRegion')}</option>
                 {regions.map((r) => (
@@ -238,12 +312,23 @@ export default function ProfilePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.city')}</label>
+              <label style={{ ...LABEL, color: textSecond }}>{t('profile.city')}</label>
               <select
                 value={cityId}
                 onChange={(e) => setCityId(e.target.value)}
                 disabled={!regionId}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                style={{
+                  ...INPUT_BASE,
+                  border: `1.5px solid ${regionId ? inputBorder : cardBorder}`,
+                  background: regionId ? bg : '#f9fafb',
+                  color: regionId ? textPrimary : textDim,
+                  cursor: regionId ? 'pointer' : 'not-allowed',
+                  appearance: 'none' as const,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 14px center',
+                  paddingInlineEnd: 36,
+                }}
               >
                 <option value="">{t('profile.selectCity')}</option>
                 {cities.map((c) => (
@@ -252,16 +337,24 @@ export default function ProfilePage() {
               </select>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={handleSaveBusiness}
               disabled={businessSaving}
-              className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60"
+              style={{
+                ...BTN_PRIMARY,
+                background: businessSaving ? '#d1d5db' : accent,
+                color: '#ffffff',
+                opacity: businessSaving ? 0.6 : 1,
+              }}
             >
               {businessSaving ? t('profile.saving') : t('profile.save')}
             </button>
             {businessMsg && (
-              <span className={`text-sm ${businessMsg === t('profile.saved') ? 'text-green-600' : 'text-red-600'}`}>
+              <span style={{
+                fontSize: 13, fontWeight: 500,
+                color: businessMsg === t('profile.saved') ? '#10b981' : '#ef4444',
+              }}>
                 {businessMsg}
               </span>
             )}

@@ -369,13 +369,13 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
   return (
     <div>
       {/* ── Page Header ── */}
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
         {t('security.title')}
       </h2>
-      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 14px 0', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 18px 0', lineHeight: 1.5 }}>
         {t('security.description')}
       </p>
-      <div style={{ height: 1, background: C.divider, opacity: 0.4, margin: '0 0 24px 0' }} />
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
 
       {/* ══════════════════════════════════════════════════════════════
          SECTION 1: Security Score Overview
@@ -1026,7 +1026,8 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
 
           {/* Scrollable list */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
-            {LOGIN_HISTORY.map((entry, i) => {
+            {(() => { const seenIps = new Set<string>(); return LOGIN_HISTORY.map((entry, i) => {
+              const isFirstIp = !seenIps.has(entry.ip); seenIps.add(entry.ip);
               const isFailed = entry.status === 'failed';
               const isMobile = !!entry.model?.match(/iPhone|iPad|Galaxy|Pixel/i);
               const isTablet = !!entry.model?.match(/iPad/i);
@@ -1099,14 +1100,32 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
                     </div>
                   </div>
 
-                  {/* Status dot */}
-                  <div style={{
-                    width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                    background: isFailed ? '#ef4444' : '#10b981',
-                  }} />
+                  {/* Block + Status dot */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {isFirstIp && (
+                      <button
+                        style={{
+                          padding: '2px 8px', borderRadius: 5,
+                          border: `1px solid ${isLight ? '#fecaca' : '#7f1d1d'}`,
+                          background: isLight ? '#fef2f2' : 'rgba(127,29,29,0.25)',
+                          color: '#ef4444', fontSize: 10, fontWeight: 600,
+                          cursor: 'pointer', lineHeight: 1.4,
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = isLight ? '#fee2e2' : 'rgba(127,29,29,0.45)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = isLight ? '#fef2f2' : 'rgba(127,29,29,0.25)'; }}
+                      >
+                        {t('security.blockIp')}
+                      </button>
+                    )}
+                    <div style={{
+                      width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                      background: isFailed ? '#ef4444' : '#10b981',
+                    }} />
+                  </div>
                 </div>
               );
-            })}
+            }); })()}
           </div>
         </div>
       </SlidePanel>

@@ -187,14 +187,13 @@ export default function RevenueContent({ C, isLight }: RevenueContentProps) {
   return (
     <div>
       {/* Header */}
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
         {t('settingsNav.revenue')}
       </h2>
-      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 14px 0', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 18px 0', lineHeight: 1.5 }}>
         {t('settingsPages.revenueDesc')}
       </p>
-
-      <div style={{ height: 1, background: C.divider, opacity: 0.4, margin: '0 0 24px 0' }} />
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
 
       {/* ── Top row: Current balance + Assets analyzer ── */}
       <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>

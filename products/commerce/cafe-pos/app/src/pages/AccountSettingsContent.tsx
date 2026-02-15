@@ -49,7 +49,7 @@ function Divider({ color }: { color: string }) {
 function SectionTitle({ children, badge, color }: { children: string; color: string; badge?: { label: string; color: string; bg: string } }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-      <h2 style={{ fontSize: 17, fontWeight: 700, color, margin: 0 }}>{children}</h2>
+      <h2 style={{ fontSize: 14, fontWeight: 600, color, margin: 0 }}>{children}</h2>
       {badge && (
         <span style={{
           fontSize: 12,
@@ -75,7 +75,7 @@ function ActionLink({ children, color, hoverColor, onClick }: { children: string
         background: 'none',
         border: 'none',
         padding: 0,
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: 600,
         color: hoverColor && hovered ? hoverColor : color,
         cursor: 'pointer',
@@ -531,10 +531,10 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* ── Page Header ── */}
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
         {t('account.title')}
       </h2>
-      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 14px 0', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 18px 0', lineHeight: 1.5 }}>
         {t('settingsPages.profileDesc')}
       </p>
       <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
@@ -545,7 +545,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
         <div style={{ padding: '16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.email')}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>{t('account.email')}</span>
               {emailStatus === 'verified' ? (
                 <span style={{
                   fontSize: 12,
@@ -607,7 +607,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               ) : emailStatus === 'verification_needed' ? (
                 <ActionLink color={C.textPrimary} onClick={handleVerify}>{verifyLoading ? t('account.sending') : t('account.verify')}</ActionLink>
               ) : resendCountdown > 0 ? (
-                <span style={{ fontSize: 15, fontWeight: 600, color: '#9ca3af', cursor: 'default' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af', cursor: 'default' }}>
                   {t('account.resendCountdown', { count: resendCountdown })}
                 </span>
               ) : (
@@ -621,7 +621,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               )}
             </div>
           </div>
-          <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>{displayEmail || t('account.noEmail')}</div>
+          <div style={{ fontSize: 13, color: C.textSecond, marginTop: 4 }}>{displayEmail || t('account.noEmail')}</div>
         </div>
         <Divider color={C.divider} />
 
@@ -629,7 +629,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
         <div style={{ padding: '16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.phone')}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>{t('account.phone')}</span>
               {phoneVerified && displayPhone && (
                 <span style={{
                   fontSize: 12, fontWeight: 500, color: '#16a34a',
@@ -648,14 +648,14 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               {displayPhone ? t('account.update') : t('account.add')}
             </ActionLink>
           </div>
-          <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>{displayPhone || t('account.noPhone')}</div>
+          <div style={{ fontSize: 13, color: C.textSecond, marginTop: 4 }}>{displayPhone || t('account.noPhone')}</div>
         </div>
         <Divider color={C.divider} />
 
         {/* Password row */}
         <div style={{ padding: '16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.password')}</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>{t('account.password')}</span>
             {hasPassword === true ? (
               <ActionLink color={C.textPrimary} onClick={() => {
                 setNewPassword('');
@@ -677,10 +677,10 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
                 setPasswordModalOpen(true);
               }}>{t('account.add')}</ActionLink>
             ) : hasPassword === false ? (
-              <span style={{ fontSize: 14, color: C.textDim, cursor: 'default' }}>—</span>
+              <span style={{ fontSize: 13, color: C.textDim, cursor: 'default' }}>—</span>
             ) : null}
           </div>
-          <div style={{ fontSize: 14, color: C.textSecond, marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: C.textSecond, marginTop: 4 }}>
             {hasPassword === true
               ? t('account.passwordIsSet')
               : hasPassword === false && emailStatus === 'verified'
@@ -696,7 +696,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       {/* ═══════════ SECTION 2: Personal POS Passcode ═══════════ */}
       <div style={{ marginTop: 48 }}>
         <SectionTitle color={C.textPrimary}>{t('account.posPasscodeTitle')}</SectionTitle>
-        <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 20px 0' }}>
+        <p style={{ fontSize: 13, color: C.textSecond, lineHeight: 1.5, margin: '8px 0 20px 0' }}>
           {t('account.posPasscodeDesc')}
         </p>
         <button style={{
@@ -718,7 +718,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       {/* ═══════════ SECTION 3: Passkeys ═══════════ */}
       <div style={{ marginTop: 30 }}>
         <SectionTitle color={C.textPrimary} badge={{ label: t('account.beta'), color: '#16a34a', bg: isLight ? '#dcfce7' : '#14532d40' }}>{t('account.passkeys')}</SectionTitle>
-        <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 20px 0' }}>
+        <p style={{ fontSize: 13, color: C.textSecond, lineHeight: 1.5, margin: '8px 0 20px 0' }}>
           {t('account.passkeysDesc')}
         </p>
 
@@ -734,7 +734,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
             </svg>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{t('account.passkeys')}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>{t('account.passkeys')}</div>
               <div style={{ fontSize: 13, color: C.textSecond }}>{t('account.noPasskey')}</div>
             </div>
           </div>
@@ -747,7 +747,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       {/* ═══════════ SECTION 4: Two-step verification ═══════════ */}
       <div style={{ marginTop: 30 }}>
         <SectionTitle color={C.textPrimary} badge={{ label: t('account.recommended'), color: '#6366f1', bg: isLight ? '#e0e7ff' : '#312e8140' }}>{t('account.twoStepTitle')}</SectionTitle>
-        <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 4px 0' }}>
+        <p style={{ fontSize: 13, color: C.textSecond, lineHeight: 1.5, margin: '8px 0 4px 0' }}>
           {t('account.twoStepDesc')}{' '}
           <ActionLink color={C.textPrimary}>{t('account.learnMore')}</ActionLink>
         </p>
@@ -773,7 +773,7 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       {/* ═══════════ SECTION 5: Sign out everywhere ═══════════ */}
       <div>
         <SectionTitle color={C.textPrimary}>{t('account.signOutEverywhere')}</SectionTitle>
-        <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 16px 0' }}>
+        <p style={{ fontSize: 13, color: C.textSecond, lineHeight: 1.5, margin: '8px 0 16px 0' }}>
           {t('account.signOutEverywhereDesc')}
         </p>
         <ActionLink color="#ef4444">{t('account.signOutEverywhere')}</ActionLink>
@@ -784,10 +784,10 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
       {/* ═══════════ SECTION 6: Security ═══════════ */}
       <div style={{ marginTop: 30 }}>
         <SectionTitle color={C.textPrimary}>{t('account.security')}</SectionTitle>
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: C.textPrimary, margin: '16px 0 8px 0' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: '16px 0 8px 0' }}>
           {t('account.waysToVerify')}
         </h3>
-        <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '0 0 16px 0' }}>
+        <p style={{ fontSize: 13, color: C.textSecond, lineHeight: 1.5, margin: '0 0 16px 0' }}>
           {t('account.securityDesc')}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
