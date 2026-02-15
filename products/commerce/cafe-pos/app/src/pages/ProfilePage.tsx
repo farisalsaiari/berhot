@@ -176,7 +176,7 @@ export default function ProfilePage() {
           {t('plan.currentPlan')}: {planLabel}
         </span>
         <a
-          href={`/${lang}/dashboard2/upgrade-plan`}
+          href={`/${lang}/dashboard2/settings/subscription`}
           style={{
             marginInlineStart: 'auto', fontSize: 13, fontWeight: 600,
             color: '#2563eb', textDecoration: 'underline', textUnderlineOffset: 2,

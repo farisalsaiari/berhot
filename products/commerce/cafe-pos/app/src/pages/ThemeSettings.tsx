@@ -343,8 +343,8 @@ function DefaultConfigurationsTab({ C, isLight }: { C: Theme; isLight: boolean }
             background: 'transparent',
             border: 'none',
             color: isLight ? C.textDim : '#9ca3af',
-            fontSize: 12,
-            fontWeight: 400,
+            fontSize: 13,
+            fontWeight: 500,
             cursor: isDefault ? 'default' : 'pointer',
             opacity: isDefault ? 0.3 : 1,
             transition: 'opacity 0.2s',
@@ -405,6 +405,10 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
   );
   const [syncWithSystem, setSyncWithSystem] = useState(savedMode === 'system');
   const [selectedAccent, setSelectedAccent] = useState(savedAccentColor);
+  const [customHex, setCustomHex] = useState(() => {
+    const presets = ['#000000', '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    return presets.includes(savedAccentColor) ? '' : savedAccentColor.replace('#', '');
+  });
   const [darkSidebar, setDarkSidebar] = useState(
     typeof localStorage !== 'undefined' && localStorage.getItem('d2_dark_sidebar') === 'true'
   );
@@ -606,7 +610,7 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
           {accentColors.map((color) => (
             <div key={color} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 10 }}>
               <button
-                onClick={() => { setSelectedAccent(color); onAccentPreview?.(color); }}
+                onClick={() => { setSelectedAccent(color); setCustomHex(''); onAccentPreview?.(color); }}
                 style={{
                   width: 30,
                   height: 30,
@@ -638,19 +642,81 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
                   </svg>
                 )}
               </button>
-              {selectedAccent === color && (
-                <span style={{ fontSize: 10, fontWeight: 500, color: C.textPrimary }}>
-                  {color === '#000000' ? 'Black' :
-                    color === '#3b82f6' ? 'Blue' :
-                      color === '#ef4444' ? 'Red' :
-                        color === '#10b981' ? 'Green' :
-                          color === '#f59e0b' ? 'Amber' :
-                            color === '#8b5cf6' ? 'Purple' :
-                              color === '#ec4899' ? 'Pink' : ''}
-                </span>
-              )}
             </div>
           ))}
+        </div>
+
+        {/* Custom Color */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, paddingInlineStart: 0 }}>
+          <span style={{ fontSize: 13, color: C.textSecond }}>Custom color:</span>
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            border: `1px solid ${C.cardBorder}`, borderRadius: 8,
+            padding: '6px 11px', gap: 4,
+            background: isLight ? '#fff' : C.card,
+          }}>
+            <span style={{ fontSize: 13, color: C.textDim }}>#</span>
+            <input
+              type="text"
+              maxLength={6}
+              value={customHex}
+              placeholder="2C68F6"
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                setCustomHex(val);
+                if (val.length === 6) {
+                  const hex = `#${val}`;
+                  setSelectedAccent(hex);
+                  onAccentPreview?.(hex);
+                }
+              }}
+              style={{
+                border: 'none', outline: 'none', background: 'transparent',
+                fontSize: 13, fontWeight: 500, color: C.textPrimary,
+                width: 70, fontFamily: 'monospace',
+              }}
+            />
+          </div>
+          <label
+            style={{
+              width: 30, height: 30, borderRadius: '50%',
+              background: !accentColors.includes(selectedAccent) ? selectedAccent : C.divider,
+              border: `2.5px solid ${!accentColors.includes(selectedAccent) ? C.textPrimary : 'transparent'}`,
+              cursor: 'pointer', position: 'relative', display: 'block',
+              boxShadow: !accentColors.includes(selectedAccent) ? `0 0 0 2px ${selectedAccent}40` : 'none',
+              transition: 'all 0.2s', overflow: 'hidden',
+            }}
+          >
+            <input
+              type="color"
+              value={!accentColors.includes(selectedAccent) ? selectedAccent : '#2C68F6'}
+              onChange={(e) => {
+                const hex = e.target.value;
+                setSelectedAccent(hex);
+                setCustomHex(hex.replace('#', ''));
+                onAccentPreview?.(hex);
+              }}
+              style={{
+                position: 'absolute', top: 0, left: 0,
+                width: '100%', height: '100%',
+                opacity: 0, cursor: 'pointer',
+              }}
+            />
+            {!accentColors.includes(selectedAccent) && (
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                style={{
+                  position: 'absolute', top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))',
+                  pointerEvents: 'none',
+                }}
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </label>
         </div>
       </div>
       <Divider color={C.divider} />
@@ -805,23 +871,22 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
       </div>
       <Divider color={C.divider} />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16, marginTop: 24 }}>
 
         <button
           onClick={handleReset}
           disabled={isDefault}
           style={{
-            marginTop: 20,
-            padding: '10px 20px',
-            borderRadius: 24,
+            padding: 0,
             background: 'transparent',
             border: 'none',
             color: isLight ? C.textDim : '#9ca3af',
             fontSize: 12,
-            fontWeight: 400,
+            fontWeight: 500,
             cursor: isDefault ? 'default' : 'pointer',
-            opacity: isDefault ? 0.3 : 1,
+            opacity: isDefault ? 0.3 : 0.7,
             transition: 'opacity 0.2s',
+            textDecoration: 'underline',
           }}
         >
           {t('Reset to default')}
@@ -831,13 +896,12 @@ function ThemeSettingsTab({ C, isLight, onAccentPreview, onDarkSidebarPreview, o
           onClick={handleSave}
           disabled={saving}
           style={{
-            marginTop: 20,
-            padding: '12px 28px',
+            padding: '10px 28px',
             borderRadius: 24,
             border: 'none',
             background: saving ? (isLight ? '#9ca3af' : '#6b7280') : (isBlackOnDark ? '#e5e7eb' : selectedAccent),
             color: isBlackOnDark && !saving ? '#000000' : '#ffffff',
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 600,
             cursor: saving ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s',
@@ -919,8 +983,8 @@ export default function ThemeSettings({ C, isLight, onAccentPreview, onDarkSideb
                 background: 'none',
                 border: 'none',
                 color: activeTab === tab.id ? C.textPrimary : C.textLight,
-                fontSize: 13.5,
-                fontWeight: 600,
+                fontSize: 13,
+                fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',

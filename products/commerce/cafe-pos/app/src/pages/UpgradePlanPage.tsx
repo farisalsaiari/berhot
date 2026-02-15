@@ -69,6 +69,29 @@ const tiers: Tier[] = [
 
 const planOrder = ['free', 'starter', 'professional', 'enterprise'];
 
+/* ── Palette ── */
+const light = {
+  textPrimary: '#111827',
+  textSecond: '#6b7280',
+  textDim: '#9ca3af',
+  divider: '#e5e7eb',
+  cardBorder: '#e5e7eb',
+  bg: '#ffffff',
+  cardBg: '#ffffff',
+  toggleBg: '#f3f4f6',
+  toggleActive: '#ffffff',
+  accent: '#111827',
+  highlightBorder: '#2563eb',
+  highlightShadow: 'rgba(37,99,235,0.08)',
+  badgeBg: '#2563eb',
+  currentBadgeBg: '#10b981',
+  successBg: '#ecfdf5',
+  successBorder: '#d1fae5',
+  successText: '#059669',
+  saveBg: '#dcfce7',
+  saveText: '#15803d',
+};
+
 export default function UpgradePlanPage() {
   const { t } = useTranslation();
   const [annual, setAnnual] = useState(true);
@@ -113,99 +136,160 @@ export default function UpgradePlanPage() {
     return tierIdx > currentIdx ? t('plan.upgrade') : t('plan.downgrade');
   };
 
+  const C = light;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 256 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: '50%',
+          border: `3px solid ${C.divider}`, borderTopColor: C.accent,
+          animation: 'spin 0.6s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{t('titles.upgradePlan')}</h1>
-        <p className="text-sm text-gray-500 mt-2">
-          {t('plan.currentPlan')}: <span className="font-semibold text-gray-900">{currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</span>
+    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* ── Page Header ── */}
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
+          {t('titles.upgradePlan')}
+        </h2>
+        <p style={{ fontSize: 13, color: C.textSecond, margin: '0 0 6px 0' }}>
+          {t('plan.currentPlan')}: <span style={{ fontWeight: 600, color: C.textPrimary }}>{currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</span>
         </p>
 
         {/* Success message */}
         {message && (
-          <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
-            <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 14px', marginTop: 10,
+            background: C.successBg, border: `1px solid ${C.successBorder}`, borderRadius: 10,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.successText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-sm text-green-700">{message}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: C.successText }}>{message}</span>
           </div>
         )}
 
         {/* Billing toggle */}
-        <div className="mt-6 inline-flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 2,
+          background: C.toggleBg, borderRadius: 12, padding: 3, marginTop: 20,
+        }}>
           <button
             onClick={() => setAnnual(false)}
-            className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
-              !annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            style={{
+              padding: '8px 20px', fontSize: 13, fontWeight: 500, borderRadius: 10,
+              border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+              background: !annual ? C.toggleActive : 'transparent',
+              color: !annual ? C.textPrimary : C.textSecond,
+              boxShadow: !annual ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}
           >
             {t('plan.monthly')}
           </button>
           <button
             onClick={() => setAnnual(true)}
-            className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
-              annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            style={{
+              padding: '8px 20px', fontSize: 13, fontWeight: 500, borderRadius: 10,
+              border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+              background: annual ? C.toggleActive : 'transparent',
+              color: annual ? C.textPrimary : C.textSecond,
+              boxShadow: annual ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
           >
             {t('plan.annual')}
-            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+            <span style={{
+              fontSize: 11, fontWeight: 600,
+              background: C.saveBg, color: C.saveText,
+              padding: '2px 8px', borderRadius: 20,
+            }}>
               {t('plan.save20')}
             </span>
           </button>
         </div>
       </div>
 
-      {/* Tier cards */}
-      <div className="grid md:grid-cols-3 gap-6 items-start">
+      {/* ── Tier Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'start' }}>
         {tiers.map((tier) => {
           const isCurrent = tier.key === currentPlan;
+          const isHighlighted = tier.highlighted;
+
           return (
             <div
               key={tier.key}
-              className={`relative rounded-2xl border p-6 transition-shadow ${
-                tier.highlighted
-                  ? 'border-blue-500 shadow-xl shadow-blue-500/10 scale-[1.02] bg-white z-10'
-                  : 'border-gray-200 bg-white hover:shadow-lg'
-              } ${isCurrent ? 'ring-2 ring-green-400' : ''}`}
+              style={{
+                position: 'relative',
+                background: C.cardBg,
+                border: `1.5px solid ${isCurrent ? C.currentBadgeBg : isHighlighted ? C.highlightBorder : C.cardBorder}`,
+                borderRadius: 16,
+                padding: '28px 24px 24px',
+                boxShadow: isHighlighted
+                  ? `0 8px 30px ${C.highlightShadow}`
+                  : '0 1px 3px rgba(0,0,0,0.04)',
+                transform: isHighlighted ? 'scale(1.02)' : 'none',
+                zIndex: isHighlighted ? 1 : 0,
+                transition: 'box-shadow 0.2s, transform 0.2s',
+              }}
             >
-              {/* Badges */}
-              {tier.badge && !isCurrent && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center px-3 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded-full shadow">
+              {/* Badge */}
+              {(tier.badge && !isCurrent) && (
+                <div style={{
+                  position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+                }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: '#fff',
+                    background: C.badgeBg, padding: '3px 12px', borderRadius: 20,
+                    boxShadow: '0 2px 6px rgba(37,99,235,0.25)',
+                  }}>
                     {tier.badge}
                   </span>
                 </div>
               )}
               {isCurrent && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center px-3 py-0.5 bg-green-500 text-white text-xs font-semibold rounded-full shadow">
+                <div style={{
+                  position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+                }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: '#fff',
+                    background: C.currentBadgeBg, padding: '3px 12px', borderRadius: 20,
+                    boxShadow: '0 2px 6px rgba(16,185,129,0.25)',
+                  }}>
                     {t('plan.currentBadge')}
                   </span>
                 </div>
               )}
 
-              <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
-              <p className="mt-1 text-sm text-gray-500">{tier.description}</p>
+              {/* Tier name & description */}
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary, margin: 0 }}>
+                {tier.name}
+              </h3>
+              <p style={{ fontSize: 13, color: C.textSecond, margin: '4px 0 0 0', lineHeight: 1.5 }}>
+                {tier.description}
+              </p>
 
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-gray-900">
+              {/* Price */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 20 }}>
+                <span style={{ fontSize: 28, fontWeight: 700, color: C.textPrimary }}>
                   {annual ? tier.price.yearly : tier.price.monthly}
                 </span>
                 {tier.price.monthly !== 'Custom' && (
-                  <span className="text-sm text-gray-500">{t('plan.perMonth')}</span>
+                  <span style={{ fontSize: 13, color: C.textSecond }}>{t('plan.perMonth')}</span>
                 )}
               </div>
               {annual && tier.price.monthly !== 'Custom' && (
-                <p className="mt-1 text-xs text-gray-400">{t('plan.billedAnnually')}</p>
+                <p style={{ fontSize: 11, color: C.textDim, margin: '2px 0 0 0' }}>
+                  {t('plan.billedAnnually')}
+                </p>
               )}
 
               {/* Action button */}
@@ -216,22 +300,29 @@ export default function UpgradePlanPage() {
                   }
                 }}
                 disabled={isCurrent || updating === tier.key}
-                className={`mt-6 block w-full text-center px-5 py-2.5 text-sm font-semibold rounded-xl transition-all ${
-                  isCurrent
-                    ? 'bg-green-50 text-green-700 border border-green-200 cursor-default'
+                style={{
+                  display: 'block', width: '100%', marginTop: 20,
+                  padding: '10px 20px', fontSize: 13, fontWeight: 600,
+                  borderRadius: 24, border: 'none', cursor: isCurrent ? 'default' : 'pointer',
+                  transition: 'all 0.15s',
+                  opacity: (isCurrent || updating === tier.key) ? 0.7 : 1,
+                  ...(isCurrent
+                    ? { background: C.successBg, color: C.successText, border: `1px solid ${C.successBorder}` }
                     : tier.key === 'enterprise'
-                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
-                      : tier.highlighted
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25'
-                        : 'bg-gray-900 text-white hover:bg-gray-800'
-                } disabled:opacity-60`}
+                      ? { background: C.toggleBg, color: C.textPrimary }
+                      : isHighlighted
+                        ? { background: C.highlightBorder, color: '#fff', boxShadow: '0 4px 14px rgba(37,99,235,0.2)' }
+                        : { background: C.accent, color: '#fff' }
+                  ),
+                }}
               >
                 {updating === tier.key ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <div style={{
+                      width: 14, height: 14, borderRadius: '50%',
+                      border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+                      animation: 'spin 0.6s linear infinite',
+                    }} />
                     Updating...
                   </span>
                 ) : (
@@ -239,19 +330,20 @@ export default function UpgradePlanPage() {
                 )}
               </button>
 
-              {/* Features */}
-              <ul className="mt-6 space-y-2.5">
+              {/* Features divider */}
+              <div style={{ height: 1, background: C.divider, opacity: 0.4, margin: '20px 0 16px 0' }} />
+
+              {/* Features list */}
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {tier.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2.5 text-sm text-gray-700">
+                  <li key={feature} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: C.textPrimary, lineHeight: 1.4 }}>
                     <svg
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                        tier.highlighted ? 'text-blue-500' : 'text-gray-400'
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke={isHighlighted ? C.highlightBorder : C.textDim}
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ flexShrink: 0, marginTop: 2 }}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <path d="M5 13l4 4L19 7" />
                     </svg>
                     {feature}
                   </li>

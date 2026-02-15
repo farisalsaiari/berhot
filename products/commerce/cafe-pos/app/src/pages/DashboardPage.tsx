@@ -385,6 +385,8 @@ export default function DashboardPage() {
   const [showUpgrade, setShowUpgrade] = useState(() => {
     return sessionStorage.getItem('d2_upgrade_dismissed') !== 'true';
   });
+  // const [showOnboarding, setShowOnboarding] = useState(true);
+  // const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('d2_theme') as 'dark' | 'light') || 'light';
   });
@@ -1548,40 +1550,184 @@ export default function DashboardPage() {
               {/* ── Page: Home (Dashboard) ── */}
               {pagePath === 'home' && (
                 <div style={{ padding: '30px 30px 60px 30px' }}>
-                  {/* ── Page Header (full width) ── */}
-                  <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
-                    {t('dashboard.homeTitle')}
-                  </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 18px 0' }}>
-                    <p style={{ fontSize: 14, color: C.textSecond, margin: 0, lineHeight: 1.5 }}>
-                      {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
-                    </p>
-                    {/* Live date & time – stacked vertically, right-aligned */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-                      {/* Top row: clock icon + time */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
-                          {clockTime}
-                        </span>
-                      </div>
-                      {/* Bottom row: date + timezone */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 12, color: C.textSecond }}>
-                          {clockDate}
-                        </span>
-                        <span style={{
-                          fontSize: 10, fontWeight: 600, color: C.textDim,
-                          background: isLight ? '#f3f4f6' : '#1d1d1d',
-                          padding: '2px 6px', borderRadius: 4,
-                        }}>
-                          {clockTzLabel}
-                        </span>
-                      </div>
+                  {/* ── Page Header ── */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                    {/* Left: greeting */}
+                    <div>
+                      <h2 style={{ fontSize: 18, fontWeight: 600, color: C.textPrimary, margin: '0 0 4px 0' }}>
+                        {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
+                      </h2>
+                      <p style={{ fontSize: 13, color: C.textSecond, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {clockDate}
+                        <span style={{ fontSize: 3, color: C.textDim, lineHeight: 1 }}>●</span>
+                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{clockTime}</span>
+                      </p>
                     </div>
                   </div>
+
+                  {/* ── Onboarding: Getting Started Checklist (hidden for now) ── */}
+                  {/* {showOnboarding && (() => {
+                    const SETUP_STEPS = [
+                      { key: 'company', status: 'complete' as const },
+                      { key: 'connect', status: 'pending' as const },
+                      { key: 'phone', status: 'pending' as const },
+                      { key: 'preferences', status: 'pending' as const },
+                    ];
+                    const doneCount = SETUP_STEPS.filter(s => s.status === 'complete').length;
+                    const total = SETUP_STEPS.length;
+                    const pct = Math.round((doneCount / total) * 100);
+                    const ease = 'ease';
+
+                    return (
+                      <div style={{
+                        marginBottom: 24,
+                        maxWidth: 480,
+                        background: isLight ? '#fff' : C.card,
+                        borderRadius: 16,
+                        border: `1px solid ${C.cardBorder}`,
+                        overflow: 'hidden',
+                        transition: `box-shadow 0.2s ${ease}`,
+                        boxShadow: onboardingOpen ? '0 2px 16px rgba(0,0,0,0.07)' : 'none',
+                      }}>
+                        <div
+                          onClick={() => setOnboardingOpen(prev => !prev)}
+                          style={{
+                            padding: '12px 16px',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <div style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: isLight ? '#ebebeb' : '#333',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            <svg
+                              width="12" height="12" viewBox="0 0 24 24" fill="none"
+                              stroke={isLight ? '#555' : '#aaa'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                              style={{ transition: `transform 0.2s ${ease}`, transform: onboardingOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                            >
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>{t('dashboard.gettingStarted')}</div>
+                            <div style={{
+                              fontSize: 11, color: C.textDim, marginTop: 1,
+                              maxHeight: onboardingOpen ? 18 : 0,
+                              opacity: onboardingOpen ? 1 : 0,
+                              overflow: 'hidden',
+                              transition: `max-height 0.2s ${ease}, opacity 0.15s ${ease}`,
+                            }}>
+                              {t('dashboard.onboardingSubtitle')}
+                            </div>
+                          </div>
+                          {onboardingOpen && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setShowOnboarding(false); }}
+                              style={{
+                                padding: '9px 16px',
+                                borderRadius: 24,
+                                border: 'none',
+                                background: C.accent,
+                                color: '#fff',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap' as const,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {t('dashboard.onboardingDismiss')}
+                            </button>
+                          )}
+                        </div>
+                        <div style={{
+                          maxHeight: onboardingOpen ? 500 : 0,
+                          opacity: onboardingOpen ? 1 : 0,
+                          overflow: 'hidden',
+                          transition: `max-height 0.25s ${ease}, opacity 0.15s ${ease}`,
+                        }}>
+                          <div style={{ height: 1, background: `${C.divider}30`, margin: '0 16px' }} />
+                          <div style={{ padding: '2px 16px' }}>
+                            {SETUP_STEPS.map((step) => {
+                              const done = step.status === 'complete';
+                              return (
+                                <div
+                                  key={step.key}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    padding: '7px 0',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {done ? (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                                      <circle cx="12" cy="12" r="10" fill={C.accent} />
+                                      <path d="M8 12.5l2.5 2.5 5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  ) : (
+                                    <div style={{
+                                      width: 16, height: 16, borderRadius: '50%',
+                                      border: `1.5px solid ${isLight ? '#ccc' : '#555'}`,
+                                      flexShrink: 0,
+                                    }} />
+                                  )}
+                                  <span style={{
+                                    fontSize: 12, fontWeight: 500, flex: 1,
+                                    color: done ? C.textDim : C.textPrimary,
+                                    textDecoration: done ? 'line-through' : 'none',
+                                  }}>
+                                    {t(`dashboard.step_${step.key}`)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div style={{ padding: '4px 16px 10px' }}>
+                            <button style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              padding: '9px 16px',
+                              background: isLight ? '#f3f4f6' : C.hover,
+                              border: `1px solid ${C.cardBorder}`,
+                              borderRadius: 10,
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 500,
+                              color: C.textPrimary,
+                              width: 'fit-content',
+                            }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill={C.textPrimary} style={{ flexShrink: 0 }}>
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                              </svg>
+                              {t('dashboard.watchTutorial')}
+                            </button>
+                          </div>
+                          <div style={{
+                            padding: '16px 16px 18px',
+                            borderTop: `1px solid ${C.divider}30`,
+                            display: 'flex', alignItems: 'center', gap: 12,
+                          }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.accent, whiteSpace: 'nowrap' as const }}>
+                              {doneCount} {t('dashboard.ofComplete', { total })}
+                            </span>
+                            <div style={{
+                              flex: 1, height: 8, borderRadius: 4,
+                              background: isLight ? '#e5e7eb' : C.hover,
+                              overflow: 'hidden',
+                            }}>
+                              <div style={{
+                                width: `${pct}%`, height: '100%', borderRadius: 4,
+                                background: C.accent,
+                              }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()} */}
+
                   {/* ── Performance + Sidebar row ── */}
                   <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
                     {/* Main performance card */}
@@ -1819,7 +1965,7 @@ export default function DashboardPage() {
                 </div>
               )}
               {pagePath === 'settings/transactions' && (
-                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <div style={{ maxWidth: 1100, padding: '30px 30px 60px 30px' }}>
                   <SettingsTransactionsContent C={C} isLight={isLight} />
                 </div>
               )}
@@ -1829,7 +1975,7 @@ export default function DashboardPage() {
                 </div>
               )}
               {pagePath === 'settings/subscription' && (
-                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
+                <div style={{ maxWidth: 900, padding: '30px 30px 60px 30px' }}>
                   <SettingsSubscriptionContent C={C} isLight={isLight} />
                 </div>
               )}

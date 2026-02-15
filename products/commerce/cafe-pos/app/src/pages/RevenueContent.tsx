@@ -195,8 +195,8 @@ export default function RevenueContent({ C, isLight }: RevenueContentProps) {
       </p>
       <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
 
-      {/* ── Top row: Current balance + Assets analyzer ── */}
-      <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
+      {/* ── Top row: Current balance + Sales analyzer ── */}
+      <div style={{ display: 'flex', gap: 20, marginTop: 24, marginBottom: 20, flexWrap: 'wrap' }}>
         {/* Current balance card */}
         <div style={{
           flex: 2, minWidth: 380,
