@@ -86,6 +86,8 @@
     "apps": "Apps",
     "settings": "Settings",
     "support": "Support",
+    "business": "Business Profile",
+    "account": "Account",
     "berhot": "berhot",
     "homeTitle": "Home",
     "welcomeBack": "Welcome back, {{name}}! 👋",
