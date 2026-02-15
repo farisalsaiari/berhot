@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface SlidePanelProps {
   open: boolean;
@@ -46,7 +47,7 @@ export function SlidePanel({ open, onClose, children, width = 280 }: SlidePanelP
 
   const isRTL = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
 
-  return (
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
       {/* Overlay */}
       <div
@@ -74,12 +75,13 @@ export function SlidePanel({ open, onClose, children, width = 280 }: SlidePanelP
           transition: 'transform 0.25s ease',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: isRTL ? '0 12px 12px 0' : '12px 0 0 12px',
+          borderRadius: 0,
           overflow: 'hidden',
         }}
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

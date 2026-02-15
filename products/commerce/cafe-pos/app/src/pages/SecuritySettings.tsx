@@ -55,8 +55,8 @@ function Toggle({ on, onChange, C, isLight }: { on: boolean; onChange: (v: boole
 
 function SecurityBadge({ level, label, isLight }: { level: 'secure' | 'warning' | 'critical'; label: string; isLight: boolean }) {
   const config = {
-    secure:   { bg: isLight ? '#ecfdf5' : '#16532e', text: isLight ? '#059669' : '#6ee7b7', dot: '#10b981' },
-    warning:  { bg: isLight ? '#fffbeb' : 'rgba(120,53,15,0.25)', text: isLight ? '#d97706' : '#fcd34d', dot: '#f59e0b' },
+    secure: { bg: isLight ? '#ecfdf5' : '#16532e', text: isLight ? '#059669' : '#6ee7b7', dot: '#10b981' },
+    warning: { bg: isLight ? '#fffbeb' : 'rgba(120,53,15,0.25)', text: isLight ? '#d97706' : '#fcd34d', dot: '#f59e0b' },
     critical: { bg: isLight ? '#fef2f2' : '#5c1d1d', text: isLight ? '#dc2626' : '#fca5a5', dot: '#ef4444' },
   };
   const c = config[level];
@@ -292,7 +292,7 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
       label: t('security.strongPassword'),
       status: (passwordStrength.level === 'strong' || passwordStrength.level === 'good')
         ? 'secure' as const : passwordStrength.level === 'fair'
-        ? 'warning' as const : 'critical' as const,
+          ? 'warning' as const : 'critical' as const,
     },
     {
       id: 'two_factor',
@@ -339,14 +339,14 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
 
   const strengthLabel = newPassword.length === 0 ? '' :
     passwordStrength.level === 'strong' ? t('security.strengthStrong') :
-    passwordStrength.level === 'good' ? t('security.strengthGood') :
-    passwordStrength.level === 'fair' ? t('security.strengthFair') :
-    t('security.strengthWeak');
+      passwordStrength.level === 'good' ? t('security.strengthGood') :
+        passwordStrength.level === 'fair' ? t('security.strengthFair') :
+          t('security.strengthWeak');
 
   const strengthSegments = newPassword.length === 0 ? 0 :
     passwordStrength.level === 'strong' ? 4 :
-    passwordStrength.level === 'good' ? 3 :
-    passwordStrength.level === 'fair' ? 2 : 1;
+      passwordStrength.level === 'good' ? 3 :
+        passwordStrength.level === 'fair' ? 2 : 1;
 
   const requirementsList = [
     { key: 'minLength', label: t('security.reqMinLength'), met: passwordStrength.checks.minLength },
@@ -381,8 +381,8 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
          SECTION 1: Security Score Overview
          ══════════════════════════════════════════════════════════════ */}
       <div style={{
-        background: C.card, border: `1px solid ${C.cardBorder}`,
-        borderRadius: 14, padding: '24px 28px', marginBottom: 8,
+        // background: C.card, border: `1px solid ${C.cardBorder}`,
+        borderRadius: 14, padding: '12px 0 24px 28px', marginBottom: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 22 }}>
           <ScoreRing score={securityScore} color={securityRank.color} C={C} />
@@ -400,8 +400,8 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
               {securityScore === 100
                 ? 'Your account is fully secured. All security measures are enabled.'
                 : securityScore >= 70
-                ? 'Your account is well protected. Consider enabling more features for maximum security.'
-                : 'Some security features need attention. Enable them to improve your security score.'
+                  ? 'Your account is well protected. Consider enabling more features for maximum security.'
+                  : 'Some security features need attention. Enable them to improve your security score.'
               }
             </div>
           </div>
@@ -803,7 +803,7 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
             {t('security.activeSessions')}
           </div>
           <div style={{
-            background: C.bg, border: `1px solid ${C.cardBorder}`,
+            // background: C.bg, border: `1px solid ${C.cardBorder}`,
             borderRadius: 10, overflow: 'hidden',
           }}>
             {SESSIONS.map((session, i) => (
@@ -985,30 +985,40 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
       {/* ══════════════════════════════════════════════════════════════
          LOGIN HISTORY SLIDE PANEL
          ══════════════════════════════════════════════════════════════ */}
-      <SlidePanel open={showLoginHistory} onClose={() => setShowLoginHistory(false)} width={520}>
+      <SlidePanel open={showLoginHistory} onClose={() => setShowLoginHistory(false)} width={480}>
         <div style={{ background: C.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* Panel header */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '20px 24px 16px 24px',
+            padding: '18px 20px 14px 20px',
             borderBottom: `1px solid ${C.divider}40`,
           }}>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: C.textPrimary }}>{t('security.loginHistory')}</div>
-              <div style={{ fontSize: 13, color: C.textDim, marginTop: 3 }}>
-                {LOGIN_HISTORY.length} records
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>{t('security.loginHistory')}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
+                  <span style={{ fontSize: 12, color: C.textDim }}>{LOGIN_HISTORY.length} records</span>
+                  <button
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      fontSize: 12, fontWeight: 600, color: '#ef4444',
+                    }}
+                  >
+                    {t('security.clearHistory')}
+                  </button>
+                </div>
               </div>
             </div>
             <button
               onClick={() => setShowLoginHistory(false)}
               style={{
-                width: 36, height: 36, borderRadius: 8,
+                width: 32, height: 32, borderRadius: 8,
                 background: isLight ? '#f0f0f0' : '#2a2a2a',
                 border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textPrimary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.textPrimary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
@@ -1018,75 +1028,82 @@ export default function SecuritySettings({ C, isLight }: SecuritySettingsProps) 
           <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
             {LOGIN_HISTORY.map((entry, i) => {
               const isFailed = entry.status === 'failed';
-              const deviceIcon = entry.model?.includes('iPhone') ? '📱'
-                : entry.model?.includes('iPad') ? '📱'
-                : entry.model?.includes('Galaxy') ? '📱'
-                : entry.device === 'Unknown' ? '❓'
-                : '💻';
+              const isMobile = !!entry.model?.match(/iPhone|iPad|Galaxy|Pixel/i);
+              const isTablet = !!entry.model?.match(/iPad/i);
+              const isUnknown = entry.device === 'Unknown';
+
+              // SVG device icons
+              const deviceIconSvg = isUnknown ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              ) : isTablet ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isFailed ? '#ef4444' : C.textSecond} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="4" y="2" width="16" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+                </svg>
+              ) : isMobile ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isFailed ? '#ef4444' : C.textSecond} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isFailed ? '#ef4444' : C.textSecond} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+              );
 
               return (
                 <div
                   key={i}
                   style={{
-                    padding: '16px 24px',
-                    borderBottom: i < LOGIN_HISTORY.length - 1 ? `1px solid ${C.divider}20` : 'none',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '11px 20px',
+                    borderBottom: `1px solid ${C.divider}20`,
                     transition: 'background 0.1s',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = C.hover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                    {/* Left: icon + info */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1 }}>
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                        background: isFailed
-                          ? (isLight ? '#fef2f2' : '#5c1d1d')
-                          : (isLight ? '#f0f9ff' : '#1e3a5f'),
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 18,
-                      }}>
-                        {deviceIcon}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* Device + OS */}
-                        <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, marginBottom: 2 }}>
-                          {entry.device}{entry.os && entry.os !== 'Unknown' ? `, ${entry.os}` : ''}
-                        </div>
-                        {/* Mobile model if present */}
-                        {entry.model && (
-                          <div style={{ fontSize: 12, color: C.textSecond, marginBottom: 2 }}>
-                            {entry.model}
-                          </div>
-                        )}
-                        {/* Location */}
-                        <div style={{ fontSize: 12, color: C.textDim }}>
-                          {entry.location}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: status badge */}
-                    <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                      <SecurityBadge
-                        level={entry.status === 'success' ? 'secure' : 'critical'}
-                        label={entry.status === 'success' ? t('security.loginSuccess') : t('security.loginFailed')}
-                        isLight={isLight}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Bottom row: date + time + IP */}
+                  {/* Icon */}
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: 12, marginTop: 8,
-                    paddingInlineStart: 54,
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: isFailed
+                      ? (isLight ? '#fef2f2' : '#5c1d1d')
+                      : (isLight ? '#f5f5f5' : '#2a2a2a'),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <span style={{ fontSize: 12, color: C.textDim }}>{entry.date}</span>
-                    <span style={{ fontSize: 11, color: C.textDim, opacity: 0.6 }}>·</span>
-                    <span style={{ fontSize: 12, color: C.textDim }}>{entry.time}</span>
-                    <span style={{ fontSize: 11, color: C.textDim, opacity: 0.6 }}>·</span>
-                    <span style={{ fontSize: 11, color: C.textDim, fontFamily: 'monospace' }}>{entry.ip}</span>
+                    {deviceIconSvg}
                   </div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>
+                        {entry.device}
+                      </span>
+                      {entry.os && entry.os !== 'Unknown' && (
+                        <span style={{ fontSize: 12, color: C.textSecond }}>{entry.os}</span>
+                      )}
+                      {entry.model && (
+                        <>
+                          <span style={{ fontSize: 10, color: C.textDim, opacity: 0.4 }}>·</span>
+                          <span style={{ fontSize: 12, color: C.textSecond }}>{entry.model}</span>
+                        </>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <span style={{ fontSize: 11, color: C.textDim }}>{entry.location}</span>
+                      <span style={{ fontSize: 10, color: C.textDim, opacity: 0.35 }}>·</span>
+                      <span style={{ fontSize: 11, color: C.textDim }}>{entry.date}, {entry.time}</span>
+                      <span style={{ fontSize: 10, color: C.textDim, opacity: 0.35 }}>·</span>
+                      <span style={{ fontSize: 10, color: C.textDim, fontFamily: 'monospace', opacity: 0.7 }}>{entry.ip}</span>
+                    </div>
+                  </div>
+
+                  {/* Status dot */}
+                  <div style={{
+                    width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                    background: isFailed ? '#ef4444' : '#10b981',
+                  }} />
                 </div>
               );
             })}

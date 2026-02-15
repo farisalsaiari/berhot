@@ -49,7 +49,7 @@ function Divider({ color }: { color: string }) {
 function SectionTitle({ children, badge, color }: { children: string; color: string; badge?: { label: string; color: string; bg: string } }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color, margin: 0 }}>{children}</h2>
+      <h2 style={{ fontSize: 17, fontWeight: 700, color, margin: 0 }}>{children}</h2>
       {badge && (
         <span style={{
           fontSize: 12,
@@ -529,13 +529,17 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
   return (
     <>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      {/* Page title */}
-      {/* <h1 style={{ fontSize: 28, fontWeight: 700, color: C.textPrimary, margin: '0 0 30px 0' }}>
-        Account settings
-      </h1> */}
+
+      {/* ── Page Header ── */}
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px 0' }}>
+        {t('account.title')}
+      </h2>
+      <p style={{ fontSize: 14, color: C.textSecond, margin: '0 0 14px 0', lineHeight: 1.5 }}>
+        {t('settingsPages.profileDesc')}
+      </p>
+      <div style={{ height: 1, background: C.divider, opacity: 0.4 }} />
 
       {/* ═══════════ SECTION 1: Sign in ═══════════ */}
-      <SectionTitle color={C.textPrimary}>{t('account.title')}</SectionTitle>
       <div style={{ marginTop: 14 }}>
         {/* Email row */}
         <div style={{ padding: '16px 0' }}>
@@ -708,9 +712,11 @@ export default function AccountSettingsContent({ C, isLight, userEmail }: { C: T
           {t('account.addPasscode')}
         </button>
       </div>
-
+      <div style={{ margin: '28px 0' }}>
+        <Divider color={C.divider} />
+      </div>
       {/* ═══════════ SECTION 3: Passkeys ═══════════ */}
-      <div style={{ marginTop: 48 }}>
+      <div style={{ marginTop: 30 }}>
         <SectionTitle color={C.textPrimary} badge={{ label: t('account.beta'), color: '#16a34a', bg: isLight ? '#dcfce7' : '#14532d40' }}>{t('account.passkeys')}</SectionTitle>
         <p style={{ fontSize: 15, color: C.textSecond, lineHeight: 1.6, margin: '8px 0 20px 0' }}>
           {t('account.passkeysDesc')}

@@ -268,6 +268,7 @@
     "hideLoginHistory": "إخفاء سجل تسجيل الدخول",
     "loginSuccess": "ناجح",
     "loginFailed": "فشل",
+    "clearHistory": "مسح السجل",
     "recoveryTitle": "استعادة الحساب",
     "recoveryDesc": "إعداد طرق احتياطية لاستعادة الوصول إلى حسابك.",
     "securityQuestion": "سؤال الأمان",
