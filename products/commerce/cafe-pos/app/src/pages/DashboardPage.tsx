@@ -738,14 +738,14 @@ export default function DashboardPage() {
               {/* Divider */}
               <div style={{ width: 1, height: 20, background: SC.divider, opacity: 0.5, flexShrink: 0 }} />
 
-              {/* Accent "S" badge (medium rounded) */}
-              <div style={{
+              {/* Accent "S" badge (medium rounded) — hidden for now, will use later */}
+              {/* <div style={{
                 width: 24, height: 24, borderRadius: 6,
                 background: effectiveAccent === '#000000' && sidebarIsDark ? '#e5e7eb' : effectiveAccent,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: effectiveAccent === '#000000' && sidebarIsDark ? '#000000' : '#ffffff' }}>S</span>
-              </div>
+              </div> */}
 
               {/* Page title (breadcrumb for settings) */}
               <span style={{ fontSize: 13, fontWeight: 600, color: SC.textSecond, display: 'flex', alignItems: 'center', gap: 0 }}>
