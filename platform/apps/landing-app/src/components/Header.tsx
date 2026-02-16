@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { LanguageSwitcher, useTranslation } from '@berhot/i18n';
 import { useAuth } from '../lib/auth-context';
@@ -136,6 +136,324 @@ const productCategories = [
     ],
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  Mobile Menu Data (multi-level)                                     */
+/* ------------------------------------------------------------------ */
+
+interface MobileMenuItem {
+  label: string;
+  icon?: string;
+  href?: string;
+  children?: MobileMenuItem[];
+}
+
+const mobileMenuItems: MobileMenuItem[] = [
+  {
+    label: 'Business Types',
+    icon: '🏢',
+    children: businessTypes.map((bt) => ({
+      label: bt.label,
+      icon: bt.icon,
+      children: bt.links.map((l) => ({ label: l.name, href: l.href })),
+    })),
+  },
+  {
+    label: 'Products',
+    icon: '📦',
+    children: [
+      {
+        label: 'Hardware',
+        icon: '🖥️',
+        children: [
+          { label: 'POS Terminals', href: '#hardware-pos' },
+          { label: 'Receipt Printers', href: '#hardware-printers' },
+          { label: 'Barcode Scanners', href: '#hardware-scanners' },
+          { label: 'Cash Drawers', href: '#hardware-drawers' },
+          { label: 'Kitchen Display', href: 'http://localhost:4001/kitchen' },
+        ],
+      },
+      {
+        label: 'Payments',
+        icon: '💳',
+        children: [
+          { label: 'Card Processing', href: '#payments-card' },
+          { label: 'Mobile Payments', href: '#payments-mobile' },
+          { label: 'Online Payments', href: '#payments-online' },
+          { label: 'Invoicing', href: '#payments-invoicing' },
+        ],
+      },
+      {
+        label: 'Customers',
+        icon: '👥',
+        children: [
+          { label: 'Marketing', href: 'http://localhost:4007' },
+          { label: 'Loyalty Programs', href: 'http://localhost:4005' },
+          { label: 'CRM', href: '#customers-crm' },
+          { label: 'Reviews & Feedback', href: '#customers-reviews' },
+          { label: 'Queue Management', href: 'http://localhost:4006' },
+        ],
+      },
+      {
+        label: 'Staff',
+        icon: '🧑‍💼',
+        children: [
+          { label: 'Scheduling', href: 'http://localhost:4008' },
+          { label: 'Attendance', href: 'http://localhost:4011' },
+          { label: 'Payroll', href: '#staff-payroll' },
+          { label: 'Permissions', href: '#staff-permissions' },
+        ],
+      },
+      ...productCategories.map((pc) => ({
+        label: pc.label,
+        icon: pc.icon,
+        children: pc.links.map((l) => ({ label: l.name, href: l.href })),
+      })),
+    ],
+  },
+  { label: 'Hardware', icon: '🖥️', href: '#hardware' },
+  { label: 'Pricing', icon: '💰', href: '/pricing' },
+  { label: 'Partners', icon: '🤝', href: '/partners' },
+  { label: 'Support', icon: '💬', href: '#support' },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Mobile Slide Menu Component                                        */
+/* ------------------------------------------------------------------ */
+
+interface MenuLevel {
+  title: string;
+  items: MobileMenuItem[];
+}
+
+function MobileSlideMenu({
+  isOpen,
+  onClose,
+  lang,
+  isAuthenticated,
+  user,
+  onLogout,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  lang: string;
+  isAuthenticated: boolean;
+  user: { firstName: string; lastName: string; email: string } | null;
+  onLogout: () => void;
+}) {
+  const [stack, setStack] = useState<MenuLevel[]>([
+    { title: 'Menu', items: mobileMenuItems },
+  ]);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const [animating, setAnimating] = useState(false);
+
+  // Reset stack when menu closes
+  useEffect(() => {
+    if (!isOpen) {
+      const timer = setTimeout(() => {
+        setStack([{ title: 'Menu', items: mobileMenuItems }]);
+        setDirection('forward');
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  const pushLevel = useCallback((title: string, items: MobileMenuItem[]) => {
+    if (animating) return;
+    setAnimating(true);
+    setDirection('forward');
+    setStack((prev: MenuLevel[]) => [...prev, { title, items }]);
+    setTimeout(() => setAnimating(false), 350);
+  }, [animating]);
+
+  const popLevel = useCallback(() => {
+    if (animating || stack.length <= 1) return;
+    setAnimating(true);
+    setDirection('back');
+    setStack((prev: MenuLevel[]) => prev.slice(0, -1));
+    setTimeout(() => setAnimating(false), 350);
+  }, [animating, stack.length]);
+
+  const currentLevel = stack[stack.length - 1];
+  const isRoot = stack.length === 1;
+
+  return (
+    <>
+      {/* Backdrop overlay */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+      />
+
+      {/* Slide panel */}
+      <div
+        className={`fixed top-0 right-0 z-50 h-full w-full max-w-[320px] bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hidden ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {/* Panel header */}
+        <div className="flex items-center justify-between px-5 h-16 border-b border-gray-100">
+          {!isRoot ? (
+            <button
+              onClick={popLevel}
+              className="flex items-center gap-2 text-sm font-medium text-brand-600 active:text-brand-800 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+          ) : (
+            <span className="text-base font-semibold text-gray-900">Menu</span>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Level title (when not root) */}
+        {!isRoot && (
+          <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+              {currentLevel.title}
+            </h3>
+          </div>
+        )}
+
+        {/* Menu items with slide animation */}
+        <div className="overflow-y-auto overflow-x-hidden" style={{ height: isRoot ? 'calc(100% - 64px)' : 'calc(100% - 108px)' }}>
+          <div
+            key={stack.length}
+            className={`px-3 py-3 ${
+              direction === 'forward'
+                ? 'animate-[slideInRight_0.3s_ease-out]'
+                : 'animate-[slideInLeft_0.3s_ease-out]'
+            }`}
+          >
+            {currentLevel.items.map((item: MobileMenuItem) => {
+              const hasChildren = item.children && item.children.length > 0;
+
+              if (hasChildren) {
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => pushLevel(item.label, item.children!)}
+                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-[15px] font-medium text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                  >
+                    <span className="flex items-center gap-3">
+                      {item.icon && <span className="text-lg w-6 text-center">{item.icon}</span>}
+                      {item.label}
+                    </span>
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                );
+              }
+
+              // Leaf link
+              const isExternal = item.href?.startsWith('http');
+              if (isExternal) {
+                return (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={onClose}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                  >
+                    {item.icon && <span className="text-lg w-6 text-center">{item.icon}</span>}
+                    {item.label}
+                  </a>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.label}
+                  to={item.href || '#'}
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  {item.icon && <span className="text-lg w-6 text-center">{item.icon}</span>}
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Account section (root level only) */}
+          {isRoot && (
+            <div className="px-3 pb-6 mt-2">
+              <hr className="mb-4 border-gray-100" />
+              <div className="px-4 mb-3">
+                <LanguageSwitcher />
+              </div>
+              {isAuthenticated && user ? (
+                <>
+                  <div className="px-4 py-2 text-sm font-semibold text-gray-900">
+                    {`${user.firstName} ${user.lastName}`.trim() || user.email}
+                  </div>
+                  <a
+                    href={getDashboardUrl(lang)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
+                    Dashboard
+                  </a>
+                  <button
+                    onClick={() => { onLogout(); onClose(); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                    </svg>
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-2 px-1">
+                  <Link
+                    to={`/${lang}/signin`}
+                    onClick={onClose}
+                    className="block px-4 py-3 text-center text-[15px] font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to={`/${lang}/signup`}
+                    onClick={onClose}
+                    className="block px-4 py-3 text-center text-[15px] font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors shadow-sm"
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
@@ -520,82 +838,28 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile menu button (burger) */}
           <button
-            className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
+            className="lg:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
           >
-            {mobileOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
           </button>
         </div>
       </div>
 
-      {/* Mobile nav */}
-      {mobileOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
-          <div className="px-4 py-4 space-y-2">
-            <Link to="/products" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-              Products
-            </Link>
-            <Link to="/pricing" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-              Pricing
-            </Link>
-            <Link to="partners" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-              Partners
-            </Link>
-            <a href="#support" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-              Support
-            </a>
-            <hr className="my-2 border-gray-200" />
-            <div className="px-3 py-2">
-              <LanguageSwitcher />
-            </div>
-
-            {isAuthenticated && user ? (
-              <>
-                <div className="px-3 py-2 text-sm font-medium text-gray-900">
-                  {`${user.firstName} ${user.lastName}`.trim() || user.email}
-                </div>
-                <a href={getDashboardUrl(lang)} className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                  Dashboard
-                </a>
-                <Link to={`/${lang}/shop/hardware/us/${lang}/my-orders`} className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                  Order Status
-                </Link>
-                <a href="#" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                  Refer &amp; Earn Rewards
-                </a>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
-                >
-                  Log out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to={`/${lang}/signin`} className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                  Sign in
-                </Link>
-                <Link
-                  to={`/${lang}/signup`}
-                  className="block px-3 py-2 text-sm font-semibold text-center text-white bg-brand-600 hover:bg-brand-700 rounded-lg"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Mobile slide menu */}
+      <MobileSlideMenu
+        isOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        lang={lang}
+        isAuthenticated={!!isAuthenticated}
+        user={user ? { firstName: user.firstName, lastName: user.lastName, email: user.email } : null}
+        onLogout={handleLogout}
+      />
     </header>
   );
 }
