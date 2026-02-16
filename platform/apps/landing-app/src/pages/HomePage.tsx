@@ -194,47 +194,47 @@ export default function HomePage() {
       <Hero />
 
       {/* ── Products Section ── */}
-      <section id="products" className="py-24 bg-gray-50">
+      <section id="products" className="py-14 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-brand-600 uppercase tracking-wider mb-3">
+          <div className="text-center mb-10 sm:mb-16">
+            <p className="text-xs sm:text-sm font-semibold text-brand-600 uppercase tracking-wider mb-2 sm:mb-3">
               Product Suite
             </p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900">
               Everything you need, all in one place
             </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-gray-600 max-w-2xl mx-auto">
               From commerce to workforce management, Berhot provides 23 integrated
               applications that work seamlessly together.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {products.map((product) => (
               <a
                 key={product.title}
                 href={product.href}
-                className="group relative bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-brand-200 transition-all duration-200 hover:-translate-y-1"
+                className="group relative bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-6 hover:shadow-lg hover:border-brand-200 transition-all duration-200 hover:-translate-y-1"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <span className="text-3xl">{product.icon}</span>
+                <div className="flex items-start justify-between mb-3 sm:mb-4">
+                  <span className="text-2xl sm:text-3xl">{product.icon}</span>
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium border ${
                       tagColors[product.tag] || tagColors.Platform
                     }`}
                   >
                     {product.tag}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-brand-600 transition-colors">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-brand-600 transition-colors">
                   {product.title}
                 </h3>
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600 leading-relaxed">
                   {product.description}
                 </p>
-                <div className="mt-4 flex items-center text-sm font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="mt-3 sm:mt-4 flex items-center text-xs sm:text-sm font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">
                   Learn more
-                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -245,34 +245,34 @@ export default function HomePage() {
       </section>
 
       {/* ── Features Section ── */}
-      <section id="features" className="py-24">
+      <section id="features" className="py-14 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-brand-600 uppercase tracking-wider mb-3">
+          <div className="text-center mb-10 sm:mb-16">
+            <p className="text-xs sm:text-sm font-semibold text-brand-600 uppercase tracking-wider mb-2 sm:mb-3">
               Why Berhot?
             </p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900">
               Built for scale. Designed for simplicity.
             </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Enterprise-grade infrastructure meets intuitive design. Here is what sets
               Berhot apart.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center mb-3 sm:mb-4">
                   {feature.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600 leading-relaxed">
                   {feature.description}
                 </p>
               </div>
@@ -282,19 +282,19 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA Section ── */}
-      <section className="py-24 bg-gradient-to-br from-brand-600 to-brand-700">
+      <section className="py-14 sm:py-24 bg-gradient-to-br from-brand-600 to-brand-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white">
             Ready to transform your business?
           </h2>
-          <p className="mt-4 text-lg text-blue-100 max-w-2xl mx-auto">
+          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto">
             Join 10,000+ businesses already using Berhot to streamline operations,
             delight customers, and grow revenue.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 sm:px-0">
             <a
               href="#get-started"
-              className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-brand-700 bg-white hover:bg-gray-50 rounded-xl shadow-lg transition-all hover:-translate-y-0.5"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-brand-700 bg-white hover:bg-gray-50 rounded-xl shadow-lg transition-all hover:-translate-y-0.5"
             >
               Start Free Trial
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,7 +303,7 @@ export default function HomePage() {
             </a>
             <a
               href="#demo"
-              className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white border-2 border-white/30 hover:border-white/60 rounded-xl transition-all hover:-translate-y-0.5"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-white border-2 border-white/30 hover:border-white/60 rounded-xl transition-all hover:-translate-y-0.5"
             >
               Request a Demo
             </a>

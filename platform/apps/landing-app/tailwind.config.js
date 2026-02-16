@@ -12,17 +12,17 @@ export default {
       },
       keyframes: {
         slideInRight: {
-          '0%': { transform: 'translateX(60px)', opacity: '0' },
+          '0%': { transform: 'translateX(40px)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
         },
         slideInLeft: {
-          '0%': { transform: 'translateX(-60px)', opacity: '0' },
+          '0%': { transform: 'translateX(-40px)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
         },
       },
       animation: {
-        'slide-in-right': 'slideInRight 0.3s ease-out',
-        'slide-in-left': 'slideInLeft 0.3s ease-out',
+        'slide-in-right': 'slideInRight 0.32s cubic-bezier(0.25, 0.1, 0.25, 1)',
+        'slide-in-left': 'slideInLeft 0.32s cubic-bezier(0.25, 0.1, 0.25, 1)',
       },
     },
   },

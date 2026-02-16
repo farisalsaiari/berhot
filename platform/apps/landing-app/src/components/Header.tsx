@@ -150,75 +150,54 @@ interface MobileMenuItem {
 
 const mobileMenuItems: MobileMenuItem[] = [
   {
-    label: 'Business Types',
-    icon: '🏢',
-    children: businessTypes.map((bt) => ({
-      label: bt.label,
-      icon: bt.icon,
-      children: bt.links.map((l) => ({ label: l.name, href: l.href })),
-    })),
+    label: 'Business types',
+    children: [
+      {
+        label: 'Food & Beverage',
+        children: [
+          ...businessTypes.filter(bt => ['Restaurants', 'Cafes', 'Food Trucks', 'Quick Service'].includes(bt.label))
+            .flatMap(bt => bt.links.map(l => ({ label: l.name, href: l.href }))),
+        ],
+      },
+      {
+        label: 'Retail',
+        children: [
+          ...businessTypes.filter(bt => ['Retail', 'Grocery', 'Supermarkets'].includes(bt.label))
+            .flatMap(bt => bt.links.map(l => ({ label: l.name, href: l.href }))),
+        ],
+      },
+      {
+        label: 'Beauty',
+        children: [
+          { label: 'Salon POS', href: '#beauty-salon' },
+          { label: 'Spa Management', href: '#beauty-spa' },
+          { label: 'Barbershop', href: '#beauty-barbershop' },
+        ],
+      },
+      {
+        label: 'Services',
+        children: [
+          ...businessTypes.filter(bt => ['Services', 'Events'].includes(bt.label))
+            .flatMap(bt => bt.links.map(l => ({ label: l.name, href: l.href }))),
+        ],
+      },
+      { label: 'All business types', href: '#all-business-types' },
+    ],
   },
   {
     label: 'Products',
-    icon: '📦',
-    children: [
-      {
-        label: 'Hardware',
-        icon: '🖥️',
-        children: [
-          { label: 'POS Terminals', href: '#hardware-pos' },
-          { label: 'Receipt Printers', href: '#hardware-printers' },
-          { label: 'Barcode Scanners', href: '#hardware-scanners' },
-          { label: 'Cash Drawers', href: '#hardware-drawers' },
-          { label: 'Kitchen Display', href: 'http://localhost:4001/kitchen' },
-        ],
-      },
-      {
-        label: 'Payments',
-        icon: '💳',
-        children: [
-          { label: 'Card Processing', href: '#payments-card' },
-          { label: 'Mobile Payments', href: '#payments-mobile' },
-          { label: 'Online Payments', href: '#payments-online' },
-          { label: 'Invoicing', href: '#payments-invoicing' },
-        ],
-      },
-      {
-        label: 'Customers',
-        icon: '👥',
-        children: [
-          { label: 'Marketing', href: 'http://localhost:4007' },
-          { label: 'Loyalty Programs', href: 'http://localhost:4005' },
-          { label: 'CRM', href: '#customers-crm' },
-          { label: 'Reviews & Feedback', href: '#customers-reviews' },
-          { label: 'Queue Management', href: 'http://localhost:4006' },
-        ],
-      },
-      {
-        label: 'Staff',
-        icon: '🧑‍💼',
-        children: [
-          { label: 'Scheduling', href: 'http://localhost:4008' },
-          { label: 'Attendance', href: 'http://localhost:4011' },
-          { label: 'Payroll', href: '#staff-payroll' },
-          { label: 'Permissions', href: '#staff-permissions' },
-        ],
-      },
-      ...productCategories.map((pc) => ({
-        label: pc.label,
-        icon: pc.icon,
-        children: pc.links.map((l) => ({ label: l.name, href: l.href })),
-      })),
-    ],
+    children: productCategories.map((pc) => ({
+      label: pc.label,
+      children: pc.links.map((l) => ({ label: l.name, href: l.href })),
+    })),
   },
-  { label: 'Hardware', icon: '🖥️', href: '#hardware' },
-  { label: 'Pricing', icon: '💰', href: '/pricing' },
-  { label: 'Partners', icon: '🤝', href: '/partners' },
-  { label: 'Support', icon: '💬', href: '#support' },
+  { label: 'Hardware', href: '#hardware' },
+  { label: 'Pricing', href: '/pricing' },
+  { label: "What's new", href: '#whats-new' },
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Mobile Slide Menu Component                                        */
+/*  Mobile Full-Screen Menu Component                                  */
 /* ------------------------------------------------------------------ */
 
 interface MenuLevel {
@@ -244,214 +223,194 @@ function MobileSlideMenu({
   const [stack, setStack] = useState<MenuLevel[]>([
     { title: 'Menu', items: mobileMenuItems },
   ]);
-  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
-  const [animating, setAnimating] = useState(false);
+  const [slideDir, setSlideDir] = useState<'forward' | 'back' | 'none'>('none');
+  const [slideKey, setSlideKey] = useState(0);
 
-  // Reset stack when menu closes
+  // Reset when menu closes
   useEffect(() => {
     if (!isOpen) {
-      const timer = setTimeout(() => {
+      const t = setTimeout(() => {
         setStack([{ title: 'Menu', items: mobileMenuItems }]);
-        setDirection('forward');
-      }, 300);
-      return () => clearTimeout(timer);
+        setSlideDir('none');
+        setSlideKey(0);
+      }, 350);
+      return () => clearTimeout(t);
     }
   }, [isOpen]);
 
-  // Lock body scroll when open
+  // Lock body scroll
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
-  const pushLevel = useCallback((title: string, items: MobileMenuItem[]) => {
-    if (animating) return;
-    setAnimating(true);
-    setDirection('forward');
-    setStack((prev: MenuLevel[]) => [...prev, { title, items }]);
-    setTimeout(() => setAnimating(false), 350);
-  }, [animating]);
+  const pushLevel = (title: string, items: MobileMenuItem[]) => {
+    setSlideDir('forward');
+    setSlideKey(k => k + 1);
+    setStack(prev => [...prev, { title, items }]);
+  };
 
-  const popLevel = useCallback(() => {
-    if (animating || stack.length <= 1) return;
-    setAnimating(true);
-    setDirection('back');
-    setStack((prev: MenuLevel[]) => prev.slice(0, -1));
-    setTimeout(() => setAnimating(false), 350);
-  }, [animating, stack.length]);
+  const popLevel = () => {
+    if (stack.length <= 1) return;
+    setSlideDir('back');
+    setSlideKey(k => k + 1);
+    setStack(prev => prev.slice(0, -1));
+  };
 
-  const currentLevel = stack[stack.length - 1];
+  const current = stack[stack.length - 1];
   const isRoot = stack.length === 1;
 
-  return (
-    <>
-      {/* Backdrop overlay */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={onClose}
-      />
+  // Render a menu item (root or sub)
+  const renderItem = (item: MobileMenuItem, _isRootLevel: boolean) => {
+    const hasChildren = item.children && item.children.length > 0;
 
-      {/* Slide panel */}
-      <div
-        className={`fixed top-0 right-0 z-50 h-full w-full max-w-[320px] bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hidden ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+    if (hasChildren) {
+      return (
+        <button
+          key={item.label}
+          onClick={() => pushLevel(item.label, item.children!)}
+          className="w-full flex items-center justify-between py-3 text-lg sm:text-[22px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+        >
+          <span>{item.label}</span>
+          <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      );
+    }
+
+    const isExt = item.href?.startsWith('http');
+    if (isExt) {
+      return (
+        <a
+          key={item.label}
+          href={item.href}
+          onClick={onClose}
+          className="block py-3 text-lg sm:text-[22px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+        >
+          {item.label}
+        </a>
+      );
+    }
+
+    return (
+      <Link
+        key={item.label}
+        to={item.href || '#'}
+        onClick={onClose}
+        className="block py-3 text-lg sm:text-[22px] font-bold text-gray-900 active:opacity-60 transition-opacity"
       >
-        {/* Panel header */}
-        <div className="flex items-center justify-between px-5 h-16 border-b border-gray-100">
-          {!isRoot ? (
-            <button
-              onClick={popLevel}
-              className="flex items-center gap-2 text-sm font-medium text-brand-600 active:text-brand-800 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-          ) : (
-            <span className="text-base font-semibold text-gray-900">Menu</span>
-          )}
-          <button
-            onClick={onClose}
-            className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        {item.label}
+      </Link>
+    );
+  };
+
+  // Slide animation class (none on initial render, only on push/pop)
+  const slideClass = slideDir === 'forward'
+    ? 'mob-slide-forward'
+    : slideDir === 'back'
+      ? 'mob-slide-back'
+      : '';
+
+  return (
+    <div
+      className={`fixed inset-0 z-[99999] bg-white lg:hidden flex flex-col transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        isOpen ? 'translate-y-0' : '-translate-y-full'
+      }`}
+      style={{ transitionDuration: '350ms' }}
+    >
+      {/* ── Top bar: back arrow (sub-levels only) — X is handled by header burger toggle ── */}
+      <div className="flex items-center px-5 sm:px-6 pt-5 sm:pt-6 pb-2 flex-shrink-0" style={{ minHeight: 48 }}>
+        {!isRoot && (
+          <button onClick={popLevel} className="p-1 -ml-1 text-gray-900 active:opacity-50">
+            <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
-        </div>
-
-        {/* Level title (when not root) */}
-        {!isRoot && (
-          <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-              {currentLevel.title}
-            </h3>
-          </div>
         )}
+      </div>
 
-        {/* Menu items with slide animation */}
-        <div className="overflow-y-auto overflow-x-hidden" style={{ height: isRoot ? 'calc(100% - 64px)' : 'calc(100% - 108px)' }}>
-          <div
-            key={stack.length}
-            className={`px-3 py-3 ${
-              direction === 'forward'
-                ? 'animate-[slideInRight_0.3s_ease-out]'
-                : 'animate-[slideInLeft_0.3s_ease-out]'
-            }`}
-          >
-            {currentLevel.items.map((item: MobileMenuItem) => {
-              const hasChildren = item.children && item.children.length > 0;
+      {/* ── Scrollable content ── */}
+      <div className="flex-1 overflow-y-auto" style={{ overflowX: 'clip' }}>
+        <div
+          key={slideKey}
+          className={slideClass}
+          onAnimationEnd={() => setSlideDir('none')}
+        >
+          {/* Sub-level title */}
+          {!isRoot && (
+            <div className="px-5 sm:px-6 pt-2 pb-1">
+              <span className="text-xs sm:text-sm font-medium text-gray-400">{current.title}</span>
+            </div>
+          )}
 
-              if (hasChildren) {
-                return (
-                  <button
-                    key={item.label}
-                    onClick={() => pushLevel(item.label, item.children!)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-[15px] font-medium text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                  >
-                    <span className="flex items-center gap-3">
-                      {item.icon && <span className="text-lg w-6 text-center">{item.icon}</span>}
-                      {item.label}
-                    </span>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                );
-              }
-
-              // Leaf link
-              const isExternal = item.href?.startsWith('http');
-              if (isExternal) {
-                return (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    onClick={onClose}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                  >
-                    {item.icon && <span className="text-lg w-6 text-center">{item.icon}</span>}
-                    {item.label}
-                  </a>
-                );
-              }
-
-              return (
-                <Link
-                  key={item.label}
-                  to={item.href || '#'}
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                >
-                  {item.icon && <span className="text-lg w-6 text-center">{item.icon}</span>}
-                  {item.label}
-                </Link>
-              );
-            })}
+          {/* Items */}
+          <div className="px-5 sm:px-6 pt-1 pb-8">
+            {current.items.map(item => renderItem(item, isRoot))}
           </div>
 
-          {/* Account section (root level only) */}
+          {/* Bottom links (root only) */}
           {isRoot && (
-            <div className="px-3 pb-6 mt-2">
-              <hr className="mb-4 border-gray-100" />
-              <div className="px-4 mb-3">
-                <LanguageSwitcher />
-              </div>
+            <div className="px-5 sm:px-6 pb-12 pt-4 border-t border-gray-100 mt-2 space-y-1">
               {isAuthenticated && user ? (
                 <>
-                  <div className="px-4 py-2 text-sm font-semibold text-gray-900">
-                    {`${user.firstName} ${user.lastName}`.trim() || user.email}
-                  </div>
                   <a
                     href={getDashboardUrl(lang)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={onClose}
+                    className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60"
                   >
-                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                     </svg>
                     Dashboard
                   </a>
                   <button
                     onClick={() => { onLogout(); onClose(); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-red-600 active:opacity-60"
                   >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                     </svg>
                     Log out
                   </button>
                 </>
               ) : (
-                <div className="space-y-2 px-1">
+                <>
                   <Link
                     to={`/${lang}/signin`}
                     onClick={onClose}
-                    className="block px-4 py-3 text-center text-[15px] font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                    className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60"
                   >
+                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
                     Sign in
                   </Link>
-                  <Link
-                    to={`/${lang}/signup`}
-                    onClick={onClose}
-                    className="block px-4 py-3 text-center text-[15px] font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors shadow-sm"
-                  >
-                    Get Started
+                  <a href="#support" onClick={onClose} className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                    </svg>
+                    Support
+                  </a>
+                  <button onClick={onClose} className="w-full flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    Search
+                  </button>
+                  <Link to={`/${lang}/shop/hardware/us/${lang}/checkout`} onClick={onClose} className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                    </svg>
+                    Checkout
                   </Link>
-                </div>
+                </>
               )}
             </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -461,28 +420,18 @@ function MobileSlideMenu({
 
 function BerhotLogo() {
   return (
-    <Link to="/" className="flex items-center gap-2 group">
+    <Link to="/" className="flex items-center group">
       <svg
-        width="32"
-        height="32"
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+        width="30"
+        height="30"
+        viewBox="0 0 89 90"
+        fill="#1a1a1a"
         className="transition-transform group-hover:scale-105"
       >
-        <rect width="32" height="32" rx="8" fill="#2563eb" />
-        <path
-          d="M8 10h6a4 4 0 010 8H8V10zm0 4h6M10 18h5a4 4 0 010 8H10V18z"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
+        <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
+          <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
+        </g>
       </svg>
-      <span className="text-xl font-bold text-gray-900 tracking-tight">
-        berhot
-      </span>
     </Link>
   );
 }
@@ -500,59 +449,122 @@ function SearchIcon() {
   );
 }
 
-interface MegaDropdownProps {
-  categories: typeof businessTypes;
-  activePanel: number;
-  onPanelChange: (idx: number) => void;
+/* ------------------------------------------------------------------ */
+/*  Slide Dropdown (stack-based navigation like dashboard settings)     */
+/* ------------------------------------------------------------------ */
+
+interface SlideLevel {
+  title: string;
+  icon?: string;
+  description?: string;
+  items: { label: string; icon?: string; description?: string; href?: string; children?: { name: string; href: string }[] }[];
 }
 
-function MegaDropdown({ categories, activePanel, onPanelChange }: MegaDropdownProps) {
-  const active = categories[activePanel];
+function SlideDropdown({
+  categories,
+  onClose,
+}: {
+  categories: typeof businessTypes;
+  onClose: () => void;
+}) {
+  const [stack, setStack] = useState<SlideLevel[]>([{
+    title: '',
+    items: categories.map(c => ({
+      label: c.label,
+      icon: c.icon,
+      description: c.description,
+      children: c.links,
+    })),
+  }]);
+  const [slideDir, setSlideDir] = useState<'forward' | 'back' | ''>('');
+  const [slideKey, setSlideKey] = useState(0);
+
+  const current = stack[stack.length - 1];
+  const isRoot = stack.length === 1;
+
+  const pushLevel = useCallback((item: SlideLevel['items'][0]) => {
+    if (!item.children) return;
+    setSlideDir('forward');
+    setSlideKey(k => k + 1);
+    setStack(prev => [...prev, {
+      title: item.label,
+      icon: item.icon,
+      description: item.description,
+      items: item.children!.map(c => ({ label: c.name, href: c.href })),
+    }]);
+  }, []);
+
+  const popLevel = useCallback(() => {
+    if (stack.length <= 1) return;
+    setSlideDir('back');
+    setSlideKey(k => k + 1);
+    setStack(prev => prev.slice(0, -1));
+  }, [stack.length]);
 
   return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[720px] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 animate-in">
-      <div className="grid grid-cols-5">
-        {/* Left: category list */}
-        <div className="col-span-2 border-r border-gray-100 py-3">
-          {categories.map((cat, idx) => (
-            <button
-              key={cat.label}
-              onMouseEnter={() => onPanelChange(idx)}
-              className={`w-full text-left px-5 py-3 flex items-center gap-3 transition-colors ${
-                idx === activePanel
-                  ? 'bg-brand-50 text-brand-600'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-lg">{cat.icon}</span>
-              <span className="font-medium text-sm">{cat.label}</span>
-            </button>
-          ))}
+    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[340px] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50"
+      style={{ animation: 'slideDropIn 0.15s ease-out' }}
+    >
+      {/* Back header (sub-levels) */}
+      {!isRoot && (
+        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+          <button
+            onClick={popLevel}
+            className="p-1 -ml-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{current.title}</span>
         </div>
+      )}
 
-        {/* Right: detail panel */}
-        <div className="col-span-3 p-6">
-          <div className="mb-4">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <span>{active.icon}</span> {active.label}
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">{active.description}</p>
-          </div>
-          <div className="space-y-1">
-            {active.links.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-600 transition-colors"
+      {/* Animated content */}
+      <div
+        key={slideKey}
+        className={slideDir === 'forward' ? 'dd-slide-forward' : slideDir === 'back' ? 'dd-slide-back' : ''}
+        onAnimationEnd={() => setSlideDir('')}
+        style={{ padding: isRoot ? '8px 0' : '4px 0 8px' }}
+      >
+        {/* Sub-level description */}
+        {!isRoot && current.description && (
+          <p className="px-4 pb-2 text-xs text-gray-400 leading-relaxed">{current.description}</p>
+        )}
+
+        {current.items.map((item) => {
+          const hasChildren = !!item.children && item.children.length > 0;
+
+          if (hasChildren) {
+            return (
+              <button
+                key={item.label}
+                onClick={() => pushLevel(item)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-gray-700 hover:bg-gray-50 transition-colors group"
               >
-                <svg className="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                {item.icon && <span className="text-lg w-6 text-center">{item.icon}</span>}
+                <span className="flex-1 text-sm font-medium">{item.label}</span>
+                <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
-                {link.name}
-              </a>
-            ))}
-          </div>
-        </div>
+              </button>
+            );
+          }
+
+          return (
+            <a
+              key={item.label}
+              href={item.href || '#'}
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-600 transition-colors"
+            >
+              <svg className="w-4 h-4 text-brand-500 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              {item.label}
+            </a>
+          );
+        })}
       </div>
     </div>
   );
@@ -706,25 +718,24 @@ export function Header() {
   const { lang } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
   const [openMenu, setOpenMenu] = useState<'business' | 'products' | null>(null);
-  const [businessPanel, setBusinessPanel] = useState(0);
-  const [productsPanel, setProductsPanel] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseEnter = (menu: 'business' | 'products') => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setOpenMenu(menu);
-  };
-
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => setOpenMenu(null), 200);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
+  const toggleMenu = useCallback((menu: 'business' | 'products') => {
+    setOpenMenu(prev => prev === menu ? null : menu);
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!openMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenu]);
 
   const handleLogout = () => {
     logout();
@@ -732,6 +743,7 @@ export function Header() {
   };
 
   return (
+    <>
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -739,49 +751,45 @@ export function Header() {
           <BerhotLogo />
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1" ref={dropdownRef}>
             {/* Business Types */}
-            <div
-              className="relative"
-              onMouseEnter={() => handleMouseEnter('business')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <button className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                openMenu === 'business' ? 'text-brand-600 bg-brand-50' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-              }`}>
+            <div className="relative">
+              <button
+                onClick={() => toggleMenu('business')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  openMenu === 'business' ? 'text-brand-600 bg-brand-50' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
                 Business Types
-                <svg className="w-4 h-4 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 ml-1 inline-block transition-transform ${openMenu === 'business' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {openMenu === 'business' && (
-                <MegaDropdown
+                <SlideDropdown
                   categories={businessTypes}
-                  activePanel={businessPanel}
-                  onPanelChange={setBusinessPanel}
+                  onClose={() => setOpenMenu(null)}
                 />
               )}
             </div>
 
             {/* Products */}
-            <div
-              className="relative"
-              onMouseEnter={() => handleMouseEnter('products')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <button className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                openMenu === 'products' ? 'text-brand-600 bg-brand-50' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-              }`}>
+            <div className="relative">
+              <button
+                onClick={() => toggleMenu('products')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  openMenu === 'products' ? 'text-brand-600 bg-brand-50' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
                 Products
-                <svg className="w-4 h-4 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 ml-1 inline-block transition-transform ${openMenu === 'products' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {openMenu === 'products' && (
-                <MegaDropdown
+                <SlideDropdown
                   categories={productCategories}
-                  activePanel={productsPanel}
-                  onPanelChange={setProductsPanel}
+                  onClose={() => setOpenMenu(null)}
                 />
               )}
             </div>
@@ -838,28 +846,48 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile menu button (burger) */}
+          {/* Mobile menu button (burger ↔ X animated) */}
           <button
-            className="lg:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="lg:hidden relative z-[100000] p-2 text-gray-900 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <div className="w-6 h-6 flex flex-col justify-center items-center">
+              <span
+                className="block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out origin-center"
+                style={{
+                  transform: mobileOpen ? 'rotate(45deg) translateY(0px)' : 'rotate(0) translateY(-4px)',
+                }}
+              />
+              <span
+                className="block h-[2px] w-5 bg-current rounded-full transition-all duration-200 ease-in-out"
+                style={{
+                  opacity: mobileOpen ? 0 : 1,
+                  transform: mobileOpen ? 'scaleX(0)' : 'scaleX(1)',
+                }}
+              />
+              <span
+                className="block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out origin-center"
+                style={{
+                  transform: mobileOpen ? 'rotate(-45deg) translateY(0px)' : 'rotate(0) translateY(4px)',
+                }}
+              />
+            </div>
           </button>
         </div>
       </div>
 
-      {/* Mobile slide menu */}
-      <MobileSlideMenu
-        isOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        lang={lang}
-        isAuthenticated={!!isAuthenticated}
-        user={user ? { firstName: user.firstName, lastName: user.lastName, email: user.email } : null}
-        onLogout={handleLogout}
-      />
     </header>
+
+    {/* Mobile slide menu — rendered outside header to avoid stacking context */}
+    <MobileSlideMenu
+      isOpen={mobileOpen}
+      onClose={() => setMobileOpen(false)}
+      lang={lang}
+      isAuthenticated={!!isAuthenticated}
+      user={user ? { firstName: user.firstName, lastName: user.lastName, email: user.email } : null}
+      onLogout={handleLogout}
+    />
+    </>
   );
 }

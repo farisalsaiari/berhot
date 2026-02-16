@@ -72,12 +72,12 @@ export function SignInPage({
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* ── Header: logo top-left ── */}
-      <header className="px-6 pt-6">
+      <header className="px-4 sm:px-6 pt-4 sm:pt-6">
         {logo}
       </header>
 
       {/* ── Center: form ── */}
-      <main className="flex-1 flex items-center justify-center px-6">
+      <main className="flex-1 flex items-start sm:items-center justify-center px-4 sm:px-6 pt-10 sm:pt-0">
         <div className="w-full max-w-lg">
           <SignInForm
             onCheckUser={withLoading(onCheckUser)}
@@ -103,7 +103,7 @@ export function SignInPage({
       </main>
 
       {/* ── Footer: copyright + language switcher + reCAPTCHA ── */}
-      <footer className="px-8 pb-6 pt-4 flex items-center justify-between">
+      <footer className="px-4 sm:px-8 pb-4 sm:pb-6 pt-4 flex items-center justify-between">
         <p className="text-xs text-gray-400">
           &copy; {new Date().getFullYear()} Berhot. All rights reserved.
         </p>

@@ -246,7 +246,7 @@ export function SignUpPage({
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header — logo */}
-      <header className="px-8 py-6">
+      <header className="px-4 sm:px-8 py-4 sm:py-6">
         {logo || (
           <div className="w-8 h-8 bg-gray-900 rounded-md flex items-center justify-center">
             <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -259,13 +259,13 @@ export function SignUpPage({
       </header>
 
       {/* Main — centered form */}
-      <main className="flex-1 flex items-start justify-center px-6 pt-4 pb-16">
+      <main className="flex-1 flex items-start justify-center px-4 sm:px-6 pt-4 pb-16">
         <div className="w-full max-w-md">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
             {t('signup.title')}
           </h1>
-          <p className="text-base text-gray-600 mb-8 leading-relaxed">
+          <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 leading-relaxed">
             {t('signup.subtitle')}
           </p>
 
@@ -425,7 +425,7 @@ export function SignUpPage({
       </main>
 
       {/* Footer */}
-      <footer className="px-8 py-6 text-center">
+      <footer className="px-4 sm:px-8 py-4 sm:py-6 text-center">
         <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto leading-relaxed">
           {t('signup.recaptchaNotice')}
         </p>

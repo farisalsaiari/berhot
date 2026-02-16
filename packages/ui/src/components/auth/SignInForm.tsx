@@ -719,7 +719,7 @@ export function SignInForm({
       {step === 'identifier' && (
         <div className="space-y-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t('auth.signIn')}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{t('auth.signIn')}</h1>
             {/* <p className="text-base text-gray-500 mt-2">
               {t('auth.newToBerhot')}{' '}
               <button type="button" onClick={() => setStep('register')} className={linkUnderline}>
@@ -802,7 +802,7 @@ export function SignInForm({
       {step === 'password' && (
         <form onSubmit={handleSignIn} className="space-y-8">
           {/* Welcome heading */}
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {isExistingUser ? t('auth.welcomeBack') : t('auth.welcomeNew')}
           </h1>
 
@@ -865,7 +865,7 @@ export function SignInForm({
       {step === 'otp' && (
         <div className="space-y-8">
           {/* Welcome heading */}
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {isExistingUser ? t('auth.welcomeBack') : t('auth.welcomeNew')}
           </h1>
 
@@ -930,7 +930,7 @@ export function SignInForm({
         <form onSubmit={handleSignUp} className="space-y-6">
           {/* Welcome heading */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t('auth.createAccount')}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{t('auth.createAccount')}</h1>
             <p className="text-base text-gray-500 mt-1">{t('auth.niceToHaveYou')}</p>
           </div>
 
@@ -1057,22 +1057,22 @@ export function SignInForm({
           STEP 3: PROTECT YOUR ACCOUNT
           ════════════════════════════════════════════════════════ */}
       {step === 'protect' && (
-        <form onSubmit={handleProtectSubmit} className="space-y-8">
+        <form onSubmit={handleProtectSubmit} className="space-y-6 sm:space-y-8">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {t('auth.protectAccount')}
           </h1>
 
           {/* Description */}
-          <p className="text-base text-gray-600 leading-relaxed">
+          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
             {t('auth.protectAccountDesc')}
           </p>
 
-          {/* Country + Phone side by side */}
-          <div>
-            <div className="grid grid-cols-5 gap-4">
+          {/* Country + Phone — stacked on mobile, side by side on desktop */}
+          <div className="space-y-3 sm:space-y-0">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-4">
               {/* Country selector */}
-              <div className={`col-span-2 border rounded-xl px-4 pt-5 pb-2 bg-white relative focus-within:border-gray-900 transition-colors ${protectPhoneError ? 'border-red-400' : 'border-gray-300'}`}>
+              <div className={`sm:col-span-2 border rounded-xl px-4 pt-5 pb-2 bg-white relative focus-within:border-gray-900 transition-colors ${protectPhoneError ? 'border-red-400' : 'border-gray-300'}`}>
                 <label className="absolute left-4 top-2 text-xs text-gray-500">{t('auth.country')}</label>
                 <select
                   value={country}
@@ -1088,7 +1088,7 @@ export function SignInForm({
               </div>
 
               {/* Phone input */}
-              <div className="col-span-3">
+              <div className="sm:col-span-3">
                 <FloatingInput
                   label={t('auth.mobileNumber')}
                   value={protectPhone}
@@ -1108,17 +1108,17 @@ export function SignInForm({
             )}
           </div>
 
-          {/* Buttons: Remind me (left) — Send code (right) */}
-          <div className="flex items-center justify-between pt-2">
+          {/* Buttons: stacked full-width on mobile, side by side on desktop */}
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <button type="button" onClick={() => {
               onSkipProtect?.();
               if (onOnboardingComplete) {
                 setStep('business-type');
               }
-            }} className={btnGrayPill}>
+            }} className={`${btnGrayPill} w-full sm:w-auto`}>
               {t('auth.remindMeNextTime')}
             </button>
-            <button type="submit" disabled={loading || !protectPhone.trim()} className={btnBlack}>
+            <button type="submit" disabled={loading || !protectPhone.trim()} className={`${btnBlack} w-full sm:w-auto`}>
               {loading ? <Spinner /> : t('auth.sendCode')}
             </button>
           </div>
@@ -1129,21 +1129,21 @@ export function SignInForm({
           STEP 3b: PROTECT OTP VERIFICATION
           ════════════════════════════════════════════════════════ */}
       {step === 'protect-otp' && (
-        <div className="space-y-8">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+        <div className="space-y-6 sm:space-y-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {t('auth.verifyPhone')}
           </h1>
 
           {/* Phone + Change */}
           <div className="flex items-center gap-3">
-            <span className="text-base text-gray-700">{protectFullPhone}</span>
+            <span className="text-sm sm:text-base text-gray-700">{protectFullPhone}</span>
             <button type="button" onClick={() => setStep('protect')} className={linkUnderline}>
               {t('auth.change')}
             </button>
           </div>
 
           {/* OTP info */}
-          <p className="text-base text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             {t('auth.enterCode')} <span className="font-medium">
               {protectFullPhone.length > 4
                 ? '****' + protectFullPhone.slice(-4)
@@ -1181,7 +1181,7 @@ export function SignInForm({
       {step === 'forgot' && (
         <form onSubmit={handleForgotPassword} className="space-y-8">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {t('auth.resetPassword')}
           </h1>
 
@@ -1221,12 +1221,12 @@ export function SignInForm({
             </button>
           </div>
 
-          {/* Buttons: Back to login (left) — Send instructions (right) */}
-          <div className="flex items-center justify-between pt-2">
-            <button type="button" onClick={goBack} className={btnGrayPill}>
+          {/* Buttons: stacked on mobile, side by side on desktop */}
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+            <button type="button" onClick={goBack} className={`${btnGrayPill} w-full sm:w-auto`}>
               {t('auth.backToLogin')}
             </button>
-            <button type="submit" disabled={loading || !resetIdentifierValid} className={btnBlack}>
+            <button type="submit" disabled={loading || !resetIdentifierValid} className={`${btnBlack} w-full sm:w-auto`}>
               {loading ? <Spinner /> : t('auth.sendInstructions')}
             </button>
           </div>
@@ -1249,7 +1249,7 @@ export function SignInForm({
           </div>
 
           {/* Heading */}
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {t('auth.verifyingYou')}
           </h1>
 
@@ -1317,7 +1317,7 @@ export function SignInForm({
         }} className="space-y-6">
           {/* Heading */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               Add your email
             </h1>
             <p className="text-base text-gray-500 mt-1">
@@ -1446,7 +1446,7 @@ export function SignInForm({
           </div>
 
           {/* Heading */}
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {t('auth.phoneLinkedTitle') !== 'auth.phoneLinkedTitle'
               ? t('auth.phoneLinkedTitle')
               : 'Email linked to phone'}

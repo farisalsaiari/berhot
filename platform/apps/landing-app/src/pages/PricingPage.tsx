@@ -106,23 +106,23 @@ export default function PricingPage() {
       <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 bg-gradient-to-b from-gray-50 to-white">
+      <section className="pt-24 sm:pt-32 pb-12 sm:pb-16 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm font-semibold text-brand-600 uppercase tracking-wider mb-3">
+          <p className="text-xs sm:text-sm font-semibold text-brand-600 uppercase tracking-wider mb-2 sm:mb-3">
             Pricing
           </p>
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
+          <h1 className="text-3xl sm:text-5xl font-bold text-gray-900">
             Simple, transparent pricing
           </h1>
-          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-gray-600 max-w-2xl mx-auto">
             Start free, scale as you grow. No hidden fees, no surprises.
           </p>
 
           {/* Billing toggle */}
-          <div className="mt-10 inline-flex items-center gap-3 bg-gray-100 rounded-xl p-1">
+          <div className="mt-8 sm:mt-10 inline-flex items-center gap-2 sm:gap-3 bg-gray-100 rounded-xl p-1">
             <button
               onClick={() => setAnnual(false)}
-              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-4 sm:px-5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${
                 !annual
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
@@ -132,14 +132,14 @@ export default function PricingPage() {
             </button>
             <button
               onClick={() => setAnnual(true)}
-              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-4 sm:px-5 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${
                 annual
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Annual
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+              <span className="ml-1.5 sm:ml-2 inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-green-100 text-green-700">
                 Save 20%
               </span>
             </button>
@@ -148,47 +148,47 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Cards */}
-      <section className="pb-24 -mt-4">
+      <section className="pb-16 sm:pb-24 -mt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-start">
             {tiers.map((tier) => (
               <div
                 key={tier.name}
-                className={`relative rounded-2xl border p-8 transition-shadow ${
+                className={`relative rounded-xl sm:rounded-2xl border p-5 sm:p-8 transition-shadow ${
                   tier.highlighted
-                    ? 'border-brand-500 shadow-xl shadow-brand-500/10 scale-105 bg-white z-10'
+                    ? 'border-brand-500 shadow-xl shadow-brand-500/10 md:scale-105 bg-white z-10'
                     : 'border-gray-200 bg-white hover:shadow-lg'
                 }`}
               >
                 {tier.badge && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center px-4 py-1 bg-brand-600 text-white text-xs font-semibold rounded-full shadow-lg">
+                  <div className="absolute -top-3.5 sm:-top-4 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center px-3 sm:px-4 py-0.5 sm:py-1 bg-brand-600 text-white text-[10px] sm:text-xs font-semibold rounded-full shadow-lg">
                       {tier.badge}
                     </span>
                   </div>
                 )}
 
-                <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
-                <p className="mt-1 text-sm text-gray-500">{tier.description}</p>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">{tier.name}</h3>
+                <p className="mt-1 text-xs sm:text-sm text-gray-500">{tier.description}</p>
 
-                <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-gray-900">
+                <div className="mt-4 sm:mt-6 flex items-baseline gap-1">
+                  <span className="text-3xl sm:text-4xl font-bold text-gray-900">
                     {annual ? tier.price.yearly : tier.price.monthly}
                   </span>
                   {tier.price.monthly !== 'Custom' && (
-                    <span className="text-sm text-gray-500">/month</span>
+                    <span className="text-xs sm:text-sm text-gray-500">/month</span>
                   )}
                 </div>
 
                 {annual && tier.price.monthly !== 'Custom' && (
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-[10px] sm:text-xs text-gray-400">
                     billed annually
                   </p>
                 )}
 
                 <a
                   href="#get-started"
-                  className={`mt-8 block w-full text-center px-6 py-3 text-sm font-semibold rounded-xl transition-all hover:-translate-y-0.5 ${
+                  className={`mt-6 sm:mt-8 block w-full text-center px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold rounded-xl transition-all hover:-translate-y-0.5 ${
                     tier.highlighted
                       ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25'
                       : 'bg-gray-900 text-white hover:bg-gray-800'
@@ -197,11 +197,11 @@ export default function PricingPage() {
                   {tier.cta}
                 </a>
 
-                <ul className="mt-8 space-y-3">
+                <ul className="mt-6 sm:mt-8 space-y-2.5 sm:space-y-3">
                   {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-sm text-gray-700">
+                    <li key={feature} className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm text-gray-700">
                       <svg
-                        className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                        className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5 ${
                           tier.highlighted ? 'text-brand-500' : 'text-gray-400'
                         }`}
                         fill="none"
@@ -221,27 +221,27 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-14 sm:py-24 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Frequently asked questions
             </h2>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base text-gray-600">
               Everything you need to know about our pricing.
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {faqs.map((faq) => (
               <div
                 key={faq.q}
-                className="bg-white rounded-xl border border-gray-200 p-6"
+                className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6"
               >
-                <h3 className="text-base font-semibold text-gray-900">
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                   {faq.q}
                 </h3>
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600 leading-relaxed">
                   {faq.a}
                 </p>
               </div>
@@ -251,18 +251,18 @@ export default function PricingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-gradient-to-br from-brand-600 to-brand-700">
+      <section className="py-14 sm:py-20 bg-gradient-to-br from-brand-600 to-brand-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">
             Start your 14-day free trial
           </h2>
-          <p className="mt-4 text-lg text-blue-100">
+          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-blue-100">
             No credit card required. Full access to all features. Cancel anytime.
           </p>
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <a
               href="#get-started"
-              className="inline-flex items-center px-8 py-3.5 text-base font-semibold text-brand-700 bg-white hover:bg-gray-50 rounded-xl shadow-lg transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-brand-700 bg-white hover:bg-gray-50 rounded-xl shadow-lg transition-all hover:-translate-y-0.5"
             >
               Get Started Free
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

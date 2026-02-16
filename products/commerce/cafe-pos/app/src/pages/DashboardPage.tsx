@@ -387,6 +387,7 @@ export default function DashboardPage() {
   const [mobileSettingsSlideDir, setMobileSettingsSlideDir] = useState<'forward' | 'back' | ''>('');
   const [mobileSettingsSlideKey, setMobileSettingsSlideKey] = useState(0);
   const [mobileSettingsClosing, setMobileSettingsClosing] = useState(false);
+  const [mobileMainSlideBack, setMobileMainSlideBack] = useState(false);
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [showLangPanel, setShowLangPanel] = useState(false);
   const [selectedLang, setSelectedLang] = useState(lang);
@@ -1618,7 +1619,7 @@ export default function DashboardPage() {
 
               {/* ── Page: Home (Dashboard) ── */}
               {pagePath === 'home' && (
-                <div style={{ padding: '30px 30px 60px 30px' }}>
+                <div style={{ padding: isMobile ? '20px 16px 60px 16px' : '30px 30px 60px 30px' }}>
                   {/* ── Page Header ── */}
                   <div style={{ marginBottom: 24, position: 'relative' }}>
                     {/* Welcome back text */}
@@ -1633,22 +1634,22 @@ export default function DashboardPage() {
                   </div>
 
                   {/* ── Quick Stats Row: Gross sales | Total orders | Average ticket size ── */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? 16 : 0, marginBottom: 20, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {[
                       { key: 'grossSales', value: '140.00', isCurrency: true },
                       { key: 'totalOrders', value: '4', isCurrency: false },
                       { key: 'avgTicketSize', value: '35.00', isCurrency: true },
                     ].map((stat, i) => (
                       <div key={stat.key} style={{ display: 'flex', alignItems: 'flex-start' }}>
-                        {i > 0 && (
+                        {i > 0 && !isMobile && (
                           <div style={{ width: 1, height: 36, background: C.divider, margin: '0 24px', flexShrink: 0 }} />
                         )}
                         <div>
                           <div style={{ fontSize: 12, color: C.textDim, marginBottom: 4 }}>
                             {t(`dashboard.${stat.key}`)}
                           </div>
-                          <div style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {stat.isCurrency && (userCurrency === 'SAR' ? <SarSymbol size={18} color={C.textPrimary} /> : <span style={{ fontSize: 18 }}>$</span>)}
+                          <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: C.textPrimary, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {stat.isCurrency && (userCurrency === 'SAR' ? <SarSymbol size={isMobile ? 15 : 18} color={C.textPrimary} /> : <span style={{ fontSize: isMobile ? 15 : 18 }}>$</span>)}
                             {stat.value}
                           </div>
                         </div>
@@ -1657,7 +1658,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* ── Metric Cards Grid: 4 cards ── */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 24, background: isLight ? '#fff' : C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 0, marginBottom: 24, background: isLight ? '#fff' : C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, overflow: 'hidden' }}>
                     {[
                       {
                         key: 'totalOutstanding',
@@ -1701,8 +1702,11 @@ export default function DashboardPage() {
                       },
                     ].map((card, i) => (
                       <div key={card.key} style={{
-                        padding: '18px 20px',
-                        borderLeft: i > 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none',
+                        padding: isMobile ? '14px 16px' : '18px 20px',
+                        borderLeft: isMobile
+                          ? (i % 2 !== 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none')
+                          : (i > 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none'),
+                        borderTop: isMobile && i >= 2 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none',
                       }}>
                         {/* Header: label + icon */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -1734,9 +1738,12 @@ export default function DashboardPage() {
 
                   {/* ── Filter bar: Location chip + Date chip + Tabs ── */}
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
+                    display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 10 : 12,
                     marginBottom: 20, flexWrap: 'wrap',
+                    flexDirection: isMobile ? 'column' : 'row',
                   }}>
+                    {/* Location + Date row (always on same line) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     {/* Location chip dropdown */}
                     <div style={{ position: 'relative' }}>
                       <button
@@ -1833,6 +1840,7 @@ export default function DashboardPage() {
                         {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
+                    </div>{/* end Location + Date row */}
 
                     {/* Tabs: Overview / Profiles / Impressions / Leads */}
                     <div style={{
@@ -1840,7 +1848,9 @@ export default function DashboardPage() {
                       background: isLight ? '#f5f5f5' : C.hover,
                       borderRadius: 10,
                       padding: 3,
-                      marginLeft: 'auto',
+                      marginLeft: isMobile ? 0 : 'auto',
+                      overflowX: isMobile ? 'auto' : 'visible',
+                      flexShrink: 0,
                     }}>
                       {['overview', 'profiles', 'impressions', 'leads'].map((tab) => {
                         const isActive = perfTab === tab;
@@ -1873,7 +1883,7 @@ export default function DashboardPage() {
                     background: isLight ? '#fff' : C.card,
                     border: `1px solid ${C.cardBorder}`,
                     borderRadius: 16,
-                    padding: '24px 28px',
+                    padding: isMobile ? '18px 16px' : '24px 28px',
                     marginBottom: 20,
                   }}>
                     {/* Card header */}
@@ -1887,7 +1897,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* 3 metrics in a row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? 20 : 0 }}>
                       {[
                         {
                           key: 'totalEngagement', value: '27,840',
@@ -1909,8 +1919,11 @@ export default function DashboardPage() {
                         },
                       ].map((m, i, arr) => (
                         <div key={m.key} style={{
-                          padding: i > 0 ? '0 24px' : '0 24px  0',
-                          borderLeft: i > 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none',
+                          padding: isMobile
+                            ? (i > 0 ? '16px 0 0 0' : '0')
+                            : (i > 0 ? '0 24px' : '0 24px 0 0'),
+                          borderLeft: !isMobile && i > 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none',
+                          borderTop: isMobile && i > 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none',
                         }}>
                           {/* Label */}
                           <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, marginBottom: 10 }}>
@@ -2124,9 +2137,9 @@ export default function DashboardPage() {
                   })()} */}
 
                   {/* ── Performance + Sidebar row ── */}
-                  <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: isMobile ? 16 : 24, alignItems: 'flex-start', flexDirection: isMobile ? 'column' : 'row' }}>
                     {/* Main performance card */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : undefined }}>
                       {/* Prompt bar */}
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 12,
@@ -2148,7 +2161,7 @@ export default function DashboardPage() {
                       {/* Performance card */}
                       <div style={{
                         background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12,
-                        padding: '20px 24px',
+                        padding: isMobile ? '16px' : '20px 24px',
                       }}>
                         <h3 style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, margin: '0 0 16px 0' }}>Performance</h3>
 
@@ -2204,14 +2217,14 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Time labels */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.textDim, marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isMobile ? 10 : 12, color: C.textDim, marginBottom: 24, overflowX: 'auto' }}>
                           {['8 am', '9 am', '10 am', '11 am', '12 pm', '1 pm', '2 pm'].map((h) => (
                             <span key={h}>{h}</span>
                           ))}
                         </div>
 
                         {/* Stats grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 12 : 16 }}>
                           {[
                             { label: 'Gross sales', value: 'US$0.00' },
                             { label: 'Transactions', value: '0' },
@@ -2234,7 +2247,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Right sidebar cards */}
-                    <div style={{ width: 260, flexShrink: 0 }}>
+                    <div style={{ width: isMobile ? '100%' : 260, flexShrink: 0 }}>
                       {/* Banking card */}
                       <div style={{
                         background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12,
@@ -2501,7 +2514,7 @@ export default function DashboardPage() {
                 background: 'rgba(0,0,0,0.5)',
               }}
             />
-            {/* Menu panel — anchored to bottom, consistent height */}
+            {/* Menu panel — anchored to bottom, 80% height */}
             <div className={mobileMenuClosing ? 'd2-mobile-menu-closing' : 'd2-mobile-menu'} style={{
               position: 'fixed',
               bottom: 0,
@@ -2512,115 +2525,68 @@ export default function DashboardPage() {
               borderTop: `1px solid ${C.divider}70`,
               display: 'flex',
               flexDirection: 'column',
-              height: '55vh',
+              height: '80vh',
               overflow: 'hidden',
             }}>
-              {/* Top bar — X/back + logo + icons */}
+              {/* Top bar — always shows logo + icons + X */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '8px 16px',
                 borderBottom: `1px solid ${C.divider}70`,
+                flexShrink: 0,
               }}>
-                {/* Left side: Logo or Back arrow */}
-                {mobileSettingsStack.length > 0 ? (
-                  /* Back arrow when in settings */
-                  <button
-                    onMouseEnter={() => setHoveredMobileNav('mob-back')}
-                    onMouseLeave={() => setHoveredMobileNav(null)}
-                    onClick={() => {
-                      if (mobileSettingsStack.length <= 1) {
-                        setMobileSettingsClosing(true);
-                        setMobileSettingsSlideDir('back');
-                        setMobileSettingsSlideKey((k) => k + 1);
-                      } else {
-                        setMobileSettingsSlideDir('back');
-                        setMobileSettingsSlideKey((k) => k + 1);
-                        setMobileSettingsStack((prev) => prev.slice(0, -1));
-                      }
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: 0,
-                      color: C.textPrimary,
-                    }}
-                  >
-                    <span style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 32, height: 32, borderRadius: 6,
-                      background: hoveredMobileNav === 'mob-back' ? C.hover : 'transparent',
-                      transition: 'background 0.15s',
-                    }}>
-                      <svg className="d2-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
-                      </svg>
-                    </span>
-                    <span style={{ fontWeight: 500, fontSize: 13 }}>
-                      {mobileSettingsStack[mobileSettingsStack.length - 1].parentLabel}
-                    </span>
-                  </button>
-                ) : (
-                  /* Logo on the left */
-                  <button
-                    onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/settings/business/profile`); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
-                  >
-                    {(sidebarLogoImg || sidebarLogoUrl) ? (
-                      <img
-                        src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
-                        alt="Logo"
-                        style={{
-                          width: sidebarLogoShape === 'rectangle'
-                            ? (sidebarShowName ? 37 : 57)
-                            : 25,
-                          height: 25,
-                          objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
-                          borderRadius: sidebarLogoShape === 'circle' ? '50%' : 4,
-                          flexShrink: 0,
-                        }}
-                      />
-                    ) : sidebarLoaded ? (
-                      <svg width="21" height="21" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
-                        <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
-                          <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
-                        </g>
-                      </svg>
-                    ) : null}
-                  </button>
-                )}
-                {/* Right side: Icons + divider + X close */}
+                {/* Logo on the left — always visible */}
+                <button
+                  onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/settings/business/profile`); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                >
+                  {(sidebarLogoImg || sidebarLogoUrl) ? (
+                    <img
+                      src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
+                      alt="Logo"
+                      style={{
+                        width: sidebarLogoShape === 'rectangle'
+                          ? (sidebarShowName ? 37 : 57)
+                          : 25,
+                        height: 25,
+                        objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
+                        borderRadius: sidebarLogoShape === 'circle' ? '50%' : 4,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : sidebarLoaded ? (
+                    <svg width="21" height="21" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
+                      <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
+                        <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
+                      </g>
+                    </svg>
+                  ) : null}
+                </button>
+                {/* Right side: Icons + divider + X close — always visible */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  {mobileSettingsStack.length === 0 && (
-                    <>
-                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
-                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                      </button>
-                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
-                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                          <path d="M13.73 21a2 2 0 01-3.46 0" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/settings/account/profile`); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}
-                      >
-                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
-                        </svg>
-                      </button>
-                      {/* Divider before X */}
-                      <div style={{ width: 1, height: 20, background: C.divider, opacity: 0.5, flexShrink: 0, margin: '0 6px' }} />
-                    </>
-                  )}
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </button>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 01-3.46 0" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/settings/account/profile`); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textPrimary, opacity: 0.65 }}
+                  >
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </button>
+                  {/* Divider before X */}
+                  <div style={{ width: 1, height: 20, background: C.divider, opacity: 0.5, flexShrink: 0, margin: '0 6px' }} />
                   {/* X close button */}
                   <button
                     onMouseEnter={() => setHoveredMobileNav('mob-close')}
@@ -2649,13 +2615,11 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Logo is now in the top bar — no separate section needed */}
-
-              {/* Nav items or Settings sliding panels */}
-              {mobileSettingsStack.length > 0 ? (
-                /* Settings multi-layer sliding menu */
-                <div style={{ padding: '10px 16px 20px 16px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflowY: 'auto' }}>
-                  {(() => {
+              {/* Scrollable nav area — settings layers replace links in-place */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px 32px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {mobileSettingsStack.length > 0 ? (
+                  /* Settings layers — back + items slide together as one unit */
+                  (() => {
                     const current = mobileSettingsStack[mobileSettingsStack.length - 1];
                     const isTopLevel = current.isTopLevel === true;
                     return (
@@ -2667,174 +2631,217 @@ export default function DashboardPage() {
                             setMobileSettingsClosing(false);
                             setMobileSettingsStack([]);
                             setMobileSettingsSlideDir('');
+                            setMobileMainSlideBack(true);
                           } else {
                             setMobileSettingsSlideDir('');
                           }
                         }}
                         style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
                       >
+                        {/* Back button — slides with the rest, same spacing as other items */}
+                        <button
+                          onMouseEnter={() => setHoveredMobileNav('mob-back')}
+                          onMouseLeave={() => setHoveredMobileNav(null)}
+                          onClick={() => {
+                            if (mobileSettingsStack.length <= 1) {
+                              setMobileSettingsClosing(true);
+                              setMobileSettingsSlideDir('back');
+                              setMobileSettingsSlideKey((k) => k + 1);
+                            } else {
+                              setMobileSettingsSlideDir('back');
+                              setMobileSettingsSlideKey((k) => k + 1);
+                              setMobileSettingsStack((prev) => prev.slice(0, -1));
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: '11px 10px',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: hoveredMobileNav === 'mob-back' ? C.hover : 'transparent',
+                            color: C.textDim,
+                            fontWeight: 500,
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            width: '100%',
+                            textAlign: 'start',
+                            transition: 'background 0.15s',
+                          }}
+                        >
+                          <svg className="d2-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.textPrimary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+                          </svg>
+                          <span>{mobileSettingsStack[mobileSettingsStack.length - 1].parentLabel}</span>
+                        </button>
+                        {/* Settings items */}
                         {isTopLevel ? (
-                          current.children.map((group) => (
-                            <button
-                              key={group.categoryKey}
-                              onMouseEnter={() => setHoveredMobileNav(`mob-cat-${group.categoryKey}`)}
-                              onMouseLeave={() => setHoveredMobileNav(null)}
-                              onClick={() => {
-                                setMobileSettingsSlideDir('forward');
-                                setMobileSettingsSlideKey((k) => k + 1);
-                                setMobileSettingsStack((prev) => [...prev, {
-                                  parentLabel: t(group.categoryKey),
-                                  children: [group],
-                                }]);
-                              }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                width: '100%',
-                                padding: '9px 10px',
-                                borderRadius: 6,
-                                border: 'none',
-                                background: hoveredMobileNav === `mob-cat-${group.categoryKey}` ? C.hover : 'transparent',
-                                color: C.textSecond,
-                                fontWeight: 500,
-                                fontSize: 13,
-                                cursor: 'pointer',
-                                transition: 'background 0.15s',
-                              }}
-                            >
-                              <span style={{ flex: 1, textAlign: 'start' }}>{t(group.categoryKey)}</span>
-                              <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-                                <path d="M9 18l6-6-6-6" />
-                              </svg>
-                            </button>
-                          ))
-                        ) : (
-                          current.children.map((group) =>
-                            group.links.map((link) => {
-                              const isLinkActive = pagePath === link.path;
-                              return (
-                                <button
-                                  key={link.path}
-                                  onMouseEnter={() => setHoveredMobileNav(`mob-link-${link.path}`)}
-                                  onMouseLeave={() => setHoveredMobileNav(null)}
-                                  onClick={() => {
-                                    closeMobileMenu();
-                                    navigate(`/${lang}/dashboard/${link.path}`);
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    width: '100%',
-                                    padding: '9px 10px',
-                                    borderRadius: 6,
-                                    border: 'none',
-                                    background: (isLinkActive || hoveredMobileNav === `mob-link-${link.path}`) ? C.hover : 'transparent',
-                                    color: isLinkActive ? C.textPrimary : C.textSecond,
-                                    fontWeight: isLinkActive ? 600 : 500,
-                                    fontSize: 13,
-                                    cursor: 'pointer',
-                                    transition: 'background 0.15s',
-                                    textAlign: 'start',
-                                  }}
-                                >
-                                  {t(link.tKey)}
-                                </button>
-                              );
-                            })
-                          )
-                        )}
+                            current.children.map((group) => (
+                              <button
+                                key={group.categoryKey}
+                                onMouseEnter={() => setHoveredMobileNav(`mob-cat-${group.categoryKey}`)}
+                                onMouseLeave={() => setHoveredMobileNav(null)}
+                                onClick={() => {
+                                  setMobileSettingsSlideDir('forward');
+                                  setMobileSettingsSlideKey((k) => k + 1);
+                                  setMobileSettingsStack((prev) => [...prev, {
+                                    parentLabel: t(group.categoryKey),
+                                    children: [group],
+                                  }]);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                  width: '100%',
+                                  padding: '11px 10px',
+                                  borderRadius: 8,
+                                  border: 'none',
+                                  background: hoveredMobileNav === `mob-cat-${group.categoryKey}` ? C.hover : 'transparent',
+                                  color: C.textPrimary,
+                                  fontWeight: 500,
+                                  fontSize: 14,
+                                  cursor: 'pointer',
+                                  transition: 'background 0.15s',
+                                }}
+                              >
+                                <span style={{ flex: 1, textAlign: 'start' }}>{t(group.categoryKey)}</span>
+                                <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                                  <path d="M9 18l6-6-6-6" />
+                                </svg>
+                              </button>
+                            ))
+                          ) : (
+                            current.children.map((group) =>
+                              group.links.map((link) => {
+                                const isLinkActive = pagePath === link.path;
+                                return (
+                                  <button
+                                    key={link.path}
+                                    onMouseEnter={() => setHoveredMobileNav(`mob-link-${link.path}`)}
+                                    onMouseLeave={() => setHoveredMobileNav(null)}
+                                    onClick={() => {
+                                      closeMobileMenu();
+                                      navigate(`/${lang}/dashboard/${link.path}`);
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      width: '100%',
+                                      padding: '11px 10px',
+                                      borderRadius: 8,
+                                      border: 'none',
+                                      background: (isLinkActive || hoveredMobileNav === `mob-link-${link.path}`) ? C.hover : 'transparent',
+                                      color: C.textPrimary,
+                                      fontWeight: 500,
+                                      fontSize: 14,
+                                      cursor: 'pointer',
+                                      transition: 'background 0.15s',
+                                      textAlign: 'start',
+                                    }}
+                                  >
+                                    {t(link.tKey)}
+                                  </button>
+                                );
+                              })
+                            )
+                          )}
                       </div>
                     );
-                  })()}
-                </div>
-              ) : (
-                /* Main nav items */
-                <div style={{ padding: '10px 16px 32px 16px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflowY: 'auto' }}>
-                  {navMainConfig.map((item) => {
-                    const isActive = item.path === 'home'
-                      ? (pagePath === 'home' || pagePath === '')
-                      : pagePath === item.path;
-                    return (
-                      <button
-                        key={item.path}
-                        onMouseEnter={() => setHoveredMobileNav(item.path)}
-                        onMouseLeave={() => setHoveredMobileNav(null)}
-                        onClick={() => {
-                          closeMobileMenu();
-                          const target = item.path === 'home'
-                            ? `/${lang}/dashboard`
-                            : `/${lang}/dashboard/${item.path}`;
-                          navigate(target);
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          padding: '9px 10px',
-                          borderRadius: 6,
-                          border: 'none',
-                          background: (isActive || hoveredMobileNav === item.path) ? C.hover : 'transparent',
-                          color: isActive ? C.textPrimary : C.textSecond,
-                          fontWeight: isActive ? 600 : 500,
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          width: '100%',
-                          textAlign: 'start',
-                          transition: 'background 0.15s',
-                        }}
-                      >
-                        <span style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          width: 18,
-                          justifyContent: 'center',
-                          color: isActive ? accentVisibleMain : C.textSecond,
-                          transition: 'color 0.15s',
-                        }}>{item.icon}</span>
-                        <span style={{ flex: 1, textAlign: 'start' }}>{t(item.tKey)}</span>
-                      </button>
-                    );
-                  })}
-
-                  {/* Settings — opens sliding menu */}
-                  <button
-                    onMouseEnter={() => setHoveredMobileNav('settings')}
-                    onMouseLeave={() => setHoveredMobileNav(null)}
-                    onClick={() => {
-                      setMobileSettingsSlideDir('forward');
-                      setMobileSettingsSlideKey((k) => k + 1);
-                      setMobileSettingsStack([{ parentLabel: t('dashboard.settings'), children: settingsNavConfig, isTopLevel: true }]);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '9px 10px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: (isSettingsPage || hoveredMobileNav === 'settings') ? C.hover : 'transparent',
-                      color: isSettingsPage ? C.textPrimary : C.textSecond,
-                      fontWeight: isSettingsPage ? 600 : 500,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      width: '100%',
-                      textAlign: 'start',
-                      transition: 'background 0.15s',
-                    }}
+                  })()
+                ) : (
+                  /* Main nav items */
+                  <div
+                    className={mobileMainSlideBack ? 'd2-slide-back' : ''}
+                    onAnimationEnd={() => setMobileMainSlideBack(false)}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
                   >
-                    <span style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: 18,
-                      justifyContent: 'center',
-                      color: isSettingsPage ? accentVisibleMain : C.textSecond,
-                      transition: 'color 0.15s',
-                    }}><SettingsIcon /></span>
-                    <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.settings')}</span>
-                  </button>
-                </div>
-              )}
+                    {navMainConfig.map((item) => {
+                      const isActive = item.path === 'home'
+                        ? (pagePath === 'home' || pagePath === '')
+                        : pagePath === item.path;
+                      return (
+                        <button
+                          key={item.path}
+                          onMouseEnter={() => setHoveredMobileNav(item.path)}
+                          onMouseLeave={() => setHoveredMobileNav(null)}
+                          onClick={() => {
+                            closeMobileMenu();
+                            const target = item.path === 'home'
+                              ? `/${lang}/dashboard`
+                              : `/${lang}/dashboard/${item.path}`;
+                            navigate(target);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: '11px 10px',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: (isActive || hoveredMobileNav === item.path) ? C.hover : 'transparent',
+                            color: C.textPrimary,
+                            fontWeight: 500,
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            width: '100%',
+                            textAlign: 'start',
+                            transition: 'background 0.15s',
+                          }}
+                        >
+                          <span style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            width: 20,
+                            justifyContent: 'center',
+                            color: isActive ? accentVisibleMain : C.textSecond,
+                            transition: 'color 0.15s',
+                          }}>{item.icon}</span>
+                          <span style={{ flex: 1, textAlign: 'start' }}>{t(item.tKey)}</span>
+                        </button>
+                      );
+                    })}
+
+                    {/* Settings — opens sliding menu */}
+                    <button
+                      onMouseEnter={() => setHoveredMobileNav('settings')}
+                      onMouseLeave={() => setHoveredMobileNav(null)}
+                      onClick={() => {
+                        setMobileSettingsSlideDir('forward');
+                        setMobileSettingsSlideKey((k) => k + 1);
+                        setMobileSettingsStack([{ parentLabel: t('dashboard.settings'), children: settingsNavConfig, isTopLevel: true }]);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '11px 10px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: (isSettingsPage || hoveredMobileNav === 'settings') ? C.hover : 'transparent',
+                        color: C.textPrimary,
+                        fontWeight: 500,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        width: '100%',
+                        textAlign: 'start',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: 20,
+                        justifyContent: 'center',
+                        color: isSettingsPage ? accentVisibleMain : C.textSecond,
+                        transition: 'color 0.15s',
+                      }}><SettingsIcon /></span>
+                      <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.settings')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

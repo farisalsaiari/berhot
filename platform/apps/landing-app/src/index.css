@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Dropdown slide animations (desktop nav) ── */
+@keyframes slideDropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ddSlideForward {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes ddSlideBack {
+  from { transform: translateX(-30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.dd-slide-forward { animation: ddSlideForward 0.18s ease-out forwards; }
+.dd-slide-back { animation: ddSlideBack 0.18s ease-out forwards; }
+
+/* ── Mobile menu slide animations ── */
+@keyframes mobSlideForward {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes mobSlideBack {
+  from { transform: translateX(-40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.mob-slide-forward { animation: mobSlideForward 0.22s ease-out forwards; }
+.mob-slide-back { animation: mobSlideBack 0.22s ease-out forwards; }
