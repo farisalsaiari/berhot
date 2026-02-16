@@ -225,23 +225,33 @@ function MobileSlideMenu({
   ]);
   const [slideDir, setSlideDir] = useState<'forward' | 'back' | 'none'>('none');
   const [slideKey, setSlideKey] = useState(0);
+  const [contentVisible, setContentVisible] = useState(false);
 
   // Reset when menu closes
   useEffect(() => {
     if (!isOpen) {
+      setContentVisible(false);
       const t = setTimeout(() => {
         setStack([{ title: 'Menu', items: mobileMenuItems }]);
         setSlideDir('none');
         setSlideKey(0);
-      }, 350);
+      }, 500);
+      return () => clearTimeout(t);
+    } else {
+      // Start revealing content early while slide is still moving
+      const t = setTimeout(() => setContentVisible(true), 150);
       return () => clearTimeout(t);
     }
   }, [isOpen]);
 
-  // Lock body scroll
+  // Lock body scroll — keep locked until slide-out animation finishes
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      const t = setTimeout(() => { document.body.style.overflow = ''; }, 500);
+      return () => { clearTimeout(t); document.body.style.overflow = ''; };
+    }
   }, [isOpen]);
 
   const pushLevel = (title: string, items: MobileMenuItem[]) => {
@@ -261,20 +271,23 @@ function MobileSlideMenu({
   const isRoot = stack.length === 1;
 
   // Render a menu item (root or sub)
-  const renderItem = (item: MobileMenuItem, _isRootLevel: boolean) => {
+  const renderItem = (item: MobileMenuItem, _isRootLevel: boolean, index: number) => {
     const hasChildren = item.children && item.children.length > 0;
+    const staggerStyle: React.CSSProperties = isRoot && contentVisible
+      ? { opacity: 1, transform: 'translateY(0)', transition: `opacity 0.4s cubic-bezier(0.25,0.1,0.25,1) ${index * 60}ms, transform 0.4s cubic-bezier(0.25,0.1,0.25,1) ${index * 60}ms` }
+      : isRoot
+        ? { opacity: 0, transform: 'translateY(10px)' }
+        : {};
 
     if (hasChildren) {
       return (
         <button
           key={item.label}
           onClick={() => pushLevel(item.label, item.children!)}
-          className="w-full flex items-center justify-between py-3 text-lg sm:text-[22px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+          className="w-full flex items-center justify-between py-2 text-base sm:text-[18px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+          style={staggerStyle}
         >
           <span>{item.label}</span>
-          <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
         </button>
       );
     }
@@ -286,7 +299,8 @@ function MobileSlideMenu({
           key={item.label}
           href={item.href}
           onClick={onClose}
-          className="block py-3 text-lg sm:text-[22px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+          className="block py-2 text-base sm:text-[18px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+          style={staggerStyle}
         >
           {item.label}
         </a>
@@ -298,7 +312,8 @@ function MobileSlideMenu({
         key={item.label}
         to={item.href || '#'}
         onClick={onClose}
-        className="block py-3 text-lg sm:text-[22px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+        className="block py-2 text-base sm:text-[18px] font-bold text-gray-900 active:opacity-60 transition-opacity"
+        style={staggerStyle}
       >
         {item.label}
       </Link>
@@ -314,20 +329,34 @@ function MobileSlideMenu({
 
   return (
     <div
-      className={`fixed inset-0 z-[99999] bg-white lg:hidden flex flex-col transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+      className={`fixed inset-0 z-[99999] bg-white lg:hidden flex flex-col transition-transform ease-[cubic-bezier(0.32,0.72,0,1)] ${
         isOpen ? 'translate-y-0' : '-translate-y-full'
       }`}
-      style={{ transitionDuration: '350ms' }}
+      style={{ transitionDuration: '500ms' }}
     >
-      {/* ── Top bar: back arrow (sub-levels only) — X is handled by header burger toggle ── */}
-      <div className="flex items-center px-5 sm:px-6 pt-5 sm:pt-6 pb-2 flex-shrink-0" style={{ minHeight: 48 }}>
-        {!isRoot && (
-          <button onClick={popLevel} className="p-1 -ml-1 text-gray-900 active:opacity-50">
-            <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
+      {/* ── Top bar: back arrow (sub-levels) + X close (always) ── */}
+      <div className="flex items-center justify-between px-5 sm:px-6 pt-4 sm:pt-5 pb-2 flex-shrink-0" style={{ minHeight: 48 }}>
+        <div>
+          {!isRoot && (
+            <button onClick={popLevel} className="p-1 text-gray-900 active:opacity-50">
+              <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <button
+          onClick={onClose}
+          className="bg-gray-100 rounded-full text-gray-900 active:opacity-50"
+          style={contentVisible
+            ? { padding: '7px', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.4s cubic-bezier(0.25,0.1,0.25,1), transform 0.4s cubic-bezier(0.25,0.1,0.25,1)' }
+            : { padding: '7px', opacity: 0, transform: 'scale(0.85)' }
+          }
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* ── Scrollable content ── */}
@@ -345,30 +374,37 @@ function MobileSlideMenu({
           )}
 
           {/* Items */}
-          <div className="px-5 sm:px-6 pt-1 pb-8">
-            {current.items.map(item => renderItem(item, isRoot))}
+          <div className="px-5 sm:px-6 pt-1 pb-4">
+            {current.items.map((item, i) => renderItem(item, isRoot, i))}
           </div>
 
           {/* Bottom links (root only) */}
-          {isRoot && (
-            <div className="px-5 sm:px-6 pb-12 pt-4 border-t border-gray-100 mt-2 space-y-1">
+          {isRoot && (() => {
+            const base = current.items.length;
+            const bStyle = (i: number): React.CSSProperties => contentVisible
+              ? { opacity: 1, transform: 'translateY(0)', transition: `opacity 0.4s cubic-bezier(0.25,0.1,0.25,1) ${(base + i) * 60}ms, transform 0.4s cubic-bezier(0.25,0.1,0.25,1) ${(base + i) * 60}ms` }
+              : { opacity: 0, transform: 'translateY(10px)' };
+            return (
+            <div className="px-5 sm:px-6 pb-10 pt-2 border-t border-gray-100 mt-1 space-y-0">
               {isAuthenticated && user ? (
                 <>
                   <a
                     href={getDashboardUrl(lang)}
                     onClick={onClose}
-                    className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60"
+                    className="flex items-center gap-2.5 py-2 text-[14px] sm:text-[16px] font-medium text-gray-900 active:opacity-60"
+                    style={bStyle(0)}
                   >
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                     </svg>
                     Dashboard
                   </a>
                   <button
                     onClick={() => { onLogout(); onClose(); }}
-                    className="w-full flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-red-600 active:opacity-60"
+                    className="w-full flex items-center gap-2.5 py-2 text-[14px] sm:text-[16px] font-medium text-red-600 active:opacity-60"
+                    style={bStyle(1)}
                   >
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                     </svg>
                     Log out
@@ -379,27 +415,28 @@ function MobileSlideMenu({
                   <Link
                     to={`/${lang}/signin`}
                     onClick={onClose}
-                    className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60"
+                    className="flex items-center gap-2.5 py-2 text-[14px] sm:text-[16px] font-medium text-gray-900 active:opacity-60"
+                    style={bStyle(0)}
                   >
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                     </svg>
                     Sign in
                   </Link>
-                  <a href="#support" onClick={onClose} className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <a href="#support" onClick={onClose} className="flex items-center gap-2.5 py-2 text-[14px] sm:text-[16px] font-medium text-gray-900 active:opacity-60" style={bStyle(1)}>
+                    <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
                     </svg>
                     Support
                   </a>
-                  <button onClick={onClose} className="w-full flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <button onClick={onClose} className="w-full flex items-center gap-2.5 py-2 text-[14px] sm:text-[16px] font-medium text-gray-900 active:opacity-60" style={bStyle(2)}>
+                    <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                     </svg>
                     Search
                   </button>
-                  <Link to={`/${lang}/shop/hardware/us/${lang}/checkout`} onClick={onClose} className="flex items-center gap-4 py-3 text-[15px] sm:text-[17px] font-medium text-gray-700 active:opacity-60">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <Link to={`/${lang}/shop/hardware/us/${lang}/checkout`} onClick={onClose} className="flex items-center gap-2.5 py-2 text-[14px] sm:text-[16px] font-medium text-gray-900 active:opacity-60" style={bStyle(3)}>
+                    <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                     </svg>
                     Checkout
@@ -407,7 +444,8 @@ function MobileSlideMenu({
                 </>
               )}
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>
@@ -846,38 +884,31 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile menu button (burger ↔ X animated) */}
+          {/* Mobile menu button (burger only — X is inside the menu) */}
           <button
-            className="lg:hidden relative z-[100000] p-2 text-gray-900 transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
+            className={`lg:hidden relative z-[100000] p-2 text-gray-900 transition-all ${mobileOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
           >
-            <div className="w-6 h-6 flex flex-col justify-center items-center">
-              <span
-                className="block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out origin-center"
-                style={{
-                  transform: mobileOpen ? 'rotate(45deg) translateY(0px)' : 'rotate(0) translateY(-4px)',
-                }}
-              />
-              <span
-                className="block h-[2px] w-5 bg-current rounded-full transition-all duration-200 ease-in-out"
-                style={{
-                  opacity: mobileOpen ? 0 : 1,
-                  transform: mobileOpen ? 'scaleX(0)' : 'scaleX(1)',
-                }}
-              />
-              <span
-                className="block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out origin-center"
-                style={{
-                  transform: mobileOpen ? 'rotate(-45deg) translateY(0px)' : 'rotate(0) translateY(4px)',
-                }}
-              />
+            <div className="w-6 h-6 flex flex-col justify-center items-center gap-[5px]">
+              <span className="block h-[2px] w-5 bg-current rounded-full" />
+              <span className="block h-[2px] w-5 bg-current rounded-full" />
+              <span className="block h-[2px] w-5 bg-current rounded-full" />
             </div>
           </button>
         </div>
       </div>
 
     </header>
+
+    {/* Mobile overlay backdrop */}
+    <div
+      className={`fixed inset-0 z-[99998] bg-black/40 lg:hidden transition-opacity ${
+        mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}
+      style={{ transitionDuration: '500ms' }}
+      onClick={() => setMobileOpen(false)}
+    />
 
     {/* Mobile slide menu — rendered outside header to avoid stacking context */}
     <MobileSlideMenu

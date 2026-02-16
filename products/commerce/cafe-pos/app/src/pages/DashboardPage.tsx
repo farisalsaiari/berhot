@@ -74,7 +74,7 @@ const lightTheme = {
 const savedTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_theme')) || 'light';
 const savedAccent = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_accent')) || '#3b82f6';
 const savedDarkSidebar = typeof localStorage !== 'undefined' && localStorage.getItem('d2_dark_sidebar') === 'true';
-const savedShowHeader = typeof localStorage !== 'undefined' ? localStorage.getItem('d2_show_header') !== 'false' : true;
+const savedShowHeader = typeof localStorage !== 'undefined' ? localStorage.getItem('d2_show_header') === 'true' : false;
 const C0 = { ...(savedTheme === 'light' ? lightTheme : darkTheme), accent: savedAccent, btnBg: savedAccent === '#000000' ? '#2993f0' : savedAccent };
 // C0 is the initial theme; inside the component, `C` is shadowed with live-preview values
 // eslint-disable-next-line prefer-const
@@ -900,13 +900,20 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* Right side: Search + Notification icons */}
+            {/* Right side: Search + Notification icons + Profile */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 6, border: 'none', background: 'transparent', color: SC.textSecond, cursor: 'pointer' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               </button>
               <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 6, border: 'none', background: 'transparent', color: SC.textSecond, cursor: 'pointer' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>
+              </button>
+              <button
+                onClick={() => navigate(`/${lang}/dashboard/settings/account/profile`)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', border: 'none', background: SC.hover, color: SC.textSecond, cursor: 'pointer', marginLeft: 4, flexShrink: 0, fontSize: 11, fontWeight: 600 }}
+              >
+                {authUser.firstName ? authUser.firstName.charAt(0).toUpperCase() : ''}
+                {authUser.lastName ? authUser.lastName.charAt(0).toUpperCase() : ''}
               </button>
             </div>
           </div>
@@ -931,7 +938,7 @@ export default function DashboardPage() {
             {/* Sidebar header — back arrow when in settings, OR logo + brand */}
             {(!isLargeScreen && (settingsMenuStack.length > 0 || settingsClosing)) ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px 20px', height: 57, boxSizing: 'border-box' as const }}>
+                <div style={{ padding: '10px 16px 0 14px' }}>
                   <button
                     onClick={() => {
                       if (settingsMenuStack.length <= 1) {
@@ -949,27 +956,26 @@ export default function DashboardPage() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 28,
-                      height: 28,
+                      gap: 8,
+                      width: '100%',
+                      padding: '9px 10px',
                       borderRadius: 6,
                       border: 'none',
                       background: hoveredNav === 'settings-back' ? SC.hover : 'transparent',
+                      color: SC.textDim,
+                      fontWeight: 500,
+                      fontSize: 13,
                       cursor: 'pointer',
                       transition: 'background 0.15s',
-                      padding: 0,
-                      flexShrink: 0,
+                      textAlign: 'start' as const,
                     }}
                   >
-                    <svg className="d2-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SC.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="d2-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SC.textPrimary} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                       <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
                     </svg>
-                  </button>
-                  <span style={{ fontWeight: 500, fontSize: 13, color: SC.textPrimary }}>
                     {settingsMenuStack.length > 0 ? settingsMenuStack[settingsMenuStack.length - 1].parentLabel : t('dashboard.settings')}
-                  </span>
+                  </button>
                 </div>
-                <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '0 16px 4px 16px' }} />
               </>
             ) : effectiveShowHeader && !isMobile ? null : (
               <>
@@ -1103,7 +1109,7 @@ export default function DashboardPage() {
             {/* Main nav / Settings nav — only the links area transitions */}
             <nav className="d2-sidebar-scroll" style={{
               display: 'flex',
-              flexDirection: 'column', gap: 2, padding: '10px 16px 12px 16px',
+              flexDirection: 'column', gap: 2, padding: `${(!isLargeScreen && settingsMenuStack.length > 0) ? 2 : 10}px 16px 12px 16px`,
               flex: 1,
               overflowY: 'auto',
               minHeight: 0,
@@ -1158,9 +1164,6 @@ export default function DashboardPage() {
                           }}
                         >
                           <span style={{ flex: 1, textAlign: 'start' }}>{group.category}</span>
-                          <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-                            <path d="M9 18l6-6-6-6" />
-                          </svg>
                         </button>
                       ))
                     ) : (
@@ -1290,9 +1293,6 @@ export default function DashboardPage() {
                 >
                   <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: isSettingsActive ? accentVisible : SC.textSecond }}><SettingsIcon /></span>
                   <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.settings')}</span>
-                  <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
                 </button>
 
                 {/* Support link */}
@@ -1517,38 +1517,18 @@ export default function DashboardPage() {
                 transform: settingsPanelOpen ? 'translateX(0)' : 'translateX(-20px)',
                 transition: 'opacity 0.25s ease, transform 0.28s cubic-bezier(0.22,0.61,0.36,1)',
               }}>
-                {/* Panel header */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '14px 16px 10px 16px',
-                  height: 57,
-                  boxSizing: 'border-box' as const,
-                  flexShrink: 0,
-                }}>
-                  <span style={{
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: SC.textPrimary,
-                    letterSpacing: '-0.01em',
-                  }}>
-                    {t('dashboard.settings')}
-                  </span>
-                </div>
-                <div style={{ height: 1, background: SC.divider, opacity: 0.5, margin: '0 12px' }} />
-
                 {/* Scrollable categories + links */}
                 <nav className="d2-sidebar-scroll" style={{
                   flex: 1,
                   overflowY: 'auto',
-                  padding: '4px 12px 16px 12px',
+                  padding: '8px 12px 16px 12px',
                 }}>
                   {settingsNav.map((group, groupIdx) => (
-                    <div key={group.category} style={{ marginBottom: groupIdx < settingsNav.length - 1 ? 12 : 0 }}>
+                    <div key={group.category} style={{ marginBottom: groupIdx < settingsNav.length - 1 ? 12 : 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                       {/* Category header */}
                       <div style={{
-                        fontSize: 11,
-                        fontWeight: 600,
+                        fontSize: 12,
+                        fontWeight: 400,
                         color: SC.textSecond,
                         letterSpacing: '0.01em',
                         padding: '8px 8px 4px 8px',
@@ -1744,102 +1724,102 @@ export default function DashboardPage() {
                   }}>
                     {/* Location + Date row (always on same line) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {/* Location chip dropdown */}
-                    <div style={{ position: 'relative' }}>
-                      <button
-                        onClick={() => setShowLocationMenu(prev => !prev)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          padding: '7px 14px',
-                          background: isLight ? '#f5f5f5' : C.hover,
-                          border: `1px solid ${C.cardBorder}`,
-                          borderRadius: 10,
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          color: C.textPrimary,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <span style={{ color: C.textDim, fontWeight: 400 }}>{t('dashboard.location')}</span>
-                        <span style={{ fontWeight: 700 }}>
-                          {selectedLocation === 'all'
-                            ? t('dashboard.allLocations')
-                            : (dashboardLocations.find(l => l.id === selectedLocation)?.nickname
-                              || dashboardLocations.find(l => l.id === selectedLocation)?.businessName
-                              || dashboardLocations.find(l => l.id === selectedLocation)?.name
-                              || selectedLocation)}
-                        </span>
-                      </button>
-
-                      {showLocationMenu && (
-                        <>
-                          <div onClick={() => setShowLocationMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
-                          <div style={{
-                            position: 'absolute', top: 'calc(100% + 6px)', left: 0,
-                            minWidth: 200,
-                            background: isLight ? '#fff' : C.card,
+                      {/* Location chip dropdown */}
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => setShowLocationMenu(prev => !prev)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '7px 14px',
+                            background: isLight ? '#f5f5f5' : C.hover,
                             border: `1px solid ${C.cardBorder}`,
-                            borderRadius: 12,
-                            boxShadow: isLight ? '0 4px 24px rgba(0,0,0,0.10)' : '0 4px 24px rgba(0,0,0,0.3)',
-                            padding: 6,
-                            zIndex: 100,
-                          }}>
-                            {[
-                              ...(dashboardLocations.length > 1 ? [{ id: 'all', businessName: '', nickname: '', name: '' }] : []),
-                              ...dashboardLocations,
-                            ].map((loc) => {
-                              const isActive = selectedLocation === loc.id;
-                              return (
-                                <button
-                                  key={loc.id}
-                                  onClick={() => { setSelectedLocation(loc.id); setShowLocationMenu(false); }}
-                                  style={{
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    width: '100%',
-                                    padding: '9px 12px',
-                                    borderRadius: 8,
-                                    border: 'none',
-                                    background: isActive ? (isLight ? `${C.accent}10` : `${C.accent}20`) : 'transparent',
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    fontWeight: isActive ? 600 : 400,
-                                    color: isActive ? C.accent : C.textPrimary,
-                                    textAlign: 'start',
-                                    transition: 'background 0.15s',
-                                  }}
-                                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = C.hover; }}
-                                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-                                >
-                                  {loc.id === 'all' ? t('dashboard.allLocations') : (loc.nickname || loc.businessName || loc.name)}
-                                  {isActive && (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            color: C.textPrimary,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <span style={{ color: C.textDim, fontWeight: 400 }}>{t('dashboard.location')}</span>
+                          <span style={{ fontWeight: 700 }}>
+                            {selectedLocation === 'all'
+                              ? t('dashboard.allLocations')
+                              : (dashboardLocations.find(l => l.id === selectedLocation)?.nickname
+                                || dashboardLocations.find(l => l.id === selectedLocation)?.businessName
+                                || dashboardLocations.find(l => l.id === selectedLocation)?.name
+                                || selectedLocation)}
+                          </span>
+                        </button>
 
-                    {/* Date chip */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '7px 14px',
-                      background: isLight ? '#f5f5f5' : C.hover,
-                      border: `1px solid ${C.cardBorder}`,
-                      borderRadius: 10,
-                      fontSize: 13,
-                      color: C.textPrimary,
-                      whiteSpace: 'nowrap',
-                    }}>
-                      <span style={{ color: C.textDim, fontWeight: 400 }}>{t('dashboard.date')}</span>
-                      <span style={{ fontWeight: 700 }}>
-                        {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                    </div>
+                        {showLocationMenu && (
+                          <>
+                            <div onClick={() => setShowLocationMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+                            <div style={{
+                              position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+                              minWidth: 200,
+                              background: isLight ? '#fff' : C.card,
+                              border: `1px solid ${C.cardBorder}`,
+                              borderRadius: 12,
+                              boxShadow: isLight ? '0 4px 24px rgba(0,0,0,0.10)' : '0 4px 24px rgba(0,0,0,0.3)',
+                              padding: 6,
+                              zIndex: 100,
+                            }}>
+                              {[
+                                ...(dashboardLocations.length > 1 ? [{ id: 'all', businessName: '', nickname: '', name: '' }] : []),
+                                ...dashboardLocations,
+                              ].map((loc) => {
+                                const isActive = selectedLocation === loc.id;
+                                return (
+                                  <button
+                                    key={loc.id}
+                                    onClick={() => { setSelectedLocation(loc.id); setShowLocationMenu(false); }}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: 10,
+                                      width: '100%',
+                                      padding: '9px 12px',
+                                      borderRadius: 8,
+                                      border: 'none',
+                                      background: isActive ? (isLight ? `${C.accent}10` : `${C.accent}20`) : 'transparent',
+                                      cursor: 'pointer',
+                                      fontSize: 13,
+                                      fontWeight: isActive ? 600 : 400,
+                                      color: isActive ? C.accent : C.textPrimary,
+                                      textAlign: 'start',
+                                      transition: 'background 0.15s',
+                                    }}
+                                    onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = C.hover; }}
+                                    onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                                  >
+                                    {loc.id === 'all' ? t('dashboard.allLocations') : (loc.nickname || loc.businessName || loc.name)}
+                                    {isActive && (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Date chip */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '7px 14px',
+                        background: isLight ? '#f5f5f5' : C.hover,
+                        border: `1px solid ${C.cardBorder}`,
+                        borderRadius: 10,
+                        fontSize: 13,
+                        color: C.textPrimary,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <span style={{ color: C.textDim, fontWeight: 400 }}>{t('dashboard.date')}</span>
+                        <span style={{ fontWeight: 700 }}>
+                          {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
                     </div>{/* end Location + Date row */}
 
                     {/* Tabs: Overview / Profiles / Impressions / Leads */}
@@ -2533,14 +2513,14 @@ export default function DashboardPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '8px 16px',
+                padding: '10px 16px',
                 borderBottom: `1px solid ${C.divider}70`,
                 flexShrink: 0,
               }}>
                 {/* Logo on the left — always visible */}
                 <button
                   onClick={() => { closeMobileMenu(); navigate(`/${lang}/dashboard/settings/business/profile`); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0, marginTop: 4 }}
                 >
                   {(sidebarLogoImg || sidebarLogoUrl) ? (
                     <img
@@ -2548,16 +2528,16 @@ export default function DashboardPage() {
                       alt="Logo"
                       style={{
                         width: sidebarLogoShape === 'rectangle'
-                          ? (sidebarShowName ? 37 : 57)
-                          : 25,
-                        height: 25,
+                          ? (sidebarShowName ? 40 : 60)
+                          : 28,
+                        height: 28,
                         objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
                         borderRadius: sidebarLogoShape === 'circle' ? '50%' : 4,
                         flexShrink: 0,
                       }}
                     />
                   ) : sidebarLoaded ? (
-                    <svg width="21" height="21" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
+                    <svg width="24" height="24" viewBox="0 0 89 90" fill={isLight ? '#1a1a1a' : '#ffffff'}>
                       <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
                         <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
                       </g>
@@ -2616,7 +2596,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Scrollable nav area — settings layers replace links in-place */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px 32px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '10px 8px 32px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {mobileSettingsStack.length > 0 ? (
                   /* Settings layers — back + items slide together as one unit */
                   (() => {
@@ -2677,76 +2657,76 @@ export default function DashboardPage() {
                         </button>
                         {/* Settings items */}
                         {isTopLevel ? (
-                            current.children.map((group) => (
-                              <button
-                                key={group.categoryKey}
-                                onMouseEnter={() => setHoveredMobileNav(`mob-cat-${group.categoryKey}`)}
-                                onMouseLeave={() => setHoveredMobileNav(null)}
-                                onClick={() => {
-                                  setMobileSettingsSlideDir('forward');
-                                  setMobileSettingsSlideKey((k) => k + 1);
-                                  setMobileSettingsStack((prev) => [...prev, {
-                                    parentLabel: t(group.categoryKey),
-                                    children: [group],
-                                  }]);
-                                }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 12,
-                                  width: '100%',
-                                  padding: '11px 10px',
-                                  borderRadius: 8,
-                                  border: 'none',
-                                  background: hoveredMobileNav === `mob-cat-${group.categoryKey}` ? C.hover : 'transparent',
-                                  color: C.textPrimary,
-                                  fontWeight: 500,
-                                  fontSize: 14,
-                                  cursor: 'pointer',
-                                  transition: 'background 0.15s',
-                                }}
-                              >
-                                <span style={{ flex: 1, textAlign: 'start' }}>{t(group.categoryKey)}</span>
-                                <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-                                  <path d="M9 18l6-6-6-6" />
-                                </svg>
-                              </button>
-                            ))
-                          ) : (
-                            current.children.map((group) =>
-                              group.links.map((link) => {
-                                const isLinkActive = pagePath === link.path;
-                                return (
-                                  <button
-                                    key={link.path}
-                                    onMouseEnter={() => setHoveredMobileNav(`mob-link-${link.path}`)}
-                                    onMouseLeave={() => setHoveredMobileNav(null)}
-                                    onClick={() => {
-                                      closeMobileMenu();
-                                      navigate(`/${lang}/dashboard/${link.path}`);
-                                    }}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      width: '100%',
-                                      padding: '11px 10px',
-                                      borderRadius: 8,
-                                      border: 'none',
-                                      background: (isLinkActive || hoveredMobileNav === `mob-link-${link.path}`) ? C.hover : 'transparent',
-                                      color: C.textPrimary,
-                                      fontWeight: 500,
-                                      fontSize: 14,
-                                      cursor: 'pointer',
-                                      transition: 'background 0.15s',
-                                      textAlign: 'start',
-                                    }}
-                                  >
-                                    {t(link.tKey)}
-                                  </button>
-                                );
-                              })
-                            )
-                          )}
+                          current.children.map((group) => (
+                            <button
+                              key={group.categoryKey}
+                              onMouseEnter={() => setHoveredMobileNav(`mob-cat-${group.categoryKey}`)}
+                              onMouseLeave={() => setHoveredMobileNav(null)}
+                              onClick={() => {
+                                setMobileSettingsSlideDir('forward');
+                                setMobileSettingsSlideKey((k) => k + 1);
+                                setMobileSettingsStack((prev) => [...prev, {
+                                  parentLabel: t(group.categoryKey),
+                                  children: [group],
+                                }]);
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                width: '100%',
+                                padding: '11px 10px',
+                                borderRadius: 8,
+                                border: 'none',
+                                background: hoveredMobileNav === `mob-cat-${group.categoryKey}` ? C.hover : 'transparent',
+                                color: C.textPrimary,
+                                fontWeight: 500,
+                                fontSize: 14,
+                                cursor: 'pointer',
+                                transition: 'background 0.15s',
+                              }}
+                            >
+                              <span style={{ flex: 1, textAlign: 'start' }}>{t(group.categoryKey)}</span>
+                              <svg className="d2-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                                <path d="M9 18l6-6-6-6" />
+                              </svg>
+                            </button>
+                          ))
+                        ) : (
+                          current.children.map((group) =>
+                            group.links.map((link) => {
+                              const isLinkActive = pagePath === link.path;
+                              return (
+                                <button
+                                  key={link.path}
+                                  onMouseEnter={() => setHoveredMobileNav(`mob-link-${link.path}`)}
+                                  onMouseLeave={() => setHoveredMobileNav(null)}
+                                  onClick={() => {
+                                    closeMobileMenu();
+                                    navigate(`/${lang}/dashboard/${link.path}`);
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    width: '100%',
+                                    padding: '11px 10px',
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    background: (isLinkActive || hoveredMobileNav === `mob-link-${link.path}`) ? C.hover : 'transparent',
+                                    color: C.textPrimary,
+                                    fontWeight: 500,
+                                    fontSize: 14,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.15s',
+                                    textAlign: 'start',
+                                  }}
+                                >
+                                  {t(link.tKey)}
+                                </button>
+                              );
+                            })
+                          )
+                        )}
                       </div>
                     );
                   })()
