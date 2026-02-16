@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"log"
 	"regexp"
 	"strings"
 
@@ -206,6 +207,28 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		if err != nil {
 			c.JSON(500, gin.H{"error": "Failed to create tenant", "details": err.Error()})
 			return
+		}
+
+		// Auto-create first business location for new tenant
+		// Must use a transaction with set_tenant_context() because locations table
+		// has FORCE ROW LEVEL SECURITY — the RLS policy requires tenant_id = get_current_tenant_id()
+		locID := uuid.New().String()
+		locTx, locTxErr := h.DB.Begin()
+		if locTxErr != nil {
+			log.Printf("WARNING: Failed to begin tx for location: %v", locTxErr)
+		} else {
+			_, _ = locTx.Exec("SELECT set_tenant_context($1)", tenantID)
+			_, locErr := locTx.Exec(
+				`INSERT INTO locations (id, tenant_id, name, business_name, nickname, location_type, timezone, currency, status, created_at, updated_at)
+				 VALUES ($1, $2, $3, $3, $3, 'physical', 'Asia/Riyadh', 'SAR', 'active', NOW(), NOW())`,
+				locID, tenantID, businessName,
+			)
+			if locErr != nil {
+				log.Printf("WARNING: Failed to auto-create location for tenant %s: %v", tenantID, locErr)
+				locTx.Rollback()
+			} else {
+				locTx.Commit()
+			}
 		}
 	} else {
 		// Verify tenant exists

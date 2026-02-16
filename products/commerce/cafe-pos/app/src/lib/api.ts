@@ -204,3 +204,60 @@ export async function fetchCities(regionId: string): Promise<City[]> {
   const data = await apiFetch<{ cities: City[] }>(`/api/v1/locations/regions/${regionId}/cities`);
   return data.cities;
 }
+
+// ── Business Location endpoints ────────────────────────
+
+export interface BusinessLocation {
+  id: string;
+  tenantId?: string;
+  name: string;
+  businessName: string;
+  nickname: string;
+  locationType: string;
+  description?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  cityName: string;
+  postalCode?: string;
+  phone: string;
+  email: string;
+  timezone: string;
+  currency: string;
+  taxRate?: number;
+  preferredLanguage?: string;
+  status: string;
+  businessHours?: string;
+  businessNameChanges?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchBusinessLocations(search?: string): Promise<BusinessLocation[]> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : '';
+  const data = await apiFetch<{ locations: BusinessLocation[] }>(`/api/v1/business-locations/${query}`);
+  return data.locations || [];
+}
+
+export async function fetchBusinessLocation(id: string): Promise<BusinessLocation> {
+  return apiFetch<BusinessLocation>(`/api/v1/business-locations/${id}`);
+}
+
+export async function createBusinessLocation(data: Partial<BusinessLocation>): Promise<BusinessLocation> {
+  return apiFetch<BusinessLocation>('/api/v1/business-locations/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateBusinessLocation(id: string, data: Partial<BusinessLocation>): Promise<{ message: string }> {
+  return apiFetch(`/api/v1/business-locations/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deactivateBusinessLocation(id: string): Promise<{ message: string }> {
+  return apiFetch(`/api/v1/business-locations/${id}`, {
+    method: 'DELETE',
+  });
+}

@@ -29,6 +29,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const STORAGE_KEY = 'berhot_auth';
+const API_BASE = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL || '/api';
 
 function getStoredAuth(): { accessToken: string; refreshToken: string; user: User } | null {
   try {
@@ -148,11 +149,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Check localStorage
+    // Check localStorage — validate token against backend
     const stored = getStoredAuth();
-    if (stored) {
+    if (stored?.accessToken && stored?.user) {
+      // Optimistically show user, then validate in background
       setAccessToken(stored.accessToken);
       setUser(stored.user);
+
+      // Validate token is still valid (user still exists after DB reset, etc.)
+      fetch(`${API_BASE}/v1/users/me`, {
+        headers: { Authorization: `Bearer ${stored.accessToken}` },
+      }).then(async (res) => {
+        if (res.ok) return; // token valid — keep user logged in
+        // Try refresh
+        if (res.status === 401 && stored.refreshToken) {
+          try {
+            const refreshRes = await fetch(`${API_BASE}/v1/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: stored.refreshToken }),
+            });
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              storeAuth(data.accessToken, data.refreshToken || stored.refreshToken, stored.user);
+              setAccessToken(data.accessToken);
+              return;
+            }
+          } catch { /* refresh failed */ }
+        }
+        // Token invalid — log out
+        setAccessToken(null);
+        setUser(null);
+        clearAuth();
+      }).catch(() => {
+        // Network error (backend down) — keep user logged in with stale data
+      });
     }
   }, [login]);
 

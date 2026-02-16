@@ -1,68 +1,44 @@
--- ============================================================
--- 007_locations.sql — Countries, Regions, Cities
--- ============================================================
--- Provides location data for business registration and
--- multi-country expansion. Default: Saudi Arabia.
--- ============================================================
+-- ══════════════════════════════════════════════════════════════════
+-- Berhot Platform — Seed Data
+-- Created: 2026-02-16
+-- ══════════════════════════════════════════════════════════════════
 
--- ── Countries ───────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS countries (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code          VARCHAR(2)   NOT NULL UNIQUE,          -- ISO 3166-1 alpha-2
-    name_en       VARCHAR(100) NOT NULL,
-    name_ar       VARCHAR(100) NOT NULL DEFAULT '',
-    phone_code    VARCHAR(10)  NOT NULL DEFAULT '',       -- e.g. +966
-    currency_code VARCHAR(3)   NOT NULL DEFAULT '',       -- e.g. SAR
-    flag_emoji    VARCHAR(10)  NOT NULL DEFAULT '',       -- e.g. 🇸🇦
-    is_active     BOOLEAN      NOT NULL DEFAULT true,
-    sort_order    INT          NOT NULL DEFAULT 0,
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
+-- ── Platform Tenant ───────────────────────────────────────────────
+INSERT INTO tenants (id, name, slug, status, plan)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  'Berhot Platform',
+  'berhot-admin',
+  'active',
+  'enterprise'
+) ON CONFLICT (slug) DO NOTHING;
 
--- ── Regions ─────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS regions (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    country_id    UUID         NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
-    code          VARCHAR(10)  NOT NULL,                  -- e.g. 01 for Riyadh
-    name_en       VARCHAR(100) NOT NULL,
-    name_ar       VARCHAR(100) NOT NULL DEFAULT '',
-    is_active     BOOLEAN      NOT NULL DEFAULT true,
-    sort_order    INT          NOT NULL DEFAULT 0,
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    UNIQUE(country_id, code)
-);
+-- ── Available Products / Entitlements ─────────────────────────────
+INSERT INTO tenant_products (tenant_id, product_id, status) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'restaurant-pos', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'cafe-pos', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'retail-pos', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'appointment-pos', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'loyalty', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'queue-waitlist', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'marketing', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'events', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'memberships', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'shift-management', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'payroll', 'active'),
+  ('00000000-0000-0000-0000-000000000001', 'time-attendance', 'active')
+ON CONFLICT (tenant_id, product_id) DO NOTHING;
 
--- ── Cities ──────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS cities (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    region_id     UUID         NOT NULL REFERENCES regions(id) ON DELETE CASCADE,
-    country_id    UUID         NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
-    name_en       VARCHAR(100) NOT NULL,
-    name_ar       VARCHAR(100) NOT NULL DEFAULT '',
-    is_active     BOOLEAN      NOT NULL DEFAULT true,
-    sort_order    INT          NOT NULL DEFAULT 0,
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    UNIQUE(region_id, name_en)
-);
-
--- ── Indexes ─────────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_regions_country_id ON regions(country_id);
-CREATE INDEX IF NOT EXISTS idx_cities_region_id   ON cities(region_id);
-CREATE INDEX IF NOT EXISTS idx_cities_country_id  ON cities(country_id);
-CREATE INDEX IF NOT EXISTS idx_countries_active    ON countries(is_active) WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_regions_active      ON regions(is_active) WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_cities_active       ON cities(is_active) WHERE is_active = true;
-
--- ╔════════════════════════════════════════════════════════════╗
--- ║  SEED DATA — Saudi Arabia                                  ║
--- ╚════════════════════════════════════════════════════════════╝
+-- ╔════════════════════════════════════════════════════════════════╗
+-- ║  Saudi Arabia — Countries, Regions, Cities                     ║
+-- ╚════════════════════════════════════════════════════════════════╝
 
 -- Country
 INSERT INTO countries (id, code, name_en, name_ar, phone_code, currency_code, flag_emoji, is_active, sort_order)
 VALUES ('a0000000-0000-4000-8000-000000000001', 'SA', 'Saudi Arabia', 'المملكة العربية السعودية', '+966', 'SAR', '🇸🇦', true, 1)
 ON CONFLICT (code) DO NOTHING;
 
--- ── Regions (13 administrative regions) ─────────────────────
+-- ── Regions (13 administrative regions) ─────────────────────────
 INSERT INTO regions (id, country_id, code, name_en, name_ar, sort_order) VALUES
   ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', '01', 'Riyadh',            'الرياض',          1),
   ('b0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', '02', 'Makkah',            'مكة المكرمة',      2),
@@ -79,7 +55,8 @@ INSERT INTO regions (id, country_id, code, name_en, name_ar, sort_order) VALUES
   ('b0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000001', '13', 'Qassim',            'القصيم',           13)
 ON CONFLICT (country_id, code) DO NOTHING;
 
--- ── Cities ──────────────────────────────────────────────────
+-- ── Cities ──────────────────────────────────────────────────────
+
 -- Riyadh Region (01)
 INSERT INTO cities (region_id, country_id, name_en, name_ar, sort_order) VALUES
   ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'Riyadh',           'الرياض',          1),
@@ -359,8 +336,3 @@ INSERT INTO cities (region_id, country_id, name_en, name_ar, sort_order) VALUES
   ('b0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000001', 'Qusayba',          'القصيبا',         17),
   ('b0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000001', 'Al Fuwayliq',      'الفويلق',         18)
 ON CONFLICT (region_id, name_en) DO NOTHING;
-
--- ── Add country_code to tenants table ───────────────────────
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS country_code VARCHAR(2) DEFAULT 'SA';
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS region_id UUID REFERENCES regions(id);
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS city_id UUID REFERENCES cities(id);

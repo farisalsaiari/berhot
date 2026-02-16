@@ -131,6 +131,18 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, cfg *config.Config) {
 		locations.GET("/regions/:id/cities", locationH.HandleListCities)
 	}
 
+	// ── Business Locations (authenticated) ──────────────────
+	bizLocH := &handler.BusinessLocationHandler{DB: db, Cfg: cfg}
+	bizLocations := v1.Group("/business-locations")
+	bizLocations.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+	{
+		bizLocations.GET("/", bizLocH.HandleListBusinessLocations)
+		bizLocations.GET("/:id", bizLocH.HandleGetBusinessLocation)
+		bizLocations.POST("/", bizLocH.HandleCreateBusinessLocation)
+		bizLocations.PUT("/:id", bizLocH.HandleUpdateBusinessLocation)
+		bizLocations.DELETE("/:id", bizLocH.HandleDeactivateBusinessLocation)
+	}
+
 	// ── Tenants (authenticated — /me routes) ────────────────
 	uploadH := &handler.UploadHandler{DB: db, Cfg: cfg}
 	myTenant := v1.Group("/tenants")

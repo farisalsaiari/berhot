@@ -6,7 +6,7 @@ import AccountSettingsContent from './AccountSettingsContent';
 import BusinessProfileContent from './BusinessProfileContent';
 import {
   SettingsPasswordContent, SettingsAccountNotificationsContent,
-  SettingsStoreInfoContent, SettingsLocationsContent,
+  SettingsStoreInfoContent,
   SettingsTimezoneContent, SettingsCurrencyContent, SettingsMultiTabContent, SettingsThemeContent,
   SettingsDisplayPreferencesContent, SettingsNotificationsActionsContent,
   SettingsInvoiceContent, SettingsSubscriptionContent, SettingsPaymentGatewayContent,
@@ -17,6 +17,8 @@ import {
   SettingsMarketContent, SettingsTransactionsContent,
 } from './SettingsContent';
 import RevenueContent from './RevenueContent';
+import LocationsSettings from './LocationsSettings';
+import { fetchBusinessLocations, BusinessLocation } from '../lib/api';
 
 /* ──────────────────────────────────────────────────────────────────
    Dashboard — Dark / Light theme, Lunor-style layout
@@ -116,8 +118,6 @@ function capitalize(s: string): string {
   return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-const authUser = getAuthUser();
-
 // ── Icon components ─────────────────────────────────────────────
 function MoonIcon() {
   return (
@@ -131,6 +131,15 @@ function ChevronUpDown() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.textSecond} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 15l5 5 5-5" /><path d="M7 9l5-5 5 5" />
+    </svg>
+  );
+}
+
+function SarSymbol({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 1124 1257" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+      <path d="M699.62,1113.02h0c-20.06,44.48-33.32,92.75-38.4,143.37l424.51-90.24c20.06-44.47,33.31-92.75,38.4-143.37l-424.51,90.24Z" />
+      <path d="M1085.73,895.8c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.33v-135.2l292.27-62.11c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.27V66.13c-50.67,28.45-95.67,66.32-132.25,110.99v403.35l-132.25,28.11V0c-50.67,28.44-95.67,66.32-132.25,110.99v525.69l-295.91,62.88c-20.06,44.47-33.33,92.75-38.42,143.37l334.33-71.05v170.26l-358.3,76.14c-20.06,44.47-33.32,92.75-38.4,143.37l375.04-79.7c30.53-6.35,56.77-24.4,73.83-49.24l68.78-101.97v-.02c7.14-10.55,11.3-23.27,11.3-36.97v-149.98l132.25-28.11v270.4l424.53-90.28Z" />
     </svg>
   );
 }
@@ -387,11 +396,17 @@ export default function DashboardPage() {
   });
   // const [showOnboarding, setShowOnboarding] = useState(true);
   // const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [showLocationMenu, setShowLocationMenu] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [dashboardLocations, setDashboardLocations] = useState<BusinessLocation[]>([]);
+  const userCurrency = typeof localStorage !== 'undefined' ? (localStorage.getItem('d2_currency') || 'SAR') : 'SAR';
+  const [perfTab, setPerfTab] = useState('overview');
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('d2_theme') as 'dark' | 'light') || 'light';
   });
   const [switching, setSwitching] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [authUser, setAuthUser] = useState(getAuthUser);
   const [sidebarLogoUrl, setSidebarLogoUrl] = useState('');
   const [sidebarBusinessName, setSidebarBusinessName] = useState('');
   const [sidebarLogoShape, setSidebarLogoShape] = useState<'square' | 'circle' | 'rectangle'>('square');
@@ -445,12 +460,65 @@ export default function DashboardPage() {
   const clockDate = clockNow.toLocaleDateString(clockLocale, { timeZone: userTimezone, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const clockTzLabel = userTimezone === 'UTC' ? 'UTC' : 'Riyadh (UTC+3)';
 
+  // ── Fetch business locations for dropdown ─────────────────────
+  useEffect(() => {
+    fetchBusinessLocations()
+      .then((locs) => {
+        setDashboardLocations(locs);
+        // Default to first location; owner can switch via dropdown
+        if (locs.length > 0) {
+          setSelectedLocation(locs[0].id);
+        }
+      })
+      .catch(() => { /* ignore — dropdown stays empty */ });
+  }, []);
+
   // ── Auth guard — same logic as Layout.tsx ──────────────────────
   useEffect(() => {
     const isAuthorized = (data: { posProduct?: { port: number } }) => {
       return data.posProduct?.port === APP_PORT;
     };
 
+    const logout = () => {
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.href = `${LANDING_URL}/${lang}/signin`;
+    };
+
+    // Validate stored token against backend (only for localStorage, not fresh hash auth)
+    const validateStoredToken = async (parsed: { accessToken?: string; refreshToken?: string }) => {
+      if (!parsed.accessToken) { logout(); return; }
+      try {
+        const res = await fetch(`${API_URL}/api/v1/users/me`, {
+          headers: { Authorization: `Bearer ${parsed.accessToken}` },
+        });
+        if (res.ok) { setAuthChecked(true); return; }
+        // Try refresh on 401
+        if (res.status === 401 && parsed.refreshToken) {
+          try {
+            const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: parsed.refreshToken }),
+            });
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              const updated = { ...parsed, accessToken: data.accessToken, refreshToken: data.refreshToken || parsed.refreshToken };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              setAuthUser(getAuthUser());
+              setAuthChecked(true);
+              return;
+            }
+          } catch { /* refresh failed */ }
+        }
+        // Token invalid and refresh failed — clear and redirect
+        logout();
+      } catch {
+        // Network error (backend down) — allow offline access
+        setAuthChecked(true);
+      }
+    };
+
+    // 1) Fresh auth from URL hash (just signed in — trust it, don't re-validate)
     const hashAuth = parseAuthFromHash();
     if (hashAuth) {
       if (!isAuthorized(hashAuth)) {
@@ -462,21 +530,22 @@ export default function DashboardPage() {
         return;
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(hashAuth));
+      setAuthUser(getAuthUser());
       setAuthChecked(true);
       return;
     }
 
+    // 2) Stored auth from localStorage (page refresh — validate against backend)
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.user) {
           if (!isAuthorized(parsed)) {
-            localStorage.removeItem(STORAGE_KEY);
-            window.location.href = `${LANDING_URL}/${lang}/signin`;
+            logout();
             return;
           }
-          setAuthChecked(true);
+          validateStoredToken(parsed);
           return;
         }
       }
@@ -1551,20 +1620,346 @@ export default function DashboardPage() {
               {pagePath === 'home' && (
                 <div style={{ padding: '30px 30px 60px 30px' }}>
                   {/* ── Page Header ── */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                    {/* Left: greeting */}
-                    <div>
-                      <h2 style={{ fontSize: 18, fontWeight: 600, color: C.textPrimary, margin: '0 0 4px 0' }}>
-                        {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
-                      </h2>
-                      <p style={{ fontSize: 13, color: C.textSecond, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {clockDate}
-                        <span style={{ fontSize: 3, color: C.textDim, lineHeight: 1 }}>●</span>
-                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{clockTime}</span>
-                      </p>
+                  <div style={{ marginBottom: 24, position: 'relative' }}>
+                    {/* Welcome back text */}
+                    <span style={{ fontSize: 13, color: C.textSecond }}>
+                      {t('dashboard.welcomeBack', { name: capitalize(authUser.firstName) || 'there' })}
+                    </span>
+
+                    {/* Today's overview — bold title */}
+                    <h2 style={{ fontSize: 20, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px 0' }}>
+                      {t('dashboard.todaysOverview')}
+                    </h2>
+                  </div>
+
+                  {/* ── Quick Stats Row: Gross sales | Total orders | Average ticket size ── */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, marginBottom: 20 }}>
+                    {[
+                      { key: 'grossSales', value: '140.00', isCurrency: true },
+                      { key: 'totalOrders', value: '4', isCurrency: false },
+                      { key: 'avgTicketSize', value: '35.00', isCurrency: true },
+                    ].map((stat, i) => (
+                      <div key={stat.key} style={{ display: 'flex', alignItems: 'flex-start' }}>
+                        {i > 0 && (
+                          <div style={{ width: 1, height: 36, background: C.divider, margin: '0 24px', flexShrink: 0 }} />
+                        )}
+                        <div>
+                          <div style={{ fontSize: 12, color: C.textDim, marginBottom: 4 }}>
+                            {t(`dashboard.${stat.key}`)}
+                          </div>
+                          <div style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {stat.isCurrency && (userCurrency === 'SAR' ? <SarSymbol size={18} color={C.textPrimary} /> : <span style={{ fontSize: 18 }}>$</span>)}
+                            {stat.value}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── Metric Cards Grid: 4 cards ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 24, background: isLight ? '#fff' : C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, overflow: 'hidden' }}>
+                    {[
+                      {
+                        key: 'totalOutstanding',
+                        value: '2,345,678', isCurrency: true,
+                        change: '+12.5%', changePositive: true,
+                        icon: (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        key: 'activeCampaigns',
+                        value: '24', isCurrency: false,
+                        change: '+3', changePositive: true,
+                        icon: (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        key: 'collectionsRate',
+                        value: '68%', isCurrency: false,
+                        change: '+5.2%', changePositive: true,
+                        icon: (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        key: 'avgDaysToPay',
+                        value: '12.3', isCurrency: false,
+                        change: '-2.1', changePositive: false,
+                        icon: (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                          </svg>
+                        ),
+                      },
+                    ].map((card, i) => (
+                      <div key={card.key} style={{
+                        padding: '18px 20px',
+                        borderLeft: i > 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none',
+                      }}>
+                        {/* Header: label + icon */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                          <span style={{ fontSize: 13, color: C.textSecond, fontWeight: 500 }}>
+                            {t(`dashboard.${card.key}`)}
+                          </span>
+                          <span style={{ opacity: 0.5 }}>{card.icon}</span>
+                        </div>
+                        {/* Value */}
+                        <div style={{ fontSize: 26, fontWeight: 700, color: C.textPrimary, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {card.isCurrency && (userCurrency === 'SAR' ? <SarSymbol size={20} color={C.textPrimary} /> : <span style={{ fontSize: 20 }}>$</span>)}
+                          {card.value}
+                        </div>
+                        {/* Change indicator */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={card.changePositive ? '#16a34a' : '#dc2626'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            {card.changePositive
+                              ? <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></>
+                              : <><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></>
+                            }
+                          </svg>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: card.changePositive ? '#16a34a' : '#dc2626' }}>
+                            {card.change} {t('dashboard.fromLastMonth')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── Filter bar: Location chip + Date chip + Tabs ── */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    marginBottom: 20, flexWrap: 'wrap',
+                  }}>
+                    {/* Location chip dropdown */}
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={() => setShowLocationMenu(prev => !prev)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '7px 14px',
+                          background: isLight ? '#f5f5f5' : C.hover,
+                          border: `1px solid ${C.cardBorder}`,
+                          borderRadius: 10,
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          color: C.textPrimary,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span style={{ color: C.textDim, fontWeight: 400 }}>{t('dashboard.location')}</span>
+                        <span style={{ fontWeight: 700 }}>
+                          {selectedLocation === 'all'
+                            ? t('dashboard.allLocations')
+                            : (dashboardLocations.find(l => l.id === selectedLocation)?.nickname
+                              || dashboardLocations.find(l => l.id === selectedLocation)?.businessName
+                              || dashboardLocations.find(l => l.id === selectedLocation)?.name
+                              || selectedLocation)}
+                        </span>
+                      </button>
+
+                      {showLocationMenu && (
+                        <>
+                          <div onClick={() => setShowLocationMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+                          <div style={{
+                            position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+                            minWidth: 200,
+                            background: isLight ? '#fff' : C.card,
+                            border: `1px solid ${C.cardBorder}`,
+                            borderRadius: 12,
+                            boxShadow: isLight ? '0 4px 24px rgba(0,0,0,0.10)' : '0 4px 24px rgba(0,0,0,0.3)',
+                            padding: 6,
+                            zIndex: 100,
+                          }}>
+                            {[
+                              ...(dashboardLocations.length > 1 ? [{ id: 'all', businessName: '', nickname: '', name: '' }] : []),
+                              ...dashboardLocations,
+                            ].map((loc) => {
+                              const isActive = selectedLocation === loc.id;
+                              return (
+                                <button
+                                  key={loc.id}
+                                  onClick={() => { setSelectedLocation(loc.id); setShowLocationMenu(false); }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    width: '100%',
+                                    padding: '9px 12px',
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    background: isActive ? (isLight ? `${C.accent}10` : `${C.accent}20`) : 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                    fontWeight: isActive ? 600 : 400,
+                                    color: isActive ? C.accent : C.textPrimary,
+                                    textAlign: 'start',
+                                    transition: 'background 0.15s',
+                                  }}
+                                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = C.hover; }}
+                                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                                >
+                                  {loc.id === 'all' ? t('dashboard.allLocations') : (loc.nickname || loc.businessName || loc.name)}
+                                  {isActive && (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Date chip */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '7px 14px',
+                      background: isLight ? '#f5f5f5' : C.hover,
+                      border: `1px solid ${C.cardBorder}`,
+                      borderRadius: 10,
+                      fontSize: 13,
+                      color: C.textPrimary,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <span style={{ color: C.textDim, fontWeight: 400 }}>{t('dashboard.date')}</span>
+                      <span style={{ fontWeight: 700 }}>
+                        {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+
+                    {/* Tabs: Overview / Profiles / Impressions / Leads */}
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 0,
+                      background: isLight ? '#f5f5f5' : C.hover,
+                      borderRadius: 10,
+                      padding: 3,
+                      marginLeft: 'auto',
+                    }}>
+                      {['overview', 'profiles', 'impressions', 'leads'].map((tab) => {
+                        const isActive = perfTab === tab;
+                        return (
+                          <button
+                            key={tab}
+                            onClick={() => setPerfTab(tab)}
+                            style={{
+                              padding: '7px 18px',
+                              borderRadius: 8,
+                              border: 'none',
+                              background: isActive ? (isLight ? '#fff' : C.card) : 'transparent',
+                              boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                              fontSize: 13,
+                              fontWeight: isActive ? 600 : 400,
+                              color: isActive ? C.textPrimary : C.textDim,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {t(`dashboard.${tab}`)}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
+                  {/* ── Performance Summary Card ── */}
+                  <div style={{
+                    background: isLight ? '#fff' : C.card,
+                    border: `1px solid ${C.cardBorder}`,
+                    borderRadius: 16,
+                    padding: '24px 28px',
+                    marginBottom: 20,
+                  }}>
+                    {/* Card header */}
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 4 }}>
+                        {t('dashboard.performanceSummary')}
+                      </div>
+                      <div style={{ fontSize: 13, color: C.textDim }}>
+                        {t('dashboard.performanceSummaryDesc')}
+                      </div>
+                    </div>
+
+                    {/* 3 metrics in a row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0 }}>
+                      {[
+                        {
+                          key: 'totalEngagement', value: '27,840',
+                          change: '7.4%', positive: true,
+                          // uptrend sparkline points
+                          points: 'M0,28 L8,24 L16,26 L24,18 L32,20 L40,14 L48,16 L56,8 L64,10 L72,4',
+                        },
+                        {
+                          key: 'followerGrowth', value: '2,859',
+                          change: '4.9%', positive: false,
+                          // downtrend sparkline points
+                          points: 'M0,8 L8,10 L16,6 L24,14 L32,12 L40,18 L48,16 L56,22 L64,20 L72,26',
+                        },
+                        {
+                          key: 'postsEngagement', value: '21,948',
+                          change: '11.7%', positive: true,
+                          // uptrend sparkline points
+                          points: 'M0,26 L8,24 L16,22 L24,20 L32,18 L40,14 L48,12 L56,8 L64,6 L72,4',
+                        },
+                      ].map((m, i, arr) => (
+                        <div key={m.key} style={{
+                          padding: i > 0 ? '0 24px' : '0 24px  0',
+                          borderLeft: i > 0 ? `1px solid ${isLight ? '#eee' : C.divider}` : 'none',
+                        }}>
+                          {/* Label */}
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, marginBottom: 10 }}>
+                            {t(`dashboard.${m.key}`)}
+                          </div>
+                          {/* Value + sparkline row */}
+                          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 28, fontWeight: 700, color: C.textPrimary, lineHeight: 1 }}>
+                              {m.value}
+                            </span>
+                            {/* Sparkline chart */}
+                            <svg width="72" height="32" viewBox="0 0 72 32" fill="none" style={{ flexShrink: 0 }}>
+                              <path
+                                d={m.points}
+                                stroke={m.positive ? '#22c55e' : '#ef4444'}
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                fill="none"
+                              />
+                            </svg>
+                          </div>
+                          {/* Change indicator */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="12" r="10" stroke={m.positive ? '#22c55e' : '#ef4444'} strokeWidth="2" />
+                              {m.positive
+                                ? <polyline points="8 13 12 9 16 13" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                : <polyline points="8 11 12 15 16 11" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                              }
+                            </svg>
+                            <span style={{ fontSize: 12, fontWeight: 500, color: m.positive ? '#22c55e' : '#ef4444' }}>
+                              {m.change}
+                            </span>
+                            <span style={{ fontSize: 12, color: C.textDim }}>
+                              {t('dashboard.thanLastMonth')}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Date & time */}
+                  <p style={{ fontSize: 13, color: C.textSecond, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {clockDate}
+                    <span style={{ fontSize: 3, color: C.textDim, lineHeight: 1 }}>●</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{clockTime}</span>
+                  </p>
                   {/* ── Onboarding: Getting Started Checklist (hidden for now) ── */}
                   {/* {showOnboarding && (() => {
                     const SETUP_STEPS = [
@@ -1903,8 +2298,8 @@ export default function DashboardPage() {
                 </div>
               )}
               {pagePath === 'settings/business/locations' && (
-                <div style={{ maxWidth: 700, padding: '30px 30px 60px 30px' }}>
-                  <SettingsLocationsContent C={C} isLight={isLight} />
+                <div style={{ maxWidth: 1000, padding: '30px 30px 60px 30px' }}>
+                  <LocationsSettings C={C} isLight={isLight} />
                 </div>
               )}
 
