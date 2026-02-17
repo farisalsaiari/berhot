@@ -53,7 +53,7 @@ function redirectToLogin() {
 
 let refreshPromise: Promise<string | null> | null = null;
 
-async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
