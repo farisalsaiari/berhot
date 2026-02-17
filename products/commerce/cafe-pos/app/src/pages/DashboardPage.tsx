@@ -403,6 +403,14 @@ export default function DashboardPage() {
   const [dashboardLocations, setDashboardLocations] = useState<BusinessLocation[]>([]);
   const userCurrency = typeof localStorage !== 'undefined' ? (localStorage.getItem('d2_currency') || 'SAR') : 'SAR';
   const [perfTab, setPerfTab] = useState('overview');
+  // ── Filter chip states ──
+  const [openChip, setOpenChip] = useState<'date' | 'vs' | 'bills' | null>(null);
+  const [filterDatePreset, setFilterDatePreset] = useState('today');
+  const [filterVs, setFilterVs] = useState('prior_day');
+  const [filterBills, setFilterBills] = useState('closed');
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [filterDate, setFilterDate] = useState(() => new Date());
+  const chipRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('d2_theme') as 'dark' | 'light') || 'light';
   });
@@ -448,6 +456,16 @@ export default function DashboardPage() {
   const sidebarIsDark = !isLight || effectiveDarkSidebar;
   const accentVisible = (effectiveAccent === '#000000' && sidebarIsDark) ? SC.textSecond : SC.accent;
   const accentVisibleMain = (effectiveAccent === '#000000' && !isLight) ? C.textSecond : C.accent;
+
+  // ── Close chip dropdown on outside click ──
+  useEffect(() => {
+    if (!openChip) return;
+    const handler = (e: MouseEvent) => {
+      if (chipRef.current && !chipRef.current.contains(e.target as Node)) setOpenChip(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openChip]);
 
   // ── Live clock (for home page) ─────────────────────────────────
   const userTimezone = (typeof localStorage !== 'undefined' && localStorage.getItem('d2_timezone')) || 'Asia/Riyadh';
@@ -2257,22 +2275,205 @@ export default function DashboardPage() {
                         <h3 style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, margin: '0 0 16px 0' }}>Performance</h3>
 
                         {/* Filter chips */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 8, marginBottom: 20 }}>
-                          {[
-                            { label: 'Date', value: `${new Date().getDate()} ${new Date().toLocaleString('en', { month: 'short' })}` },
-                            { label: 'vs', value: 'Prior to day' },
-                            { label: 'Bills', value: 'Closed' },
-                          ].map((chip) => (
-                            <div key={chip.label} style={{
-                              display: 'flex', alignItems: 'center', gap: 6,
-                              padding: '5px 10px', background: isLight ? '#f9fafb' : '#1d1d1d',
-                              border: `1px solid ${C.cardBorder}`, borderRadius: 8, fontSize: 13,
-                            }}>
-                              <span style={{ color: C.textDim }}>{chip.label}</span>
-                              <span style={{ fontWeight: 600, color: C.textPrimary }}>{chip.value}</span>
-                            </div>
-                          ))}
+                        {(() => {
+                          // ── helpers ──
+                          const fmtShort = (d: Date) => `${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`;
+                          const fmtFull = (d: Date) => `${d.toLocaleString('en', { weekday: 'short' })} ${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}`;
+                          const fmtFullYear = (d: Date) => `${d.getDate()} ${d.toLocaleString('en', { month: 'short' })} ${d.getFullYear()}`;
+                          const today = new Date();
+                          const dayOfWeek = today.getDay() || 7; // Mon=1..Sun=7
+
+                          // date preset labels
+                          const datePresets: { key: string; label: string }[] = [
+                            { key: 'today', label: 'Today' },
+                            { key: 'yesterday', label: 'Yesterday' },
+                            { key: 'this_week', label: 'This week' },
+                            { key: 'last_week', label: 'Last week' },
+                            { key: 'this_month', label: 'This month' },
+                            { key: 'last_month', label: 'Last month' },
+                            { key: 'this_year', label: 'This year' },
+                            { key: 'last_year', label: 'Last year' },
+                            { key: 'custom', label: 'Custom' },
+                          ];
+
+                          const dateChipLabel = (() => {
+                            const p = datePresets.find(p => p.key === filterDatePreset);
+                            if (filterDatePreset === 'custom') return fmtShort(filterDate);
+                            if (filterDatePreset === 'today') return fmtShort(today);
+                            if (filterDatePreset === 'yesterday') { const d = new Date(); d.setDate(d.getDate() - 1); return fmtShort(d); }
+                            return p?.label || fmtShort(today);
+                          })();
+
+                          // vs options
+                          const vsOpts: { key: string; label: string; date: string }[] = (() => {
+                            const prior = new Date(today); prior.setDate(prior.getDate() - 1);
+                            const priorWeek = new Date(today); priorWeek.setDate(priorWeek.getDate() - 7);
+                            const prior4w = new Date(today); prior4w.setDate(prior4w.getDate() - 28);
+                            const prior52w = new Date(today); prior52w.setDate(prior52w.getDate() - 364);
+                            const priorYear = new Date(today); priorYear.setFullYear(priorYear.getFullYear() - 1);
+                            return [
+                              { key: 'prior_day', label: 'Prior to day', date: fmtFull(prior) },
+                              { key: 'prior_week', label: `Prior to ${today.toLocaleString('en', { weekday: 'long' })}`, date: fmtFull(priorWeek) },
+                              { key: '4_weeks', label: '4 weeks prior', date: fmtFull(prior4w) },
+                              { key: '52_weeks', label: '52 weeks prior', date: fmtFullYear(prior52w) },
+                              { key: 'prior_year', label: 'Prior to year', date: fmtFullYear(priorYear) },
+                            ];
+                          })();
+
+                          const vsChipLabel = vsOpts.find(v => v.key === filterVs)?.label || 'Prior to day';
+                          const billsChipLabel = filterBills === 'all' ? 'All' : filterBills === 'open' ? 'Open' : 'Closed';
+
+                          // calendar helpers
+                          const calYear = calMonth.getFullYear();
+                          const calMon = calMonth.getMonth();
+                          const firstDay = new Date(calYear, calMon, 1);
+                          const startOff = (firstDay.getDay() || 7) - 1; // Mon=0
+                          const daysInMonth = new Date(calYear, calMon + 1, 0).getDate();
+                          const calWeeks: (number | null)[][] = [];
+                          let week: (number | null)[] = Array(startOff).fill(null);
+                          for (let d = 1; d <= daysInMonth; d++) {
+                            week.push(d);
+                            if (week.length === 7) { calWeeks.push(week); week = []; }
+                          }
+                          if (week.length > 0) { while (week.length < 7) week.push(null); calWeeks.push(week); }
+
+                          const chipStyle = (active: boolean): React.CSSProperties => ({
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '6px 12px', background: 'transparent',
+                            border: active ? `2px solid ${C.textPrimary}` : `1px solid ${C.cardBorder}`,
+                            borderRadius: 20, fontSize: 13, cursor: 'pointer',
+                            transition: 'border-color 0.15s',
+                          });
+
+                          const dropStyle: React.CSSProperties = {
+                            position: 'absolute', top: '100%', insetInlineStart: 0, marginTop: 6,
+                            background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14,
+                            boxShadow: '0 8px 30px rgba(0,0,0,0.12)', zIndex: 50,
+                            minWidth: 300, padding: '8px 0',
+                          };
+
+                          const optStyle = (active: boolean): React.CSSProperties => ({
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            width: '100%', padding: '12px 20px', border: 'none', cursor: 'pointer',
+                            background: active ? (isLight ? '#f5f5f5' : '#252525') : 'transparent',
+                            color: C.textPrimary, fontSize: 14, fontWeight: active ? 600 : 400,
+                            transition: 'background 0.1s', borderRadius: 0,
+                          });
+
+                          return (
+                        <div ref={chipRef} style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 8, marginBottom: 20, position: 'relative' }}>
+                          {/* ── DATE chip ── */}
+                          <div style={{ position: 'relative' }}>
+                            <button onClick={() => setOpenChip(openChip === 'date' ? null : 'date')} style={chipStyle(openChip === 'date')}>
+                              <span style={{ color: C.textDim }}>Date</span>
+                              <span style={{ fontWeight: 600, color: C.textPrimary }}>{dateChipLabel}</span>
+                            </button>
+                            {openChip === 'date' && (
+                              <div style={{ ...dropStyle, display: 'flex', minWidth: 520 }}>
+                                {/* Left: presets */}
+                                <div style={{ minWidth: 160, borderInlineEnd: `1px solid ${C.cardBorder}`, padding: '8px 0' }}>
+                                  {datePresets.map(p => (
+                                    <button key={p.key} onClick={() => { setFilterDatePreset(p.key); if (p.key !== 'custom') setOpenChip(null); }}
+                                      style={{ ...optStyle(filterDatePreset === p.key), padding: '10px 20px', fontSize: 13, justifyContent: 'flex-start' }}>
+                                      {p.label}
+                                    </button>
+                                  ))}
+                                </div>
+                                {/* Right: calendar */}
+                                <div style={{ flex: 1, padding: '12px 16px' }}>
+                                  {/* Month nav */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <button onClick={() => setCalMonth(new Date(calYear, calMon - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6, color: C.textSecond }}>
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                                    </button>
+                                    <span style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary }}>
+                                      {calMonth.toLocaleString('en', { month: 'short' })} {calYear}
+                                    </span>
+                                    <button onClick={() => setCalMonth(new Date(calYear, calMon + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 6, color: C.textSecond }}>
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                                    </button>
+                                  </div>
+                                  {/* Day headers */}
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: 4 }}>
+                                    {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
+                                      <div key={d} style={{ fontSize: 11, fontWeight: 600, color: C.textDim, padding: '4px 0' }}>{d}</div>
+                                    ))}
+                                  </div>
+                                  {/* Days */}
+                                  {calWeeks.map((wk, wi) => (
+                                    <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center' }}>
+                                      {wk.map((day, di) => {
+                                        if (!day) return <div key={di} />;
+                                        const isToday = day === today.getDate() && calMon === today.getMonth() && calYear === today.getFullYear();
+                                        const isSelected = day === filterDate.getDate() && calMon === filterDate.getMonth() && calYear === filterDate.getFullYear();
+                                        return (
+                                          <button key={di} onClick={() => {
+                                            setFilterDate(new Date(calYear, calMon, day));
+                                            setFilterDatePreset('custom');
+                                            setOpenChip(null);
+                                          }} style={{
+                                            width: 32, height: 32, margin: '1px auto', borderRadius: '50%', border: 'none', cursor: 'pointer',
+                                            background: isSelected ? C.textPrimary : 'transparent',
+                                            color: isSelected ? (isLight ? '#fff' : '#000') : isToday ? C.accent : C.textPrimary,
+                                            fontWeight: isToday || isSelected ? 700 : 400, fontSize: 13,
+                                            transition: 'background 0.1s',
+                                          }}>
+                                            {day}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* ── VS chip ── */}
+                          <div style={{ position: 'relative' }}>
+                            <button onClick={() => setOpenChip(openChip === 'vs' ? null : 'vs')} style={chipStyle(openChip === 'vs')}>
+                              <span style={{ color: C.textDim }}>vs</span>
+                              <span style={{ fontWeight: 600, color: C.textPrimary }}>{vsChipLabel}</span>
+                            </button>
+                            {openChip === 'vs' && (
+                              <div style={dropStyle}>
+                                {vsOpts.map((opt, i) => (
+                                  <div key={opt.key}>
+                                    <button onClick={() => { setFilterVs(opt.key); setOpenChip(null); }}
+                                      style={optStyle(filterVs === opt.key)}>
+                                      <span>{opt.label}</span>
+                                      <span style={{ color: C.textDim, fontSize: 13, fontWeight: 400 }}>{opt.date}</span>
+                                    </button>
+                                    {i < vsOpts.length - 1 && <div style={{ height: 1, background: C.divider, opacity: 0.3, margin: '0 16px' }} />}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* ── BILLS chip ── */}
+                          <div style={{ position: 'relative' }}>
+                            <button onClick={() => setOpenChip(openChip === 'bills' ? null : 'bills')} style={chipStyle(openChip === 'bills')}>
+                              <span style={{ color: C.textDim }}>Bills</span>
+                              <span style={{ fontWeight: 600, color: C.textPrimary }}>{billsChipLabel}</span>
+                            </button>
+                            {openChip === 'bills' && (
+                              <div style={{ ...dropStyle, minWidth: 180 }}>
+                                {(['all', 'open', 'closed'] as const).map((opt, i) => (
+                                  <div key={opt}>
+                                    <button onClick={() => { setFilterBills(opt); setOpenChip(null); }}
+                                      style={optStyle(filterBills === opt)}>
+                                      <span>{opt === 'all' ? 'All' : opt === 'open' ? 'Open' : 'Closed'}</span>
+                                    </button>
+                                    {i < 2 && <div style={{ height: 1, background: C.divider, opacity: 0.3, margin: '0 16px' }} />}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
+                          );
+                        })()}
 
                         {/* Net sales */}
                         <div style={{ marginBottom: 20 }}>
