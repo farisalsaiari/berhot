@@ -3,7 +3,7 @@ import SwiftUI
 struct CartView: View {
     @EnvironmentObject var cartManager: CartManager
     @StateObject private var viewModel = CartViewModel()
-    @State private var showCheckout = false
+    @State private var showPayment = false
 
     var body: some View {
         Group {
@@ -19,10 +19,10 @@ struct CartView: View {
                         // Cart items
                         ForEach(cartManager.items) { item in
                             CartItemRow(item: item) { newQty in
-                                cartManager.updateQuantity(productId: item.productId, quantity: newQty)
+                                cartManager.updateQuantity(id: item.id, quantity: newQty)
                             } onRemove: {
                                 withAnimation {
-                                    cartManager.removeItem(productId: item.productId)
+                                    cartManager.removeItem(id: item.id)
                                 }
                             }
                         }
@@ -30,6 +30,7 @@ struct CartView: View {
                         // Summary
                         VStack(spacing: 8) {
                             SummaryRow(label: "Subtotal", value: cartManager.subtotal.formattedCurrency)
+                            SummaryRow(label: "Delivery Fee", value: cartManager.deliveryFee.formattedCurrency)
                             SummaryRow(label: "Tax (15%)", value: cartManager.taxAmount.formattedCurrency)
                             Divider()
                             SummaryRow(label: "Total", value: cartManager.total.formattedCurrency, isBold: true)
@@ -43,10 +44,10 @@ struct CartView: View {
                 }
                 .overlay(alignment: .bottom) {
                     Button {
-                        showCheckout = true
+                        showPayment = true
                     } label: {
                         HStack {
-                            Text("Checkout")
+                            Text("Proceed to Payment")
                                 .font(.body.bold())
                             Spacer()
                             Text(cartManager.total.formattedCurrency)
@@ -73,8 +74,8 @@ struct CartView: View {
                 }
             }
         }
-        .sheet(isPresented: $showCheckout) {
-            CheckoutView(viewModel: viewModel)
+        .sheet(isPresented: $showPayment) {
+            PaymentView(viewModel: viewModel)
         }
     }
 }
@@ -86,14 +87,13 @@ struct CartItemRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Image placeholder
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.surfaceSecondary)
-                .frame(width: 60, height: 60)
-                .overlay {
-                    Image(systemName: "cup.and.saucer")
-                        .foregroundColor(.textTertiary)
-                }
+            // Product image (cached)
+            CachedAsyncImage(url: URL(string: item.imageUrl ?? "")) {
+                RoundedRectangle(cornerRadius: 10).fill(Color.surfaceSecondary)
+                    .overlay(Image(systemName: "cup.and.saucer").foregroundColor(.textTertiary))
+            }
+            .frame(width: 60, height: 60)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.productName)
@@ -101,7 +101,14 @@ struct CartItemRow: View {
                     .foregroundColor(.textPrimary)
                     .lineLimit(1)
 
-                Text(item.price.formattedCurrency)
+                if let summary = item.modifiersSummary {
+                    Text(summary)
+                        .font(.caption)
+                        .foregroundColor(.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Text(item.unitTotal.formattedCurrency)
                     .font(.caption)
                     .foregroundColor(.textSecondary)
 
@@ -115,7 +122,6 @@ struct CartItemRow: View {
 
             Spacer()
 
-            // Quantity controls
             HStack(spacing: 10) {
                 Button {
                     if item.quantity > 1 {

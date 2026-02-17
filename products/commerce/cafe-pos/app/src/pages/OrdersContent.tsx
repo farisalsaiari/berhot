@@ -168,7 +168,7 @@ export default function OrdersContent({ C, isLight, isMobile }: Props) {
                     <td style={{ padding: '14px 16px', color: C.textSecond }}>{order.customerName || '—'}</td>
                     <td style={{ padding: '14px 16px', color: C.textSecond, textTransform: 'capitalize' }}>{order.orderType}</td>
                     <td style={{ padding: '14px 16px', color: C.textSecond }}>{order.items?.length || 0}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: C.textPrimary }}>${order.totalAmount.toFixed(2)}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: C.textPrimary }}>${(order.totalAmount ?? 0).toFixed(2)}</td>
                     <td style={{ padding: '14px 16px' }}>{getStatusBadge(order.status)}</td>
                     <td style={{ padding: '14px 16px', color: C.textDim, fontSize: 13 }}>
                       {new Date(order.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -254,9 +254,9 @@ export default function OrdersContent({ C, isLight, isMobile }: Props) {
                     }}>
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 500, color: C.textPrimary, margin: 0 }}>{item.productName}</p>
-                        <span style={{ fontSize: 12, color: C.textDim }}>x{item.quantity} · ${item.unitPrice.toFixed(2)} ea</span>
+                        <span style={{ fontSize: 12, color: C.textDim }}>x{item.quantity} · ${(item.unitPrice ?? 0).toFixed(2)} ea</span>
                       </div>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>${item.totalPrice.toFixed(2)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>${(item.totalPrice ?? 0).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -265,23 +265,23 @@ export default function OrdersContent({ C, isLight, isMobile }: Props) {
                 <div style={{ padding: 14, background: isLight ? '#f9f9f9' : '#1a1a1a', borderRadius: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: C.textSecond }}>Subtotal</span>
-                    <span style={{ fontSize: 13, color: C.textPrimary }}>${selectedOrder.subtotal.toFixed(2)}</span>
+                    <span style={{ fontSize: 13, color: C.textPrimary }}>${(selectedOrder.subtotal ?? 0).toFixed(2)}</span>
                   </div>
                   {selectedOrder.taxAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 13, color: C.textSecond }}>Tax</span>
-                      <span style={{ fontSize: 13, color: C.textPrimary }}>${selectedOrder.taxAmount.toFixed(2)}</span>
+                      <span style={{ fontSize: 13, color: C.textPrimary }}>${(selectedOrder.taxAmount ?? 0).toFixed(2)}</span>
                     </div>
                   )}
                   {selectedOrder.discountAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 13, color: C.textSecond }}>Discount</span>
-                      <span style={{ fontSize: 13, color: '#22c55e' }}>-${selectedOrder.discountAmount.toFixed(2)}</span>
+                      <span style={{ fontSize: 13, color: '#22c55e' }}>-${(selectedOrder.discountAmount ?? 0).toFixed(2)}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: `1px solid ${C.cardBorder}` }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>Total</span>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>${selectedOrder.totalAmount.toFixed(2)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>${(selectedOrder.totalAmount ?? 0).toFixed(2)}</span>
                   </div>
                 </div>
 

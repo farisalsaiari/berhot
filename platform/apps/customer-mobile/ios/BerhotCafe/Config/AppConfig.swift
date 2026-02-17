@@ -4,7 +4,7 @@ enum AppConfig {
     // MARK: - API URLs
     #if DEBUG
     static let identityBaseURL = "http://localhost:8080"
-    static let posBaseURL = "http://localhost:8081"
+    static let posBaseURL = "http://localhost:8082"
     #else
     static let identityBaseURL = "https://api.berhot.com"
     static let posBaseURL = "https://pos.berhot.com"

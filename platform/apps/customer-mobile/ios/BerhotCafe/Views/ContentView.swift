@@ -1,32 +1,52 @@
 import SwiftUI
+import AppTrackingTransparency
+import UserNotifications
 
-enum SplashPhase {
-    case brand      // Full-screen brand splash (like Zomato)
-    case spinner    // Logo + spinner loading
-    case ready      // App is ready, show auth or main
+// MARK: - App Flow Phases
+enum AppPhase: Equatable {
+    case splash           // Brand + spinner (single persistent view)
+    case permissions      // ATT → Notifications → Location (system dialogs)
+    case intro            // Onboarding (first launch only)
+    case ready            // Auth or Main app
+}
+
+enum PermissionStep: Equatable {
+    case tracking
+    case notifications
+    case location
+    case done
 }
 
 struct ContentView: View {
     @EnvironmentObject var authManager: AuthManager
-    @State private var splashPhase: SplashPhase = .brand
+    @State private var phase: AppPhase = .splash
+    @State private var showSpinner = false
+    @State private var permissionStep: PermissionStep = .tracking
     @State private var locationComplete = false
 
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @ObservedObject private var locManager = LocationManager.shared
+
     private var needsLocation: Bool {
-        // Show location flow if user is authenticated but hasn't saved an address
         authManager.isAuthenticated && !locationComplete &&
-            UserDefaults.standard.string(forKey: "berhot_saved_address") == nil
+            UserDefaults.standard.string(forKey: "berhot_saved_address") == nil &&
+            locManager.address.isEmpty
     }
 
     var body: some View {
         ZStack {
-            switch splashPhase {
-            case .brand:
-                BrandSplashView()
-                    .transition(.opacity)
+            switch phase {
+            case .splash, .permissions:
+                SplashView(showSpinner: showSpinner)
 
-            case .spinner:
-                SpinnerSplashView()
-                    .transition(.opacity)
+            case .intro:
+                IntroView {
+                    hasSeenOnboarding = true
+                    withAnimation(.easeInOut(duration: 0.4)) {
+                        phase = .ready
+                    }
+                }
+                .transition(.opacity)
 
             case .ready:
                 if authManager.isAuthenticated {
@@ -43,66 +63,130 @@ struct ContentView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.4), value: splashPhase == .brand)
-        .animation(.easeInOut(duration: 0.4), value: splashPhase == .spinner)
+        .animation(.easeInOut(duration: 0.4), value: phase)
         .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
         .animation(.easeInOut(duration: 0.3), value: locationComplete)
         .onAppear {
             startSplashSequence()
         }
+        .onChange(of: phase) { newPhase in
+            if newPhase == .permissions {
+                startPermissionFlow()
+            }
+        }
     }
 
+    // MARK: - Splash Sequence
+
     private func startSplashSequence() {
-        // Phase 1: Brand splash for 1.5s
+        // Show brand text for 1.5s, then swap to spinner
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation {
-                splashPhase = .spinner
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showSpinner = true
             }
 
-            // Phase 2: Spinner for 1.5s (or until auth check completes)
+            // Spinner for 1.5s, then move to permissions
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation {
-                    splashPhase = .ready
+                phase = .permissions
+            }
+        }
+    }
+
+    // MARK: - Permission Flow (sequential system dialogs)
+
+    private func startPermissionFlow() {
+        permissionStep = .tracking
+        requestTracking()
+    }
+
+    private func requestTracking() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            ATTrackingManager.requestTrackingAuthorization { _ in
+                DispatchQueue.main.async {
+                    permissionStep = .notifications
+                    requestNotifications()
                 }
+            }
+        }
+    }
+
+    private func requestNotifications() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in
+            DispatchQueue.main.async {
+                permissionStep = .location
+                requestLocationPermission()
+            }
+        }
+    }
+
+    private func requestLocationPermission() {
+        LocationManager.shared.requestPermission()
+        observeLocationAuth()
+    }
+
+    private func observeLocationAuth() {
+        let startTime = Date()
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            let status = LocationManager.shared.authorizationStatus
+            let elapsed = Date().timeIntervalSince(startTime)
+
+            if status != .notDetermined || elapsed > 30 {
+                timer.invalidate()
+                DispatchQueue.main.async {
+                    permissionStep = .done
+                    moveToNextPhase()
+                }
+            }
+        }
+    }
+
+    private func moveToNextPhase() {
+        withAnimation(.easeInOut(duration: 0.4)) {
+            if !hasSeenOnboarding {
+                phase = .intro
+            } else {
+                phase = .ready
             }
         }
     }
 }
 
-// MARK: - Phase 1: Brand Splash (Zomato-style)
-struct BrandSplashView: View {
+// MARK: - Unified Splash View (no flash between states)
+struct SplashView: View {
+    var showSpinner: Bool
     @State private var logoScale: CGFloat = 0.8
     @State private var logoOpacity: Double = 0
 
     var body: some View {
         ZStack {
-            // Full-screen brand color background
+            // Persistent blue background — never re-renders
             Color(hex: "2563eb")
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                // Berhot logo shape — white on blue
+            VStack(spacing: 14) {
                 BerhotLogoShape()
                     .fill(Color.white)
-                    .frame(width: 120, height: 120)
+                    .frame(width: 70, height: 70)
 
-                // Brand name
-                Text("berhot")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .tracking(-1)
+                // Cross-fade between text and spinner
+                ZStack {
+                    if !showSpinner {
+                        Text("berhot")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.85))
+                            .tracking(-0.3)
+                            .transition(.opacity)
+                    }
 
-                // Divider line
-                Rectangle()
-                    .fill(Color.white.opacity(0.3))
-                    .frame(width: 180, height: 1.5)
-                    .padding(.top, 4)
-
-                // Tagline
-                Text("A BERHOT PLATFORM")
-                    .font(.system(size: 14, weight: .semibold, design: .default))
-                    .foregroundColor(.white.opacity(0.7))
-                    .tracking(3)
+                    if showSpinner {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.1)
+                            .transition(.opacity)
+                    }
+                }
+                .frame(height: 24)
+                .animation(.easeInOut(duration: 0.3), value: showSpinner)
             }
             .scaleEffect(logoScale)
             .opacity(logoOpacity)
@@ -111,37 +195,6 @@ struct BrandSplashView: View {
             withAnimation(.easeOut(duration: 0.6)) {
                 logoScale = 1.0
                 logoOpacity = 1.0
-            }
-        }
-    }
-}
-
-// MARK: - Phase 2: Spinner Splash
-struct SpinnerSplashView: View {
-    @State private var isSpinning = false
-
-    var body: some View {
-        ZStack {
-            // Same brand background
-            Color(hex: "2563eb")
-                .ignoresSafeArea()
-
-            VStack(spacing: 30) {
-                // Smaller logo
-                BerhotLogoShape()
-                    .fill(Color.white)
-                    .frame(width: 70, height: 70)
-
-                Text("berhot")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .tracking(-0.5)
-
-                // Spinner
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.3)
-                    .padding(.top, 10)
             }
         }
     }

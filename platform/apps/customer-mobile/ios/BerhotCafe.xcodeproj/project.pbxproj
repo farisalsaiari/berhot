@@ -18,15 +18,21 @@
 		643FEE1D7953D1452F8B4438 /* AuthResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C244CCF02573C2FFB2C26B2 /* AuthResponse.swift */; };
 		DDF687C3332B9DB36DACF070 /* CartItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128A2914DDC395634B0786DF /* CartItem.swift */; };
 		F7F376E94E03C8CAEE80FACB /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9306D9EECCB4434BB0D555F2 /* Category.swift */; };
+		63A48E08727E32260A25BD1E /* Modifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABFEA942A7926E204F1892E6 /* Modifier.swift */; };
 		795D6F9044583344576A23A0 /* Order.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00358620586395B826B6605 /* Order.swift */; };
 		46F7F3E5DD1B8C2E92AC9664 /* Payment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AAA24FE5EFA833E1BBD26D /* Payment.swift */; };
 		5461B0DC1615D05FA01ABA6D /* Product.swift in Sources */ = {isa = PBXBuildFile; fileRef = E259C3E24E4EF6392183BE96 /* Product.swift */; };
+		B78FAF1E57B7A0420A573C5F /* Review.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB53486AEEF51CC9E4AB003 /* Review.swift */; };
+		F525AB613F4BC576E5095EFB /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2018CC3437D66DC27E40778E /* Store.swift */; };
 		3AEF2BB9924F8FB21F56750C /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD37A55BD50BAA0D4308C70 /* User.swift */; };
 		1CEA595B4C43C46542716515 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59FFCCA139C4697C8D64B82 /* APIClient.swift */; };
 		1E729474EBA062A8F407711C /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C596E48379E27008DD3698BD /* AuthService.swift */; };
+		11D0A46DF41CCAF0E5F6A53D /* ModifierService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E82A92057D6102B5025CD8 /* ModifierService.swift */; };
 		D869F3F48B7A3C933D4D046E /* OrderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA54B5851B67C4DE0B9BFD5A /* OrderService.swift */; };
 		F70FF0FB41AED23F6D33666E /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 828244B76A02FECC6113EA17 /* PaymentService.swift */; };
 		11E80D1577BC2C8B37747A9E /* ProductService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA4D447DE9144A918D54372 /* ProductService.swift */; };
+		6EDB49824164439C8189D1B3 /* ReviewService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0584FC333FC6CB0311C7C06D /* ReviewService.swift */; };
+		69A1DF7A1DCE28AD680FD0EE /* StoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F0807B6CA321B6B498F8D2B /* StoreService.swift */; };
 		3B4606645C91BE9C413502F3 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31A706A2D5DD3A7E2FED705 /* UserService.swift */; };
 		214C3EF5D682EE4738E231E4 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61493CE9A25699DD55794A7 /* KeychainHelper.swift */; };
 		EB60C02B099791DDB6423F76 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D87A9F97AF01D20885094A5 /* AuthViewModel.swift */; };
@@ -41,6 +47,7 @@
 		B64CFA09D74FB4B2A17F1C2B /* CartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B93F1136079899948652EC7 /* CartView.swift */; };
 		92AD37A9106013F7374C08E1 /* CheckoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C302F800F464ADC5C8FB5B6 /* CheckoutView.swift */; };
 		E60F9BA06F78FC92EDE66E47 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41C152B1A8FD778C9D2BD8C9 /* ContentView.swift */; };
+		C1EFD17F7B425D284E5CEE56 /* HomeSkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 938697E55164D3EEABF9C92A /* HomeSkeletonView.swift */; };
 		E61387B7CD7C443EAB0B5B77 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2331262B64127202F34250 /* HomeView.swift */; };
 		CD4ABF69140230AB3D20FD21 /* AddressSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698A48ABD81B3F875A973A17 /* AddressSearchView.swift */; };
 		F1B1AD71862423094EF5B8D1 /* LocationFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02EE61B1B005DD0891CB7195 /* LocationFlowView.swift */; };
@@ -50,15 +57,21 @@
 		CBA2137338010AFB7E186A7F /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42915F11E9BE253DCE947D2 /* MenuView.swift */; };
 		C672A69DAF23288062DA72A5 /* ProductCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0465A4296FABB77A8F3FC0D /* ProductCardView.swift */; };
 		D3403283273F37F86F1E0A3B /* ProductDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72BA4C6FA93B4EA89D664849 /* ProductDetailView.swift */; };
+		ED92B5F8BF469E37A16B2899 /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44CD2F56404667AE8CD2524D /* IntroView.swift */; };
+		E33E7E3DE6314FC3E5362D19 /* OrderConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BDF7F0029126263ED71B58 /* OrderConfirmationView.swift */; };
 		6BDCB1F7B0193C75BE9CF8A9 /* OrderDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A86E3F1844996A3714C6D110 /* OrderDetailView.swift */; };
 		2E0FDB824CDE5E9BB0BECBC7 /* OrderHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 626920F2D42F3B726C4596FE /* OrderHistoryView.swift */; };
 		C3FDACD0424499F5714AB3D7 /* OrderTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F558F4086BA69337AD9F199D /* OrderTrackingView.swift */; };
+		ADF5F413AC35C523C9271BE5 /* PaymentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCABAE7FF073A15248FA6BCF /* PaymentView.swift */; };
 		32B8D8814BF4F1048D0786F8 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA8C920021640E3EBBDF4E34 /* EditProfileView.swift */; };
 		18DB61539E342217D751CECB /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4906DA0B67854FE4380E8D89 /* ProfileView.swift */; };
+		C9BDAFD6AA859FAA6D9698E0 /* RateOrderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C89DF2E6E615AA143F5C8F3D /* RateOrderView.swift */; };
 		D6E2B2D7A5631C9AC708F3C1 /* BerhotLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668E5C790F7388E9E5C6D225 /* BerhotLogoView.swift */; };
+		3C133BA9FCE5914F3783961D /* CachedAsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836858DC94A7F59BFC928727 /* CachedAsyncImage.swift */; };
 		EB86CD775418C0816BE6F8C6 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C32B43634EF8C19C944AF9BE /* EmptyStateView.swift */; };
 		9E3A2CCE9BD0ECD61BDF94FB /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76428772AD31B72A1E653036 /* ErrorView.swift */; };
 		29DC0FFD2ACDE8BFD533558A /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156E308FB78D658156AAB425 /* LoadingView.swift */; };
+		BC7A9DEEDA6373966C23D02B /* ShimmerEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84181BA89DEAE9D6443043D3 /* ShimmerEffect.swift */; };
 		7FD1CAAFD63B63ADE1BEFB30 /* StatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 797A2F54DC2EEA840A28DA6A /* StatusBadge.swift */; };
 		8875112C0BBF57B4D1A26581 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B20B5D4D9095A21774F4105A /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -75,15 +88,21 @@
 		2C244CCF02573C2FFB2C26B2 /* AuthResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthResponse.swift"; sourceTree = "<group>"; };
 		128A2914DDC395634B0786DF /* CartItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CartItem.swift"; sourceTree = "<group>"; };
 		9306D9EECCB4434BB0D555F2 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Category.swift"; sourceTree = "<group>"; };
+		ABFEA942A7926E204F1892E6 /* Modifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Modifier.swift"; sourceTree = "<group>"; };
 		E00358620586395B826B6605 /* Order.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Order.swift"; sourceTree = "<group>"; };
 		11AAA24FE5EFA833E1BBD26D /* Payment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Payment.swift"; sourceTree = "<group>"; };
 		E259C3E24E4EF6392183BE96 /* Product.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Product.swift"; sourceTree = "<group>"; };
+		ACB53486AEEF51CC9E4AB003 /* Review.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Review.swift"; sourceTree = "<group>"; };
+		2018CC3437D66DC27E40778E /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Store.swift"; sourceTree = "<group>"; };
 		0BD37A55BD50BAA0D4308C70 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "User.swift"; sourceTree = "<group>"; };
 		C59FFCCA139C4697C8D64B82 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIClient.swift"; sourceTree = "<group>"; };
 		C596E48379E27008DD3698BD /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthService.swift"; sourceTree = "<group>"; };
+		80E82A92057D6102B5025CD8 /* ModifierService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ModifierService.swift"; sourceTree = "<group>"; };
 		EA54B5851B67C4DE0B9BFD5A /* OrderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrderService.swift"; sourceTree = "<group>"; };
 		828244B76A02FECC6113EA17 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaymentService.swift"; sourceTree = "<group>"; };
 		5AA4D447DE9144A918D54372 /* ProductService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProductService.swift"; sourceTree = "<group>"; };
+		0584FC333FC6CB0311C7C06D /* ReviewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReviewService.swift"; sourceTree = "<group>"; };
+		3F0807B6CA321B6B498F8D2B /* StoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StoreService.swift"; sourceTree = "<group>"; };
 		E31A706A2D5DD3A7E2FED705 /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserService.swift"; sourceTree = "<group>"; };
 		F61493CE9A25699DD55794A7 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeychainHelper.swift"; sourceTree = "<group>"; };
 		6D87A9F97AF01D20885094A5 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthViewModel.swift"; sourceTree = "<group>"; };
@@ -98,6 +117,7 @@
 		2B93F1136079899948652EC7 /* CartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CartView.swift"; sourceTree = "<group>"; };
 		8C302F800F464ADC5C8FB5B6 /* CheckoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CheckoutView.swift"; sourceTree = "<group>"; };
 		41C152B1A8FD778C9D2BD8C9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView.swift"; sourceTree = "<group>"; };
+		938697E55164D3EEABF9C92A /* HomeSkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeSkeletonView.swift"; sourceTree = "<group>"; };
 		DD2331262B64127202F34250 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeView.swift"; sourceTree = "<group>"; };
 		698A48ABD81B3F875A973A17 /* AddressSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AddressSearchView.swift"; sourceTree = "<group>"; };
 		02EE61B1B005DD0891CB7195 /* LocationFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LocationFlowView.swift"; sourceTree = "<group>"; };
@@ -107,15 +127,21 @@
 		B42915F11E9BE253DCE947D2 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MenuView.swift"; sourceTree = "<group>"; };
 		C0465A4296FABB77A8F3FC0D /* ProductCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProductCardView.swift"; sourceTree = "<group>"; };
 		72BA4C6FA93B4EA89D664849 /* ProductDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProductDetailView.swift"; sourceTree = "<group>"; };
+		44CD2F56404667AE8CD2524D /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IntroView.swift"; sourceTree = "<group>"; };
+		54BDF7F0029126263ED71B58 /* OrderConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrderConfirmationView.swift"; sourceTree = "<group>"; };
 		A86E3F1844996A3714C6D110 /* OrderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrderDetailView.swift"; sourceTree = "<group>"; };
 		626920F2D42F3B726C4596FE /* OrderHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrderHistoryView.swift"; sourceTree = "<group>"; };
 		F558F4086BA69337AD9F199D /* OrderTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrderTrackingView.swift"; sourceTree = "<group>"; };
+		FCABAE7FF073A15248FA6BCF /* PaymentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaymentView.swift"; sourceTree = "<group>"; };
 		CA8C920021640E3EBBDF4E34 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditProfileView.swift"; sourceTree = "<group>"; };
 		4906DA0B67854FE4380E8D89 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileView.swift"; sourceTree = "<group>"; };
+		C89DF2E6E615AA143F5C8F3D /* RateOrderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RateOrderView.swift"; sourceTree = "<group>"; };
 		668E5C790F7388E9E5C6D225 /* BerhotLogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BerhotLogoView.swift"; sourceTree = "<group>"; };
+		836858DC94A7F59BFC928727 /* CachedAsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CachedAsyncImage.swift"; sourceTree = "<group>"; };
 		C32B43634EF8C19C944AF9BE /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EmptyStateView.swift"; sourceTree = "<group>"; };
 		76428772AD31B72A1E653036 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ErrorView.swift"; sourceTree = "<group>"; };
 		156E308FB78D658156AAB425 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LoadingView.swift"; sourceTree = "<group>"; };
+		84181BA89DEAE9D6443043D3 /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShimmerEffect.swift"; sourceTree = "<group>"; };
 		797A2F54DC2EEA840A28DA6A /* StatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StatusBadge.swift"; sourceTree = "<group>"; };
 		71CCD365E3A654DA84DBA191 /* BerhotCafe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BerhotCafe.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20B5D4D9095A21774F4105A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Assets.xcassets"; sourceTree = "<group>"; };
@@ -199,9 +225,12 @@
 				2C244CCF02573C2FFB2C26B2 /* AuthResponse.swift */,
 				128A2914DDC395634B0786DF /* CartItem.swift */,
 				9306D9EECCB4434BB0D555F2 /* Category.swift */,
+				ABFEA942A7926E204F1892E6 /* Modifier.swift */,
 				E00358620586395B826B6605 /* Order.swift */,
 				11AAA24FE5EFA833E1BBD26D /* Payment.swift */,
 				E259C3E24E4EF6392183BE96 /* Product.swift */,
+				ACB53486AEEF51CC9E4AB003 /* Review.swift */,
+				2018CC3437D66DC27E40778E /* Store.swift */,
 				0BD37A55BD50BAA0D4308C70 /* User.swift */,
 			);
 			path = "Models";
@@ -212,9 +241,12 @@
 			children = (
 				C59FFCCA139C4697C8D64B82 /* APIClient.swift */,
 				C596E48379E27008DD3698BD /* AuthService.swift */,
+				80E82A92057D6102B5025CD8 /* ModifierService.swift */,
 				EA54B5851B67C4DE0B9BFD5A /* OrderService.swift */,
 				828244B76A02FECC6113EA17 /* PaymentService.swift */,
 				5AA4D447DE9144A918D54372 /* ProductService.swift */,
+				0584FC333FC6CB0311C7C06D /* ReviewService.swift */,
+				3F0807B6CA321B6B498F8D2B /* StoreService.swift */,
 				E31A706A2D5DD3A7E2FED705 /* UserService.swift */,
 			);
 			path = "Services";
@@ -251,8 +283,11 @@
 				288D4224109C7B79310D27CC /* Location */,
 				1432FF46B6A1D9A00C467913 /* MainTabView.swift */,
 				9D12FCC658184BA802F0AE6B /* Menu */,
+				7D47197A2AA59BAC1CC62CEB /* Onboarding */,
 				0151C68F0ED468E49C44DDA8 /* Orders */,
+				C529F83949CE5E66993974AC /* Payment */,
 				A2A25AA19F975D2D05988323 /* Profile */,
+				CBE47BD59751A7163015CA41 /* Reviews */,
 				92D8F2723984F896E2913583 /* Shared */,
 			);
 			path = "Views";
@@ -280,6 +315,7 @@
 		8F794125860253AC5D8DC549 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				938697E55164D3EEABF9C92A /* HomeSkeletonView.swift */,
 				DD2331262B64127202F34250 /* HomeView.swift */,
 			);
 			path = "Home";
@@ -306,14 +342,31 @@
 			path = "Menu";
 			sourceTree = "<group>";
 		};
+		7D47197A2AA59BAC1CC62CEB /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				44CD2F56404667AE8CD2524D /* IntroView.swift */,
+			);
+			path = "Onboarding";
+			sourceTree = "<group>";
+		};
 		0151C68F0ED468E49C44DDA8 /* Orders */ = {
 			isa = PBXGroup;
 			children = (
+				54BDF7F0029126263ED71B58 /* OrderConfirmationView.swift */,
 				A86E3F1844996A3714C6D110 /* OrderDetailView.swift */,
 				626920F2D42F3B726C4596FE /* OrderHistoryView.swift */,
 				F558F4086BA69337AD9F199D /* OrderTrackingView.swift */,
 			);
 			path = "Orders";
+			sourceTree = "<group>";
+		};
+		C529F83949CE5E66993974AC /* Payment */ = {
+			isa = PBXGroup;
+			children = (
+				FCABAE7FF073A15248FA6BCF /* PaymentView.swift */,
+			);
+			path = "Payment";
 			sourceTree = "<group>";
 		};
 		A2A25AA19F975D2D05988323 /* Profile */ = {
@@ -325,13 +378,23 @@
 			path = "Profile";
 			sourceTree = "<group>";
 		};
+		CBE47BD59751A7163015CA41 /* Reviews */ = {
+			isa = PBXGroup;
+			children = (
+				C89DF2E6E615AA143F5C8F3D /* RateOrderView.swift */,
+			);
+			path = "Reviews";
+			sourceTree = "<group>";
+		};
 		92D8F2723984F896E2913583 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
 				668E5C790F7388E9E5C6D225 /* BerhotLogoView.swift */,
+				836858DC94A7F59BFC928727 /* CachedAsyncImage.swift */,
 				C32B43634EF8C19C944AF9BE /* EmptyStateView.swift */,
 				76428772AD31B72A1E653036 /* ErrorView.swift */,
 				156E308FB78D658156AAB425 /* LoadingView.swift */,
+				84181BA89DEAE9D6443043D3 /* ShimmerEffect.swift */,
 				797A2F54DC2EEA840A28DA6A /* StatusBadge.swift */,
 			);
 			path = "Shared";
@@ -412,15 +475,21 @@
 				643FEE1D7953D1452F8B4438 /* AuthResponse.swift in Sources */,
 				DDF687C3332B9DB36DACF070 /* CartItem.swift in Sources */,
 				F7F376E94E03C8CAEE80FACB /* Category.swift in Sources */,
+				63A48E08727E32260A25BD1E /* Modifier.swift in Sources */,
 				795D6F9044583344576A23A0 /* Order.swift in Sources */,
 				46F7F3E5DD1B8C2E92AC9664 /* Payment.swift in Sources */,
 				5461B0DC1615D05FA01ABA6D /* Product.swift in Sources */,
+				B78FAF1E57B7A0420A573C5F /* Review.swift in Sources */,
+				F525AB613F4BC576E5095EFB /* Store.swift in Sources */,
 				3AEF2BB9924F8FB21F56750C /* User.swift in Sources */,
 				1CEA595B4C43C46542716515 /* APIClient.swift in Sources */,
 				1E729474EBA062A8F407711C /* AuthService.swift in Sources */,
+				11D0A46DF41CCAF0E5F6A53D /* ModifierService.swift in Sources */,
 				D869F3F48B7A3C933D4D046E /* OrderService.swift in Sources */,
 				F70FF0FB41AED23F6D33666E /* PaymentService.swift in Sources */,
 				11E80D1577BC2C8B37747A9E /* ProductService.swift in Sources */,
+				6EDB49824164439C8189D1B3 /* ReviewService.swift in Sources */,
+				69A1DF7A1DCE28AD680FD0EE /* StoreService.swift in Sources */,
 				3B4606645C91BE9C413502F3 /* UserService.swift in Sources */,
 				214C3EF5D682EE4738E231E4 /* KeychainHelper.swift in Sources */,
 				EB60C02B099791DDB6423F76 /* AuthViewModel.swift in Sources */,
@@ -435,6 +504,7 @@
 				B64CFA09D74FB4B2A17F1C2B /* CartView.swift in Sources */,
 				92AD37A9106013F7374C08E1 /* CheckoutView.swift in Sources */,
 				E60F9BA06F78FC92EDE66E47 /* ContentView.swift in Sources */,
+				C1EFD17F7B425D284E5CEE56 /* HomeSkeletonView.swift in Sources */,
 				E61387B7CD7C443EAB0B5B77 /* HomeView.swift in Sources */,
 				CD4ABF69140230AB3D20FD21 /* AddressSearchView.swift in Sources */,
 				F1B1AD71862423094EF5B8D1 /* LocationFlowView.swift in Sources */,
@@ -444,15 +514,21 @@
 				CBA2137338010AFB7E186A7F /* MenuView.swift in Sources */,
 				C672A69DAF23288062DA72A5 /* ProductCardView.swift in Sources */,
 				D3403283273F37F86F1E0A3B /* ProductDetailView.swift in Sources */,
+				ED92B5F8BF469E37A16B2899 /* IntroView.swift in Sources */,
+				E33E7E3DE6314FC3E5362D19 /* OrderConfirmationView.swift in Sources */,
 				6BDCB1F7B0193C75BE9CF8A9 /* OrderDetailView.swift in Sources */,
 				2E0FDB824CDE5E9BB0BECBC7 /* OrderHistoryView.swift in Sources */,
 				C3FDACD0424499F5714AB3D7 /* OrderTrackingView.swift in Sources */,
+				ADF5F413AC35C523C9271BE5 /* PaymentView.swift in Sources */,
 				32B8D8814BF4F1048D0786F8 /* EditProfileView.swift in Sources */,
 				18DB61539E342217D751CECB /* ProfileView.swift in Sources */,
+				C9BDAFD6AA859FAA6D9698E0 /* RateOrderView.swift in Sources */,
 				D6E2B2D7A5631C9AC708F3C1 /* BerhotLogoView.swift in Sources */,
+				3C133BA9FCE5914F3783961D /* CachedAsyncImage.swift in Sources */,
 				EB86CD775418C0816BE6F8C6 /* EmptyStateView.swift in Sources */,
 				9E3A2CCE9BD0ECD61BDF94FB /* ErrorView.swift in Sources */,
 				29DC0FFD2ACDE8BFD533558A /* LoadingView.swift in Sources */,
+				BC7A9DEEDA6373966C23D02B /* ShimmerEffect.swift in Sources */,
 				7FD1CAAFD63B63ADE1BEFB30 /* StatusBadge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

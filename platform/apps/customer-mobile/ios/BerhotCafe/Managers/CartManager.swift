@@ -19,6 +19,8 @@ class CartManager: ObservableObject {
         items.reduce(0) { $0 + $1.totalPrice }
     }
 
+    var deliveryFee: Double { 5.0 }
+
     var taxRate: Double { 0.15 } // 15% VAT
 
     var taxAmount: Double {
@@ -26,40 +28,43 @@ class CartManager: ObservableObject {
     }
 
     var total: Double {
-        subtotal + taxAmount
+        subtotal + taxAmount + deliveryFee
     }
 
     var isEmpty: Bool {
         items.isEmpty
     }
 
-    func addItem(product: Product, quantity: Int = 1, notes: String? = nil) {
-        if let index = items.firstIndex(where: { $0.productId == product.id }) {
+    func addItem(product: Product, quantity: Int = 1, notes: String? = nil, modifiers: [SelectedModifier] = []) {
+        let newItem = CartItem(
+            productId: product.id,
+            productName: product.name,
+            price: product.price,
+            quantity: quantity,
+            notes: notes,
+            imageUrl: product.imageUrl,
+            modifiers: modifiers
+        )
+
+        // Match by composite ID (productId + modifiers)
+        if let index = items.firstIndex(where: { $0.id == newItem.id }) {
             items[index].quantity += quantity
             if let notes = notes {
                 items[index].notes = notes
             }
         } else {
-            let item = CartItem(
-                productId: product.id,
-                productName: product.name,
-                price: product.price,
-                quantity: quantity,
-                notes: notes,
-                imageUrl: product.imageUrl
-            )
-            items.append(item)
+            items.append(newItem)
         }
         saveToStorage()
     }
 
-    func removeItem(productId: String) {
-        items.removeAll { $0.productId == productId }
+    func removeItem(id: String) {
+        items.removeAll { $0.id == id }
         saveToStorage()
     }
 
-    func updateQuantity(productId: String, quantity: Int) {
-        if let index = items.firstIndex(where: { $0.productId == productId }) {
+    func updateQuantity(id: String, quantity: Int) {
+        if let index = items.firstIndex(where: { $0.id == id }) {
             if quantity <= 0 {
                 items.remove(at: index)
             } else {

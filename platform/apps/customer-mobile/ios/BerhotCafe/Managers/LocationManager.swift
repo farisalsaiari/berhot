@@ -66,6 +66,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 city = pm.locality ?? pm.administrativeArea ?? ""
                 country = pm.country ?? ""
                 postalCode = pm.postalCode ?? ""
+
+                // Auto-persist address locally so HomeView always has it
+                UserDefaults.standard.set(address, forKey: "berhot_saved_address")
+                UserDefaults.standard.set(coordinate.latitude, forKey: "berhot_saved_lat")
+                UserDefaults.standard.set(coordinate.longitude, forKey: "berhot_saved_lng")
             }
         } catch {
             address = "Unable to get address"

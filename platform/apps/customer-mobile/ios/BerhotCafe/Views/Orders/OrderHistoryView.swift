@@ -60,7 +60,7 @@ struct OrderRow: View {
 
                     Spacer()
 
-                    Text(order.totalAmount.formattedCurrency)
+                    Text(order.resolvedTotal.formattedCurrency)
                         .font(.subheadline.bold())
                         .foregroundColor(.textPrimary)
                 }

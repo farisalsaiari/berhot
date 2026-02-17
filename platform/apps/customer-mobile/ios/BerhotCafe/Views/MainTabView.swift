@@ -6,79 +6,45 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Home tab (SG60 icon style)
+            // Home — DoorDash-style store page
             HomeView()
                 .tabItem {
-                    if selectedTab == 0 {
-                        Image(systemName: "house.fill")
-                    } else {
-                        Image(systemName: "house")
-                    }
+                    Image(systemName: selectedTab == 0 ? "house.fill" : "house")
                     Text("Home")
                 }
                 .tag(0)
 
-            // Discover
+            // Menu — browse/search all products
             NavigationStack {
                 MenuView()
             }
             .tabItem {
-                Image(systemName: "safari")
-                Text("Discover")
+                Image(systemName: "fork.knife")
+                Text("Menu")
             }
             .tag(1)
 
-            // Activity (Orders)
+            // Orders — order history
             NavigationStack {
                 OrderHistoryView()
             }
             .tabItem {
-                Image(systemName: "doc.text")
-                Text("Activity")
+                Image(systemName: "bag")
+                Text("Orders")
             }
             .tag(2)
 
-            // Finance (Cart)
+            // Cart
             NavigationStack {
                 CartView()
             }
             .tabItem {
-                Image(systemName: "dollarsign.circle")
-                Text("Finance")
+                Image(systemName: "cart")
+                Text("Cart")
             }
             .badge(cartManager.itemCount > 0 ? cartManager.itemCount : 0)
             .tag(3)
-
-            // Messages
-            NavigationStack {
-                MessagesPlaceholderView()
-            }
-            .tabItem {
-                Image(systemName: "bubble.left")
-                Text("Messages")
-            }
-            .tag(4)
         }
         .tint(Color(hex: "00B14F"))
-    }
-}
-
-// MARK: - Messages Placeholder
-struct MessagesPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 48))
-                .foregroundColor(Color(hex: "CCCCCC"))
-
-            Text("No messages yet")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.textPrimary)
-
-            Text("Your conversations will appear here")
-                .font(.system(size: 14))
-                .foregroundColor(.textSecondary)
-        }
-        .navigationTitle("Messages")
     }
 }

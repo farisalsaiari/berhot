@@ -3,7 +3,8 @@ import SwiftUI
 struct OrderTrackingView: View {
     let status: String
 
-    private let steps = ["pending", "preparing", "ready", "completed"]
+    private let steps = ["pending", "accepted", "preparing", "ready", "completed"]
+    private let brandGreen = Color(hex: "00B14F")
 
     private var currentIndex: Int {
         if status.lowercased() == "cancelled" { return -1 }
@@ -32,22 +33,37 @@ struct OrderTrackingView: View {
                         VStack(spacing: 6) {
                             ZStack {
                                 Circle()
-                                    .fill(index <= currentIndex ? Color.statusColor(for: step) : Color.gray.opacity(0.2))
+                                    .fill(index <= currentIndex ? stepColor(step) : Color.gray.opacity(0.2))
                                     .frame(width: 32, height: 32)
+
+                                // Pulsing animation on current step
+                                if index == currentIndex {
+                                    Circle()
+                                        .stroke(stepColor(step).opacity(0.4), lineWidth: 2)
+                                        .frame(width: 38, height: 38)
+                                        .scaleEffect(1.2)
+                                        .opacity(0.5)
+                                        .animation(
+                                            .easeInOut(duration: 1.2).repeatForever(autoreverses: true),
+                                            value: currentIndex
+                                        )
+                                }
 
                                 Image(systemName: stepIcon(step))
                                     .font(.caption.bold())
                                     .foregroundColor(index <= currentIndex ? .white : .gray)
                             }
 
-                            Text(step.capitalized)
-                                .font(.system(size: 10, weight: .medium))
+                            Text(stepLabel(step))
+                                .font(.system(size: 9, weight: .medium))
                                 .foregroundColor(index <= currentIndex ? .textPrimary : .textTertiary)
+                                .lineLimit(1)
                         }
+                        .frame(maxWidth: .infinity)
 
                         if index < steps.count - 1 {
                             Rectangle()
-                                .fill(index < currentIndex ? Color.brand : Color.gray.opacity(0.2))
+                                .fill(index < currentIndex ? brandGreen : Color.gray.opacity(0.2))
                                 .frame(height: 2)
                                 .frame(maxWidth: .infinity)
                                 .offset(y: -10)
@@ -70,6 +86,7 @@ struct OrderTrackingView: View {
     private func stepIcon(_ step: String) -> String {
         switch step {
         case "pending": return "clock"
+        case "accepted": return "hand.thumbsup"
         case "preparing": return "flame"
         case "ready": return "bell.badge"
         case "completed": return "checkmark"
@@ -77,9 +94,32 @@ struct OrderTrackingView: View {
         }
     }
 
+    private func stepLabel(_ step: String) -> String {
+        switch step {
+        case "pending": return "Pending"
+        case "accepted": return "Accepted"
+        case "preparing": return "Preparing"
+        case "ready": return "Ready"
+        case "completed": return "Done"
+        default: return step.capitalized
+        }
+    }
+
+    private func stepColor(_ step: String) -> Color {
+        switch step {
+        case "pending": return .orange
+        case "accepted": return .cyan
+        case "preparing": return .blue
+        case "ready": return .purple
+        case "completed": return brandGreen
+        default: return .gray
+        }
+    }
+
     private var statusMessage: String {
         switch status.lowercased() {
-        case "pending": return "Your order has been received and is waiting to be prepared"
+        case "pending": return "Your order has been received and is waiting for confirmation"
+        case "accepted": return "Your order has been accepted by the cafe"
         case "preparing": return "Your order is being prepared right now"
         case "ready": return "Your order is ready for pickup!"
         case "completed": return "Order completed. Enjoy your meal!"

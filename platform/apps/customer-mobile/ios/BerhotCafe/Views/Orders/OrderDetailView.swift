@@ -3,6 +3,7 @@ import SwiftUI
 struct OrderDetailView: View {
     let orderId: String
     @StateObject private var viewModel: OrderDetailViewModel
+    @State private var showRating = false
 
     init(orderId: String) {
         self.orderId = orderId
@@ -55,19 +56,31 @@ struct OrderDetailView: View {
 
                             if let items = order.items {
                                 ForEach(items) { item in
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(item.productName)
-                                                .font(.subheadline)
-                                                .foregroundColor(.textPrimary)
-                                            Text("x\(item.quantity) · \(item.unitPrice.formattedCurrency) each")
-                                                .font(.caption)
-                                                .foregroundColor(.textSecondary)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(item.displayName)
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.textPrimary)
+                                                Text("x\(item.quantity) · \(item.unitPrice.formattedCurrency) each")
+                                                    .font(.caption)
+                                                    .foregroundColor(.textSecondary)
+                                            }
+                                            Spacer()
+                                            Text(item.totalPrice.formattedCurrency)
+                                                .font(.subheadline.bold())
                                         }
-                                        Spacer()
-                                        Text(item.totalPrice.formattedCurrency)
-                                            .font(.subheadline.bold())
+
+                                        if let mods = item.modifiers, !mods.isEmpty {
+                                            let modNames = mods.compactMap(\.name).joined(separator: ", ")
+                                            if !modNames.isEmpty {
+                                                Text(modNames)
+                                                    .font(.caption)
+                                                    .foregroundColor(.textTertiary)
+                                            }
+                                        }
                                     }
+
                                     if item.id != items.last?.id {
                                         Divider()
                                     }
@@ -84,11 +97,11 @@ struct OrderDetailView: View {
                             if order.taxAmount > 0 {
                                 SummaryRow(label: "Tax", value: order.taxAmount.formattedCurrency)
                             }
-                            if order.discountAmount > 0 {
-                                SummaryRow(label: "Discount", value: "-\(order.discountAmount.formattedCurrency)")
+                            if let disc = order.discountAmount, disc > 0 {
+                                SummaryRow(label: "Discount", value: "-\(disc.formattedCurrency)")
                             }
                             Divider()
-                            SummaryRow(label: "Total", value: order.totalAmount.formattedCurrency, isBold: true)
+                            SummaryRow(label: "Total", value: order.resolvedTotal.formattedCurrency, isBold: true)
                         }
                         .padding()
                         .background(Color.surfaceSecondary)
@@ -96,8 +109,7 @@ struct OrderDetailView: View {
 
                         if let notes = order.notes, !notes.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Notes")
-                                    .font(.headline)
+                                Text("Notes").font(.headline)
                                 Text(notes)
                                     .font(.subheadline)
                                     .foregroundColor(.textSecondary)
@@ -106,6 +118,24 @@ struct OrderDetailView: View {
                             .padding()
                             .background(Color.surfaceSecondary)
                             .cornerRadius(16)
+                        }
+
+                        // Rate button for completed orders
+                        if order.isCompleted {
+                            Button {
+                                showRating = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "star.fill")
+                                    Text("Rate Your Experience")
+                                        .font(.body.bold())
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(16)
+                                .background(Color(hex: "00B14F"))
+                                .foregroundColor(.white)
+                                .cornerRadius(14)
+                            }
                         }
                     }
                     .padding()
@@ -124,6 +154,9 @@ struct OrderDetailView: View {
         }
         .onDisappear {
             viewModel.stopPolling()
+        }
+        .sheet(isPresented: $showRating) {
+            RateOrderView(orderId: orderId, orderItems: viewModel.order?.items)
         }
     }
 }

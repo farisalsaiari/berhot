@@ -11,7 +11,7 @@ class OrderHistoryViewModel: ObservableObject {
         error = nil
         do {
             let result = try await OrderService.fetchOrders()
-            self.orders = result.sorted { $0.createdAt > $1.createdAt }
+            self.orders = result.sorted { ($0.createdAt ?? "") > ($1.createdAt ?? "") }
         } catch {
             self.error = error.localizedDescription
         }

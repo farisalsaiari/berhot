@@ -7,26 +7,15 @@ struct ProductCardView: View {
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
-                // Image
-                ZStack {
+                // Image (cached with shimmer)
+                CachedAsyncImage(url: URL(string: product.imageUrl ?? "")) {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.surfaceSecondary)
-
-                    if let imageUrl = product.imageUrl, let url = URL(string: imageUrl) {
-                        AsyncImage(url: url) { image in
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Image(systemName: "photo")
+                        .overlay(
+                            Image(systemName: "cup.and.saucer")
                                 .font(.title2)
                                 .foregroundColor(.textTertiary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                    } else {
-                        Image(systemName: "cup.and.saucer")
-                            .font(.title2)
-                            .foregroundColor(.textTertiary)
-                    }
+                        )
                 }
                 .frame(height: 120)
                 .cornerRadius(12)

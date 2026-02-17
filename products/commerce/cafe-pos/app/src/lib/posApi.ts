@@ -266,3 +266,142 @@ export async function fetchDailySalesReport(date?: string): Promise<unknown> {
 export async function fetchTopProductsReport(): Promise<unknown> {
   return posFetch('/api/v1/pos/reports/top-products');
 }
+
+// ── Review types ──────────────────────────────────────────
+
+export interface Review {
+  id: string;
+  tenantId?: string;
+  orderId?: string;
+  customerId?: string;
+  customerName?: string;
+  rating: number;
+  comment?: string;
+  merchantReply?: string;
+  merchantRepliedAt?: string;
+  isVisible?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  distribution?: Record<string, number>;
+}
+
+// ── Review endpoints ──────────────────────────────────────
+
+export async function fetchReviews(filter?: string): Promise<Review[]> {
+  const q = filter ? `?filter=${encodeURIComponent(filter)}` : '';
+  const data = await posFetch<{ reviews: Review[] }>(`/api/v1/pos/reviews${q}`);
+  return data.reviews || [];
+}
+
+export async function replyToReview(id: string, reply: string): Promise<{ message: string }> {
+  return posFetch(`/api/v1/pos/reviews/${id}/reply`, {
+    method: 'PUT',
+    body: JSON.stringify({ merchantReply: reply }),
+  });
+}
+
+export async function fetchReviewStats(): Promise<ReviewStats> {
+  const raw = await posFetch<{ averageRating: number; totalCount: number; distribution: number[] }>('/api/v1/pos/reviews/stats');
+  // Transform backend response to frontend shape
+  const dist: Record<string, number> = {};
+  if (Array.isArray(raw.distribution)) {
+    raw.distribution.forEach((count, idx) => {
+      dist[String(idx + 1)] = count;
+    });
+  }
+  return {
+    averageRating: raw.averageRating,
+    totalReviews: raw.totalCount,
+    distribution: dist,
+  };
+}
+
+// ── App Banner types ──────────────────────────────────────
+
+export interface AppBanner {
+  id: string;
+  imageUrl: string;
+  linkUrl: string;
+  linkType: string; // 'external' | 'product' | 'category'
+  title: string;
+  description: string;
+  sortOrder: number;
+  isActive: boolean;
+  showOverlay: boolean;
+  overlayTitle: string;
+  overlayDescription: string;
+  createdAt: string;
+}
+
+export interface AppSettings {
+  bannerEnabled: boolean;
+  bannerMode: string; // 'single' | 'slider'
+  autoSlideInterval: number;
+}
+
+// ── App Settings endpoints ────────────────────────────────
+
+export async function fetchAppSettings(): Promise<AppSettings> {
+  return posFetch<AppSettings>('/api/v1/pos/app-settings');
+}
+
+export async function updateAppSettings(data: Partial<AppSettings>): Promise<{ message: string }> {
+  return posFetch('/api/v1/pos/app-settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+// ── App Banner endpoints ──────────────────────────────────
+
+export async function fetchAppBanners(): Promise<AppBanner[]> {
+  const data = await posFetch<{ banners: AppBanner[] }>('/api/v1/pos/app-banners');
+  return data.banners || [];
+}
+
+export async function createAppBanner(data: Partial<AppBanner>): Promise<{ id: string; message: string }> {
+  return posFetch('/api/v1/pos/app-banners', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAppBanner(id: string, data: Partial<AppBanner>): Promise<{ message: string }> {
+  return posFetch(`/api/v1/pos/app-banners/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteAppBanner(id: string): Promise<{ message: string }> {
+  return posFetch(`/api/v1/pos/app-banners/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── File Upload ──────────────────────────────────────────────
+
+export async function uploadImage(file: File): Promise<{ url: string; filename: string; size: number }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const tid = getTenantId();
+  const headers: Record<string, string> = {};
+  if (tid) headers['X-Tenant-ID'] = tid;
+
+  const res = await fetch('/api/v1/pos/upload', {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
