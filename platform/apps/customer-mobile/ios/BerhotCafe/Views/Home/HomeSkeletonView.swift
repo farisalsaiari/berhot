@@ -19,11 +19,6 @@ struct HomeSkeletonContent: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)
 
-                // Delivery info
-                skeletonDeliveryInfo(phase: phase)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-
                 // Menu title
                 HStack {
                     SkeletonBox(width: 70, height: 22, cornerRadius: 6, phase: phase)
@@ -58,7 +53,7 @@ struct HomeSkeletonContent: View {
                 Capsule().fill(Color(white: 0.88 + 0.06 * Double(phase))).frame(width: 6, height: 6)
             }
         }
-        .padding(.top, 4)
+        .padding(.top, 12)
     }
 
     // MARK: - Delivery Toggle
@@ -69,19 +64,6 @@ struct HomeSkeletonContent: View {
         }
         .padding(4)
         .background(Color(white: 0.94 + 0.03 * Double(phase)))
-        .cornerRadius(12)
-    }
-
-    // MARK: - Delivery Info
-    private func skeletonDeliveryInfo(phase: CGFloat) -> some View {
-        HStack(spacing: 16) {
-            SkeletonBox(width: 55, height: 14, cornerRadius: 4, phase: phase)
-            SkeletonBox(width: 75, height: 14, cornerRadius: 4, phase: phase)
-            SkeletonBox(width: 50, height: 14, cornerRadius: 4, phase: phase)
-            Spacer()
-        }
-        .padding(12)
-        .background(Color(hex: "F0F8F0").opacity(0.5))
         .cornerRadius(12)
     }
 

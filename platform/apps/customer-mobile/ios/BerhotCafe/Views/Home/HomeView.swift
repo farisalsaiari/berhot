@@ -30,7 +30,6 @@ struct HomeView: View {
         return UserDefaults.standard.string(forKey: "berhot_saved_address") ?? ""
     }
 
-    private let brandGreen = Color(hex: "00B14F")
     private let brandYellow = Color(hex: "FFD300")
 
     var body: some View {
@@ -58,12 +57,6 @@ struct HomeView: View {
                                 deliveryToggle
                                     .padding(.horizontal, 16)
                                     .padding(.bottom, 12)
-
-                                if deliveryMode == 0 {
-                                    deliveryInfoBar
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 16)
-                                }
 
                                 // ── Menu Section Title ──
                                 HStack {
@@ -198,31 +191,16 @@ struct HomeView: View {
                 } label: {
                     Text(["Delivery", "Pickup"][index])
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(deliveryMode == index ? .white : .textSecondary)
+                        .foregroundColor(deliveryMode == index ? .black : .textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(deliveryMode == index ? brandGreen : Color.clear)
+                        .background(deliveryMode == index ? brandYellow : Color.clear)
                         .cornerRadius(10)
                 }
             }
         }
         .padding(4)
         .background(Color(hex: "F0F0F0"))
-        .cornerRadius(12)
-    }
-
-    // MARK: - Delivery Info
-    private var deliveryInfoBar: some View {
-        HStack(spacing: 16) {
-            Label("2.3 km", systemImage: "location.fill")
-            Label(store?.deliveryTimeText ?? "15-30 min", systemImage: "clock.fill")
-            Label(store?.deliveryFeeText ?? "SAR 5", systemImage: "bicycle")
-            Spacer()
-        }
-        .font(.system(size: 13))
-        .foregroundColor(.textSecondary)
-        .padding(12)
-        .background(Color(hex: "F0F8F0"))
         .cornerRadius(12)
     }
 
@@ -367,10 +345,10 @@ struct HomeView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
-            .background(brandGreen)
-            .foregroundColor(.white)
+            .background(brandYellow)
+            .foregroundColor(.black)
             .cornerRadius(16)
-            .shadow(color: brandGreen.opacity(0.4), radius: 12, y: 6)
+            .shadow(color: brandYellow.opacity(0.4), radius: 12, y: 6)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -524,7 +502,7 @@ struct HomeView: View {
                 }
             }
         }
-        .padding(.top, 4)
+        .padding(.top, 12)
     }
 }
 
@@ -651,9 +629,9 @@ struct ProductRowView: View {
                     Button { onAdd() } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .frame(width: 28, height: 28)
-                            .background(Color(hex: "00B14F"))
+                            .background(Color(hex: "FFD300"))
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
                     }
@@ -679,10 +657,10 @@ struct CategoryPill: View {
         Button(action: action) {
             Text(name)
                 .font(.system(size: 13, weight: isSelected ? .bold : .medium))
-                .foregroundColor(isSelected ? .white : .textPrimary)
+                .foregroundColor(isSelected ? .black : .textPrimary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(isSelected ? Color(hex: "00B14F") : Color(hex: "F0F0F0"))
+                .background(isSelected ? Color(hex: "FFD300") : Color(hex: "F0F0F0"))
                 .cornerRadius(20)
         }
     }
