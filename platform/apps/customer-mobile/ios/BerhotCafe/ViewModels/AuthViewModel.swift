@@ -30,6 +30,15 @@ class AuthViewModel: ObservableObject {
         }
         isLoading = true
         error = nil
+
+        if AppConfig.demoMode {
+            // Demo mode: skip API call, go straight to OTP entry
+            try? await Task.sleep(nanoseconds: 500_000_000) // simulate delay
+            withAnimation { step = .otp }
+            isLoading = false
+            return
+        }
+
         do {
             _ = try await AuthService.sendOTP(phone: fullPhone)
             withAnimation { step = .otp }
@@ -46,6 +55,44 @@ class AuthViewModel: ObservableObject {
         }
         isLoading = true
         error = nil
+
+        if AppConfig.demoMode {
+            // Demo mode: accept "1234" as valid OTP
+            guard otpCode == AppConfig.demoOTPCode else {
+                self.error = "Invalid code. Use \(AppConfig.demoOTPCode) for demo."
+                isLoading = false
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 500_000_000)
+
+            // Check if customer already exists in POS engine by fetching customers and matching phone
+            if let existing = await findExistingCustomer(phone: fullPhone) {
+                // Returning user — sign in directly, skip registration
+                let user = User(
+                    id: existing.id,
+                    email: nil,
+                    phone: fullPhone,
+                    firstName: existing.firstName,
+                    lastName: existing.lastName,
+                    role: "customer",
+                    status: "active",
+                    tenantId: AppConfig.demoTenantId
+                )
+                await AuthManager.shared.signIn(
+                    accessToken: "demo-access-token",
+                    refreshToken: "demo-refresh-token",
+                    user: user,
+                    tenantId: AppConfig.demoTenantId
+                )
+            } else {
+                // New user — go to registration
+                withAnimation { step = .register }
+            }
+            isLoading = false
+            return
+        }
+
         do {
             let result = try await AuthService.verifyOTP(phone: fullPhone, code: otpCode)
 
@@ -74,6 +121,43 @@ class AuthViewModel: ObservableObject {
         }
         isLoading = true
         error = nil
+
+        if AppConfig.demoMode {
+            // Demo mode: create a local dummy user and sign in
+            let trimmedFirst = firstName.trimmingCharacters(in: .whitespaces)
+            let trimmedLast = lastName.trimmingCharacters(in: .whitespaces)
+
+            // Also create customer in POS engine DB so they show in the dashboard
+            if let url = URL(string: "\(AppConfig.posBaseURL)/api/v1/pos/customers") {
+                var req = URLRequest(url: url)
+                req.httpMethod = "POST"
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                req.setValue(AppConfig.demoTenantId, forHTTPHeaderField: "X-Tenant-ID")
+                let body = ["firstName": trimmedFirst, "lastName": trimmedLast, "phone": fullPhone]
+                req.httpBody = try? JSONEncoder().encode(body)
+                _ = try? await URLSession.shared.data(for: req)
+            }
+
+            let demoUser = User(
+                id: UUID().uuidString,
+                email: nil,
+                phone: fullPhone,
+                firstName: trimmedFirst,
+                lastName: trimmedLast,
+                role: "customer",
+                status: "active",
+                tenantId: "demo-tenant"
+            )
+            await AuthManager.shared.signIn(
+                accessToken: "demo-access-token",
+                refreshToken: "demo-refresh-token",
+                user: demoUser,
+                tenantId: "demo-tenant"
+            )
+            isLoading = false
+            return
+        }
+
         do {
             let result = try await AuthService.register(
                 phone: fullPhone,
@@ -92,6 +176,16 @@ class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
+    // Look up a customer by phone in the POS engine
+    private func findExistingCustomer(phone: String) async -> DemoCustomer? {
+        guard let url = URL(string: "\(AppConfig.posBaseURL)/api/v1/pos/customers") else { return nil }
+        var req = URLRequest(url: url)
+        req.setValue(AppConfig.demoTenantId, forHTTPHeaderField: "X-Tenant-ID")
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let json = try? JSONDecoder().decode(DemoCustomersResponse.self, from: data) else { return nil }
+        return json.customers.first(where: { $0.phone == phone })
+    }
+
     func goBack() {
         withAnimation {
             switch step {
@@ -106,4 +200,16 @@ class AuthViewModel: ObservableObject {
         }
         error = nil
     }
+}
+
+// MARK: - Demo mode helpers
+private struct DemoCustomer: Codable {
+    let id: String
+    let firstName: String
+    let lastName: String
+    let phone: String
+}
+
+private struct DemoCustomersResponse: Codable {
+    let customers: [DemoCustomer]
 }

@@ -16,7 +16,7 @@ export default defineConfig({
       '/api/v1/business-locations': { target: 'http://localhost:8080', changeOrigin: true },
       '/api/v1/partners': { target: 'http://localhost:8080', changeOrigin: true },
       '/uploads': { target: 'http://localhost:8080', changeOrigin: true },
-      '/api': { target: 'http://localhost:8081', changeOrigin: true },
+      '/api': { target: 'http://localhost:8082', changeOrigin: true },
     },
   },
   preview: {
@@ -30,7 +30,7 @@ export default defineConfig({
       '/api/v1/business-locations': { target: 'http://localhost:8080', changeOrigin: true },
       '/api/v1/partners': { target: 'http://localhost:8080', changeOrigin: true },
       '/uploads': { target: 'http://localhost:8080', changeOrigin: true },
-      '/api': { target: 'http://localhost:8081', changeOrigin: true },
+      '/api': { target: 'http://localhost:8082', changeOrigin: true },
     },
   },
 });

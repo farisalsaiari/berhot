@@ -20,9 +20,15 @@ enum AppConfig {
         UserDefaults.standard.set(id, forKey: "berhot_tenant_id")
     }
 
+    // MARK: - Demo Mode
+    /// Set to true to bypass real API calls for auth (uses OTP "1234")
+    static let demoMode = true
+    static let demoOTPCode = "1234"
+    static let demoTenantId = "4fcf6201-0e81-41a7-8b61-356d39def62a"
+
     // MARK: - Defaults
     static let defaultCountryCode = "+966"
-    static let otpLength = 6
+    static let otpLength = 4
     static let orderPollingInterval: TimeInterval = 10
     static let animationDuration: Double = 0.3
 }

@@ -77,6 +77,9 @@ func main() {
 		v1.GET("/customers", listCustomers)
 		v1.POST("/customers", createCustomer)
 
+		v1.POST("/addresses", createAddress)
+		v1.GET("/addresses/:customerId", listAddresses)
+
 		v1.GET("/inventory", listInventory)
 		v1.PUT("/inventory/:productId", updateInventory)
 
@@ -102,8 +105,8 @@ func tenantMiddleware() gin.HandlerFunc {
 			tenantID = c.Query("tenantId")
 		}
 		if tenantID == "" {
-			// For MVP, use demo tenant as default
-			tenantID = "10000000-0000-0000-0000-000000000001"
+			// For MVP, use Sedav cafe tenant as default
+			tenantID = "4fcf6201-0e81-41a7-8b61-356d39def62a"
 		}
 		c.Set("tenantId", tenantID)
 		c.Next()
@@ -699,6 +702,82 @@ func getTopProducts(c *gin.Context) {
 		products = append(products, gin.H{"productId": pid, "name": name, "quantitySold": qty, "revenue": revenue})
 	}
 	c.JSON(200, gin.H{"topProducts": products})
+}
+
+// ── Addresses ───────────────────────────────────────────────
+
+func createAddress(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	var req struct {
+		CustomerID string  `json:"customerId"`
+		Label      string  `json:"label"`
+		Address    string  `json:"address" binding:"required"`
+		City       string  `json:"city"`
+		Country    string  `json:"country"`
+		PostalCode string  `json:"postalCode"`
+		Latitude   float64 `json:"latitude"`
+		Longitude  float64 `json:"longitude"`
+		IsDefault  *bool   `json:"isDefault"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Label == "" {
+		req.Label = "home"
+	}
+	isDefault := true
+	if req.IsDefault != nil {
+		isDefault = *req.IsDefault
+	}
+
+	id := uuid.New().String()
+	var custID *string
+	if req.CustomerID != "" {
+		custID = &req.CustomerID
+	}
+
+	_, err := db.Exec(
+		`INSERT INTO customer_addresses (id, tenant_id, customer_id, label, address_line, city, country, postal_code, latitude, longitude, is_default)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		id, tenantID, custID, req.Label, req.Address, req.City, req.Country, req.PostalCode, req.Latitude, req.Longitude, isDefault,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(201, gin.H{
+		"id": id, "address": req.Address, "city": req.City, "country": req.Country,
+		"latitude": req.Latitude, "longitude": req.Longitude, "label": req.Label, "isDefault": isDefault,
+	})
+}
+
+func listAddresses(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	customerID := c.Param("customerId")
+	rows, err := db.Query(
+		`SELECT id, label, address_line, city, country, postal_code, latitude, longitude, is_default, created_at
+		 FROM customer_addresses WHERE tenant_id = $1 AND customer_id = $2 ORDER BY is_default DESC, created_at DESC`,
+		tenantID, customerID,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	addresses := []gin.H{}
+	for rows.Next() {
+		var id, label, addr, city, country, postal string
+		var lat, lng float64
+		var def bool
+		var createdAt time.Time
+		rows.Scan(&id, &label, &addr, &city, &country, &postal, &lat, &lng, &def, &createdAt)
+		addresses = append(addresses, gin.H{
+			"id": id, "label": label, "address": addr, "city": city, "country": country,
+			"postalCode": postal, "latitude": lat, "longitude": lng, "isDefault": def, "createdAt": createdAt,
+		})
+	}
+	c.JSON(200, gin.H{"addresses": addresses, "total": len(addresses)})
 }
 
 func min(a, b int) int {

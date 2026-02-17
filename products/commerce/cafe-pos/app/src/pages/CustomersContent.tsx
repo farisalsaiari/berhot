@@ -23,15 +23,15 @@ export default function CustomersContent({ C, isLight, isMobile }: Props) {
   const [fPhone, setFPhone] = useState('');
   const [fNotes, setFNotes] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await fetchCustomers(search || undefined);
       setCustomers(data);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      if (!silent) setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [search]);
 
@@ -39,6 +39,14 @@ export default function CustomersContent({ C, isLight, isMobile }: Props) {
     const timer = setTimeout(() => load(), search ? 300 : 0);
     return () => clearTimeout(timer);
   }, [load, search]);
+
+  // Auto-refresh every 5s to pick up new signups from iOS app
+  useEffect(() => {
+    const interval = setInterval(() => {
+      load(true);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [load]);
 
   async function handleCreate() {
     if (!fFirst.trim()) return;

@@ -15,8 +15,20 @@ class AuthManager: ObservableObject {
 
     func checkAuth() {
         isLoading = true
-        if KeychainHelper.readString(forKey: "access_token") != nil {
+        if let token = KeychainHelper.readString(forKey: "access_token") {
             isAuthenticated = true
+
+            // Demo mode: skip API profile fetch, use stored user data
+            if AppConfig.demoMode && token == "demo-access-token" {
+                // Restore demo user from UserDefaults
+                if let data = UserDefaults.standard.data(forKey: "berhot_demo_user"),
+                   let user = try? JSONDecoder().decode(User.self, from: data) {
+                    self.currentUser = user
+                }
+                self.isLoading = false
+                return
+            }
+
             // Load user profile in background
             Task {
                 do {
@@ -44,6 +56,14 @@ class AuthManager: ObservableObject {
             AppConfig.setTenantId(tid)
         }
         self.currentUser = user
+
+        // Persist demo user so it can be restored on app restart
+        if AppConfig.demoMode {
+            if let data = try? JSONEncoder().encode(user) {
+                UserDefaults.standard.set(data, forKey: "berhot_demo_user")
+            }
+        }
+
         withAnimation(.easeInOut(duration: 0.3)) {
             self.isAuthenticated = true
         }
@@ -53,6 +73,7 @@ class AuthManager: ObservableObject {
         KeychainHelper.delete(forKey: "access_token")
         KeychainHelper.delete(forKey: "refresh_token")
         UserDefaults.standard.removeObject(forKey: "berhot_tenant_id")
+        UserDefaults.standard.removeObject(forKey: "berhot_demo_user")
         self.currentUser = nil
         withAnimation(.easeInOut(duration: 0.3)) {
             self.isAuthenticated = false
