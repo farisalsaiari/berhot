@@ -386,7 +386,7 @@ docker cp "C:\Users\HeeMe\OneDrive\Desktop\New\berhot\ops\database\migrations" b
 docker exec berhot-postgres bash -c 'for f in /tmp/migrations/*.sql; do echo "=== Running $f ==="; psql -U berhot -d berhot_dev -f "$f" 2>&1; done'
 
 
-## if fresh database migrations :
+## if fresh database migrations : §
 PGPASSWORD=berhot_dev_password psql -h localhost -p 5555 -U berhot -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'berhot_dev' AND pid <> pg_backend_pid();" && \
 PGPASSWORD=berhot_dev_password psql -h localhost -p 5555 -U berhot -d postgres -c "DROP DATABASE IF EXISTS berhot_dev;" && \
 PGPASSWORD=berhot_dev_password psql -h localhost -p 5555 -U berhot -d postgres -c "CREATE DATABASE berhot_dev;" && \

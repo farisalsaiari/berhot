@@ -388,6 +388,7 @@ export default function DashboardPage() {
   const [mobileSettingsSlideKey, setMobileSettingsSlideKey] = useState(0);
   const [mobileSettingsClosing, setMobileSettingsClosing] = useState(false);
   const [mobileMainSlideBack, setMobileMainSlideBack] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof localStorage !== 'undefined' && localStorage.getItem('d2_sidebar_collapsed') === 'true');
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [showLangPanel, setShowLangPanel] = useState(false);
   const [selectedLang, setSelectedLang] = useState(lang);
@@ -924,19 +925,20 @@ export default function DashboardPage() {
 
           {/* ═══ LEFT SIDEBAR ═══ */}
           <aside className="d2-left-sidebar" style={{
-            width: 280,
-            minWidth: 260,
+            width: sidebarCollapsed ? 64 : 280,
+            minWidth: sidebarCollapsed ? 64 : 260,
             background: SC.sidebar,
             display: 'flex',
             flexDirection: 'column',
             borderInlineEnd: `1px solid ${SC.divider}70`,
             height: '100%',
-            overflow: 'hidden',
+            overflow: sidebarCollapsed ? 'visible' : 'hidden',
             position: 'relative',
+            transition: 'width 0.25s ease, min-width 0.25s ease',
           }}>
 
             {/* Sidebar header — back arrow when in settings, OR logo + brand */}
-            {(!isLargeScreen && (settingsMenuStack.length > 0 || settingsClosing)) ? (
+            {(!isLargeScreen && !sidebarCollapsed && (settingsMenuStack.length > 0 || settingsClosing)) ? (
               <>
                 <div style={{ padding: '10px 16px 0 14px' }}>
                   <button
@@ -982,22 +984,22 @@ export default function DashboardPage() {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 16px 10px 20px',
+                  justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                  padding: sidebarCollapsed ? '14px 8px 10px 8px' : '14px 16px 10px 20px',
                   height: 57,
                   boxSizing: 'border-box' as const,
                   flexShrink: 0,
                 }}>
-                  <button onClick={() => setShowWorkspace(true)} style={{
+                  <button onClick={() => !sidebarCollapsed && setShowWorkspace(true)} style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
                     background: 'none',
                     border: 'none',
-                    cursor: 'pointer',
+                    cursor: sidebarCollapsed ? 'default' : 'pointer',
                     padding: 0,
                     color: SC.textPrimary,
-                    flex: 1,
+                    flex: sidebarCollapsed ? 'unset' : 1,
                     minWidth: 0,
                   }}>
                     {(sidebarLogoImg || sidebarLogoUrl) ? (
@@ -1005,21 +1007,21 @@ export default function DashboardPage() {
                         src={sidebarLogoImg || (sidebarLogoUrl.startsWith('http') ? sidebarLogoUrl : `${API_URL}${sidebarLogoUrl}`)}
                         alt="Logo"
                         style={{
-                          width: sidebarLogoShape === 'rectangle' ? (sidebarShowName ? 48 : 70) : 33,
-                          height: 33,
+                          width: sidebarCollapsed ? 30 : (sidebarLogoShape === 'rectangle' ? (sidebarShowName ? 48 : 70) : 33),
+                          height: sidebarCollapsed ? 30 : 33,
                           objectFit: sidebarLogoShape === 'rectangle' && !sidebarShowName ? 'contain' : 'cover',
                           borderRadius: sidebarLogoShape === 'circle' ? '50%' : 5,
                           flexShrink: 0,
                         }}
                       />
                     ) : sidebarLoaded ? (
-                      <svg width="33" height="33" viewBox="0 0 89 90" fill={SC.sidebar === darkTheme.sidebar || !isLight || effectiveDarkSidebar ? '#ffffff' : '#1a1a1a'}>
+                      <svg width={sidebarCollapsed ? 28 : 33} height={sidebarCollapsed ? 28 : 33} viewBox="0 0 89 90" fill={SC.sidebar === darkTheme.sidebar || !isLight || effectiveDarkSidebar ? '#ffffff' : '#1a1a1a'}>
                         <g transform="translate(44.165915, 45) scale(1, -1) translate(-44.165915, -45)">
                           <path fillRule="evenodd" d="M69.4192817,22.3611759 C84.2018365,38.081155 88.9828304,59.9401927 88.2622633,84.5632889 C88.1716123,87.6612948 88.2857175,89.4063644 86.470282,89.745827 C84.6548465,90.0852896 45.9204196,90.0841586 43.3635271,89.745827 C41.6589322,89.5202726 40.9198925,87.5799361 41.146408,83.9248175 C41.4268046,70.7590337 39.2744178,62.4474368 33.0811154,56.4790232 C26.8653713,50.4889828 18.8085697,48.4191258 5.53927832,47.9184709 C-0.26992001,47.6992879 0.04198992,45.2973641 0.04198992,42.2339225 L0.0419899201,5.68774353 C0.0419925178,2.64150057 -0.837693553,0 5.45564364,0.00662799493 L5.80171,0 C31.9022526,0.282039646 54.6081099,6.61076494 69.4192817,22.3611759 Z" />
                         </g>
                       </svg>
                     ) : null}
-                    {sidebarShowName && (
+                    {sidebarShowName && !sidebarCollapsed && (
                       <span style={{
                         fontWeight: 700,
                         fontSize: 15,
@@ -1034,33 +1036,40 @@ export default function DashboardPage() {
                       </span>
                     )}
                   </button>
-                  {/* Chevron icon on the right */}
-                  <button
-                    onMouseEnter={() => setHoveredNav('sidebar-header-chevron')}
-                    onMouseLeave={() => setHoveredNav(null)}
-                    onClick={() => setShowWorkspace(true)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      border: 'none',
-                      background: hoveredNav === 'sidebar-header-chevron' ? SC.hover : 'transparent',
-                      color: SC.textDim,
-                      cursor: 'pointer',
-                      transition: 'background 0.15s',
-                      padding: 0,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M7 15l5 5 5-5" /><path d="M7 9l5-5 5 5" />
-                    </svg>
-                  </button>
+                  {/* Double-chevron collapse toggle */}
+                  {!sidebarCollapsed && (
+                    <button
+                      onMouseEnter={() => setHoveredNav('sidebar-collapse')}
+                      onMouseLeave={() => setHoveredNav(null)}
+                      onClick={() => {
+                        setSidebarCollapsed(true);
+                        localStorage.setItem('d2_sidebar_collapsed', 'true');
+                        setSettingsMenuStack([]);
+                        setSettingsClosing(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 28,
+                        height: 28,
+                        borderRadius: 6,
+                        border: 'none',
+                        background: hoveredNav === 'sidebar-collapse' ? SC.hover : 'transparent',
+                        color: SC.textDim,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 17l-5-5 5-5" /><path d="M18 17l-5-5 5-5" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-                <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '0 16px 4px 16px' }} />
+                {!sidebarCollapsed && <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '0 16px 4px 16px' }} />}
               </>
             )}
 
@@ -1109,12 +1118,13 @@ export default function DashboardPage() {
             {/* Main nav / Settings nav — only the links area transitions */}
             <nav className="d2-sidebar-scroll" style={{
               display: 'flex',
-              flexDirection: 'column', gap: 2, padding: `${(!isLargeScreen && settingsMenuStack.length > 0) ? 2 : 10}px 16px 12px 16px`,
+              flexDirection: 'column', gap: 2, padding: sidebarCollapsed ? '10px 8px 12px 8px' : `${(!isLargeScreen && settingsMenuStack.length > 0) ? 2 : 10}px 16px 12px 16px`,
               flex: 1,
-              overflowY: 'auto',
+              overflowY: sidebarCollapsed ? 'visible' : 'auto',
+              overflow: sidebarCollapsed ? 'visible' : undefined,
               minHeight: 0,
             }}>
-              {(!isLargeScreen && settingsMenuStack.length > 0) ? (() => {
+              {(!isLargeScreen && !sidebarCollapsed && settingsMenuStack.length > 0) ? (() => {
                 const current = settingsMenuStack[settingsMenuStack.length - 1];
                 const isTopLevel = current.isTopLevel === true;
                 return (
@@ -1209,42 +1219,64 @@ export default function DashboardPage() {
                   {navMain.map((item) => {
                     const isActive = pagePath === item.path;
                     return (
-                      <button
-                        key={item.label}
-                        onMouseEnter={() => setHoveredNav(item.label)}
-                        onMouseLeave={() => setHoveredNav(null)}
-                        onClick={() => {
-                          const target = item.path === 'home'
-                            ? `/${lang}/dashboard`
-                            : `/${lang}/dashboard/${item.path}`;
-                          navigate(target);
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          width: '100%',
-                          padding: '9px 10px',
-                          borderRadius: 6,
-                          border: 'none',
-                          background: (isActive || hoveredNav === item.label) ? SC.hover : 'transparent',
-                          color: isActive ? SC.textPrimary : SC.textSecond,
-                          fontWeight: isActive ? 600 : 500,
-                          transition: 'background 0.15s',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                        }}
-                      >
-                        <span style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          width: 18,
-                          justifyContent: 'center',
-                          color: isActive ? accentVisible : SC.textSecond,
-                          transition: 'color 0.15s',
-                        }}>{item.icon}</span>
-                        <span style={{ flex: 1, textAlign: 'start' }}>{item.label}</span>
-                      </button>
+                      <div key={item.label} style={{ position: 'relative' }}>
+                        <button
+                          onMouseEnter={() => setHoveredNav(item.label)}
+                          onMouseLeave={() => setHoveredNav(null)}
+                          onClick={() => {
+                            const target = item.path === 'home'
+                              ? `/${lang}/dashboard`
+                              : `/${lang}/dashboard/${item.path}`;
+                            navigate(target);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                            gap: sidebarCollapsed ? 0 : 10,
+                            width: '100%',
+                            padding: sidebarCollapsed ? '9px 0' : '9px 10px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: (isActive || hoveredNav === item.label) ? SC.hover : 'transparent',
+                            color: isActive ? SC.textPrimary : SC.textSecond,
+                            fontWeight: isActive ? 600 : 500,
+                            transition: 'background 0.15s',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                          }}
+                        >
+                          <span style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            width: 18,
+                            justifyContent: 'center',
+                            color: isActive ? accentVisible : SC.textSecond,
+                            transition: 'color 0.15s',
+                          }}>{item.icon}</span>
+                          {!sidebarCollapsed && <span style={{ flex: 1, textAlign: 'start' }}>{item.label}</span>}
+                        </button>
+                        {sidebarCollapsed && hoveredNav === item.label && (
+                          <div style={{
+                            position: 'absolute',
+                            insetInlineStart: '100%',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            marginInlineStart: 10,
+                            padding: '5px 10px',
+                            background: (isLight && !effectiveDarkSidebar) ? '#1a1a1a' : '#e7e7e7',
+                            color: (isLight && !effectiveDarkSidebar) ? '#ffffff' : '#000000',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            borderRadius: 6,
+                            whiteSpace: 'nowrap',
+                            pointerEvents: 'none',
+                            zIndex: 10,
+                          }}>
+                            {item.label}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1252,71 +1284,117 @@ export default function DashboardPage() {
             </nav>
 
             {/* ── Sidebar footer — Settings, Support, User card, Icon bar (sticky) ── */}
-            <div style={{ flexShrink: 0, padding: '0 16px 8px 16px' }}>
+            <div style={{ flexShrink: 0, padding: sidebarCollapsed ? '0 8px 8px 8px' : '0 16px 8px 16px' }}>
               {/* Settings + Support — same gap as main nav items */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {/* Settings link */}
-                <button
-                  onMouseEnter={() => setHoveredNav('footer-settings')}
-                  onMouseLeave={() => setHoveredNav(null)}
-                  onClick={() => {
-                    if (isLargeScreen) {
-                      // Large screen: toggle panel open/close
-                      if (settingsPanelOpen) {
-                        setSettingsPanelOpen(false);
-                        setSettingsPanelClosing(true);
-                      } else if (!settingsPanelClosing) {
-                        setSettingsPanelOpen(true);
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onMouseEnter={() => setHoveredNav('footer-settings')}
+                    onMouseLeave={() => setHoveredNav(null)}
+                    onClick={() => {
+                      if (sidebarCollapsed) {
+                        navigate(`/${lang}/dashboard/settings/account/profile`);
+                      } else if (isLargeScreen) {
+                        if (settingsPanelOpen) {
+                          setSettingsPanelOpen(false);
+                          setSettingsPanelClosing(true);
+                        } else if (!settingsPanelClosing) {
+                          setSettingsPanelOpen(true);
+                        }
+                      } else {
+                        setSettingsSlideDir('forward');
+                        setSettingsSlideKey((k) => k + 1);
+                        setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
                       }
-                    } else {
-                      // Non-large: sliding layers
-                      setSettingsSlideDir('forward');
-                      setSettingsSlideKey((k) => k + 1);
-                      setSettingsMenuStack([{ parentLabel: t('dashboard.settings'), children: settingsNav, isTopLevel: true }]);
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    padding: '9px 10px',
-                    borderRadius: 6,
-                    border: 'none',
-                    background: (isSettingsActive || hoveredNav === 'footer-settings') ? SC.hover : 'transparent',
-                    color: isSettingsActive ? SC.textPrimary : SC.textSecond,
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: isSettingsActive ? 600 : 500,
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: isSettingsActive ? accentVisible : SC.textSecond }}><SettingsIcon /></span>
-                  <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.settings')}</span>
-                </button>
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                      gap: sidebarCollapsed ? 0 : 10,
+                      width: '100%',
+                      padding: sidebarCollapsed ? '9px 0' : '9px 10px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: (isSettingsActive || hoveredNav === 'footer-settings') ? SC.hover : 'transparent',
+                      color: isSettingsActive ? SC.textPrimary : SC.textSecond,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: isSettingsActive ? 600 : 500,
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center', color: isSettingsActive ? accentVisible : SC.textSecond }}><SettingsIcon /></span>
+                    {!sidebarCollapsed && <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.settings')}</span>}
+                  </button>
+                  {sidebarCollapsed && hoveredNav === 'footer-settings' && (
+                    <div style={{
+                      position: 'absolute',
+                      insetInlineStart: '100%',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      marginInlineStart: 10,
+                      padding: '5px 10px',
+                      background: (isLight && !effectiveDarkSidebar) ? '#1a1a1a' : '#e7e7e7',
+                      color: (isLight && !effectiveDarkSidebar) ? '#ffffff' : '#000000',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      borderRadius: 6,
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 10,
+                    }}>
+                      {t('dashboard.settings')}
+                    </div>
+                  )}
+                </div>
 
                 {/* Support link */}
-                <button
-                  onMouseEnter={() => setHoveredNav('footer-support')}
-                  onMouseLeave={() => setHoveredNav(null)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    padding: '9px 10px',
-                    borderRadius: 6,
-                    border: 'none',
-                    background: hoveredNav === 'footer-support' ? SC.hover : 'transparent',
-                    color: SC.textSecond,
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    transition: 'background 0.15s',
-                  }}>
-                  <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center' }}><SupportIcon /></span>
-                  <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.support')}</span>
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onMouseEnter={() => setHoveredNav('footer-support')}
+                    onMouseLeave={() => setHoveredNav(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                      gap: sidebarCollapsed ? 0 : 10,
+                      width: '100%',
+                      padding: sidebarCollapsed ? '9px 0' : '9px 10px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: hoveredNav === 'footer-support' ? SC.hover : 'transparent',
+                      color: SC.textSecond,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      transition: 'background 0.15s',
+                    }}>
+                    <span style={{ display: 'flex', alignItems: 'center', width: 18, justifyContent: 'center' }}><SupportIcon /></span>
+                    {!sidebarCollapsed && <span style={{ flex: 1, textAlign: 'start' }}>{t('dashboard.support')}</span>}
+                  </button>
+                  {sidebarCollapsed && hoveredNav === 'footer-support' && (
+                    <div style={{
+                      position: 'absolute',
+                      insetInlineStart: '100%',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      marginInlineStart: 10,
+                      padding: '5px 10px',
+                      background: (isLight && !effectiveDarkSidebar) ? '#1a1a1a' : '#e7e7e7',
+                      color: (isLight && !effectiveDarkSidebar) ? '#ffffff' : '#000000',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      borderRadius: 6,
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 10,
+                    }}>
+                      {t('dashboard.support')}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Divider */}
@@ -1399,10 +1477,42 @@ export default function DashboardPage() {
               {/* </div> */}
 
               {/* Divider */}
-              <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '10px 0 3px 0' }} />
+              {!sidebarCollapsed && <div style={{ height: 1, background: SC.divider, opacity: 0.4, margin: '10px 0 3px 0' }} />}
+
+              {/* Expand toggle — bottom of sidebar when collapsed */}
+              {sidebarCollapsed && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0' }}>
+                  <button
+                    onMouseEnter={() => setHoveredNav('sidebar-expand')}
+                    onMouseLeave={() => setHoveredNav(null)}
+                    onClick={() => {
+                      setSidebarCollapsed(false);
+                      localStorage.setItem('d2_sidebar_collapsed', 'false');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 36,
+                      height: 36,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: hoveredNav === 'sidebar-expand' ? SC.hover : 'transparent',
+                      color: hoveredNav === 'sidebar-expand' ? SC.textPrimary : SC.textSecond,
+                      cursor: 'pointer',
+                      transition: 'background 0.15s, color 0.15s',
+                      padding: 0,
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 17l5-5-5-5" /><path d="M6 17l5-5-5-5" />
+                    </svg>
+                  </button>
+                </div>
+              )}
 
               {/* Icon bar — small icons with tooltips */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
+              <div style={{ display: sidebarCollapsed ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
                 {([
                   {
                     key: 'notif',
@@ -1488,6 +1598,7 @@ export default function DashboardPage() {
 
             {/* Old settings overlay removed — settings now renders inline in the nav area above */}
           </aside>
+
 
           {/* ═══ SETTINGS SECOND PANEL (large screens only) ═══ */}
           {isLargeScreen && (
