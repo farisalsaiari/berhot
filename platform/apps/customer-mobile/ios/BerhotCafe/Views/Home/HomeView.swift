@@ -20,6 +20,7 @@ struct HomeView: View {
     @State private var banners: [HomeBanner] = []
     @State private var currentBannerIndex = 0
     @State private var bannerTimer: Timer?
+    @State private var isTapScrolling = false   // true while programmatic scroll-to is in flight
 
     /// Live delivery address: prefer LocationManager's current address, fall back to saved
     private var displayAddress: String {
@@ -74,19 +75,14 @@ struct HomeView: View {
                                 .padding(.horizontal, 16)
                                 .padding(.bottom, 4)
 
-                                // ── Sticky Category Tabs + Products ──
-                                LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                                    Section {
-                                        // ── Products grouped by category ──
-                                        productsSectionWithAnchors
-                                            .padding(.horizontal, 16)
-                                            .padding(.bottom, 100)
-                                    } header: {
-                                        categoryTabs(scrollProxy: scrollProxy)
-                                            .padding(.bottom, 8)
-                                            .background(Color.white)
-                                    }
-                                }
+                                // ── Category Tabs (scrolls normally, not pinned) ──
+                                categoryTabs(scrollProxy: scrollProxy)
+                                    .padding(.bottom, 8)
+
+                                // ── Products grouped by category with titles ──
+                                productsSectionWithAnchors
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 100)
                             }
                         }
                     }
@@ -236,35 +232,49 @@ struct HomeView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     CategoryPill(name: "All", isSelected: selectedCategory == nil) {
+                        isTapScrolling = true
                         withAnimation(.easeInOut(duration: 0.3)) {
                             selectedCategory = nil
-                            // Scroll to top of products
                             scrollProxy.scrollTo("products_top", anchor: .top)
                         }
+                        // Allow scroll-based auto-select again after animation
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { isTapScrolling = false }
                     }
                     .id("tab_all")
 
                     ForEach(categories) { cat in
                         CategoryPill(name: cat.name, isSelected: selectedCategory == cat.id) {
+                            isTapScrolling = true
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 selectedCategory = cat.id
-                                // Scroll to the category section
                                 scrollProxy.scrollTo("cat_\(cat.id)", anchor: .top)
                             }
-                            // Also scroll the tab strip to show the selected tab
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 tabProxy.scrollTo("tab_\(cat.id)", anchor: .center)
                             }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { isTapScrolling = false }
                         }
                         .id("tab_\(cat.id)")
                     }
                 }
                 .padding(.horizontal, 16)
             }
+            // Keep the tab strip centered on the active category
+            .onChange(of: selectedCategory) { newVal in
+                if let id = newVal {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        tabProxy.scrollTo("tab_\(id)", anchor: .center)
+                    }
+                } else {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        tabProxy.scrollTo("tab_all", anchor: .center)
+                    }
+                }
+            }
         }
     }
 
-    // MARK: - Products Section (with category anchors for scroll-to)
+    // MARK: - Products Section (with category titles + scroll-detection)
     private var productsSectionWithAnchors: some View {
         LazyVStack(spacing: 12) {
             let grouped = groupedProducts
@@ -278,15 +288,28 @@ struct HomeView: View {
 
             ForEach(sortedKeys, id: \.self) { categoryName in
                 if let items = grouped[categoryName] {
-                    // Category header with anchor ID
+                    let catId = categoryIdFor(name: categoryName)
+
+                    // Category title header with scroll-detection
                     HStack {
                         Text(categoryName)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.textPrimary)
                         Spacer()
                     }
-                    .padding(.top, 8)
-                    .id("cat_\(categoryIdFor(name: categoryName))")
+                    .padding(.top, 16)
+                    .padding(.bottom, 4)
+                    .id("cat_\(catId)")
+                    .background(
+                        GeometryReader { geo in
+                            // Detect when this category header reaches near the top of the screen
+                            Color.clear
+                                .preference(
+                                    key: CategoryOffsetPreferenceKey.self,
+                                    value: [CategoryOffset(id: catId, minY: geo.frame(in: .global).minY)]
+                                )
+                        }
+                    )
 
                     ForEach(items) { product in
                         ProductRowView(product: product) {
@@ -300,6 +323,23 @@ struct HomeView: View {
                             selectedProduct = product
                         }
                     }
+                }
+            }
+        }
+        .onPreferenceChange(CategoryOffsetPreferenceKey.self) { offsets in
+            guard !isTapScrolling else { return }
+            // Find the category whose header is closest to (but not far below) the top
+            // We look for headers within a window near the top of the visible area
+            let threshold: CGFloat = 200 // px from top of screen
+            let visible = offsets.filter { $0.minY < threshold }.sorted { $0.minY > $1.minY }
+            if let topCat = visible.first {
+                if selectedCategory != topCat.id {
+                    selectedCategory = topCat.id
+                }
+            } else if offsets.allSatisfy({ $0.minY > threshold }) {
+                // All categories are below threshold → user is above first category
+                if selectedCategory != nil {
+                    selectedCategory = nil
                 }
             }
         }
@@ -645,6 +685,19 @@ struct CategoryPill: View {
                 .background(isSelected ? Color(hex: "00B14F") : Color(hex: "F0F0F0"))
                 .cornerRadius(20)
         }
+    }
+}
+
+// MARK: - Category Scroll Offset Detection
+struct CategoryOffset: Equatable {
+    let id: String
+    let minY: CGFloat
+}
+
+struct CategoryOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: [CategoryOffset] = []
+    static func reduce(value: inout [CategoryOffset], nextValue: () -> [CategoryOffset]) {
+        value.append(contentsOf: nextValue())
     }
 }
 
