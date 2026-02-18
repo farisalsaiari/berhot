@@ -21,7 +21,7 @@ struct HomeView: View {
     @State private var currentBannerIndex = 0
     @State private var bannerTimer: Timer?
     @State private var isTapScrolling = false   // true while programmatic scroll-to is in flight
-    @State private var visibleCategoryIds: Set<String> = []  // category headers currently on screen
+    @State private var categoryPositions: [String: CGFloat] = [:]  // catId → minY in global coords
 
     /// Live delivery address: prefer LocationManager's current address, fall back to saved
     private var displayAddress: String {
@@ -272,18 +272,16 @@ struct HomeView: View {
                 if let items = groupedProducts[categoryName] {
                     let catId = categoryIdFor(name: categoryName)
 
-                    // Category title header — onAppear/onDisappear for scroll detection
-                    HStack {
-                        Text(categoryName)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.textPrimary)
-                        Spacer()
-                    }
-                    .padding(.top, 16)
-                    .padding(.bottom, 4)
+                    // Category title with position tracking
+                    CategoryHeaderView(
+                        name: categoryName,
+                        catId: catId,
+                        onPositionChange: { id, minY in
+                            guard !isTapScrolling else { return }
+                            categoryPositionChanged(id: id, minY: minY)
+                        }
+                    )
                     .id("cat_\(catId)")
-                    .onAppear { categoryHeaderAppeared(catId) }
-                    .onDisappear { categoryHeaderDisappeared(catId) }
 
                     ForEach(items) { product in
                         ProductRowView(product: product) {
@@ -311,31 +309,34 @@ struct HomeView: View {
         }
     }
 
-    /// When a category header scrolls into view — select it
-    private func categoryHeaderAppeared(_ catId: String) {
-        visibleCategoryIds.insert(catId)
-        guard !isTapScrolling else { return }
-        // Scrolling down: the newly appeared header is the section user just entered
-        // Scrolling up: the newly appeared header is the section user is returning to
-        // Either way, select it
-        if selectedCategory != catId {
-            selectedCategory = catId
-        }
-    }
+    /// Called continuously as each category header scrolls
+    private func categoryPositionChanged(id: String, minY: CGFloat) {
+        // Update this header's position
+        categoryPositions[id] = minY
 
-    /// When a category header scrolls out of view
-    private func categoryHeaderDisappeared(_ catId: String) {
-        visibleCategoryIds.remove(catId)
         guard !isTapScrolling else { return }
-        // After removal, select the last visible category (highest in display order)
-        // This handles scrolling down: previous header leaves, we stay on current
-        let ordered = categories.filter { visibleCategoryIds.contains($0.id) }
-        if let last = ordered.last {
-            if selectedCategory != last.id {
-                selectedCategory = last.id
+
+        // The pinned header (toggle+menu+tabs) sits at roughly 160pt from screen top
+        // A category "owns" the view when its header has scrolled up to or past this line
+        let threshold: CGFloat = 200
+
+        // Find all categories whose header is at or above the threshold (scrolled past it)
+        // The active one is the LAST in display order that crossed the threshold
+        var best: String? = nil
+        for cat in categories {
+            if let y = categoryPositions[cat.id], y <= threshold {
+                best = cat.id  // keep overwriting — last one in order wins
             }
         }
-        // If none visible, keep current selection
+
+        if let best = best {
+            if selectedCategory != best {
+                selectedCategory = best
+            }
+        } else if selectedCategory != nil {
+            // All headers are below threshold — user scrolled back above first category
+            selectedCategory = nil
+        }
     }
 
     /// Map category name back to its ID for scroll anchoring
@@ -659,6 +660,35 @@ struct ProductRowView: View {
             .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Category Header (reports scroll position)
+struct CategoryHeaderView: View {
+    let name: String
+    let catId: String
+    let onPositionChange: (String, CGFloat) -> Void
+
+    var body: some View {
+        HStack {
+            Text(name)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.textPrimary)
+            Spacer()
+        }
+        .padding(.top, 16)
+        .padding(.bottom, 4)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onChange(of: geo.frame(in: .global).minY) { newY in
+                        onPositionChange(catId, newY)
+                    }
+                    .onAppear {
+                        onPositionChange(catId, geo.frame(in: .global).minY)
+                    }
+            }
+        )
     }
 }
 
