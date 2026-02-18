@@ -33,6 +33,14 @@ struct HomeView: View {
 
     private let brandYellow = Color(hex: "FFD300")
 
+    /// Time-based greeting
+    private var greetingText: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 12 { return "Good morning ☀️" }
+        if hour < 17 { return "Good afternoon 🌤️" }
+        return "Good evening 🌙"
+    }
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
@@ -190,6 +198,17 @@ struct HomeView: View {
                 .padding(.bottom, 16)
             }
             .background(brandYellow)
+
+            // Greeting (on white, below yellow area)
+            HStack {
+                Text(greetingText)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.textPrimary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 4)
         }
     }
 
