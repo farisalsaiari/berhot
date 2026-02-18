@@ -21,6 +21,7 @@ struct HomeView: View {
     @State private var currentBannerIndex = 0
     @State private var bannerTimer: Timer?
     @State private var isTapScrolling = false   // true while programmatic scroll-to is in flight
+    @State private var visibleCategoryIds: Set<String> = []  // category headers currently on screen
 
     /// Live delivery address: prefer LocationManager's current address, fall back to saved
     private var displayAddress: String {
@@ -265,20 +266,13 @@ struct HomeView: View {
     // MARK: - Products Section (with category titles + scroll-detection)
     private var productsSectionWithAnchors: some View {
         LazyVStack(spacing: 12) {
-            let grouped = groupedProducts
-            let sortedKeys = grouped.keys.sorted(by: { a, b in
-                let aIdx = categories.firstIndex(where: { $0.name == a }) ?? 999
-                let bIdx = categories.firstIndex(where: { $0.name == b }) ?? 999
-                return aIdx < bIdx
-            })
-
             Color.clear.frame(height: 0).id("products_top")
 
-            ForEach(sortedKeys, id: \.self) { categoryName in
-                if let items = grouped[categoryName] {
+            ForEach(sortedCategoryKeys, id: \.self) { categoryName in
+                if let items = groupedProducts[categoryName] {
                     let catId = categoryIdFor(name: categoryName)
 
-                    // Category title header with scroll-detection
+                    // Category title header — onAppear/onDisappear for scroll detection
                     HStack {
                         Text(categoryName)
                             .font(.system(size: 18, weight: .bold))
@@ -288,16 +282,8 @@ struct HomeView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 4)
                     .id("cat_\(catId)")
-                    .background(
-                        GeometryReader { geo in
-                            // Detect when this category header reaches near the top of the screen
-                            Color.clear
-                                .preference(
-                                    key: CategoryOffsetPreferenceKey.self,
-                                    value: [CategoryOffset(id: catId, minY: geo.frame(in: .global).minY)]
-                                )
-                        }
-                    )
+                    .onAppear { categoryHeaderAppeared(catId) }
+                    .onDisappear { categoryHeaderDisappeared(catId) }
 
                     ForEach(items) { product in
                         ProductRowView(product: product) {
@@ -314,21 +300,42 @@ struct HomeView: View {
                 }
             }
         }
-        .onPreferenceChange(CategoryOffsetPreferenceKey.self) { offsets in
-            guard !isTapScrolling else { return }
-            // Find the category whose header is closest to (but not far below) the top
-            // We look for headers within a window near the top of the visible area
-            let threshold: CGFloat = 200 // px from top of screen
-            let visible = offsets.filter { $0.minY < threshold }.sorted { $0.minY > $1.minY }
-            if let topCat = visible.first {
-                if selectedCategory != topCat.id {
-                    selectedCategory = topCat.id
-                }
-            } else if offsets.allSatisfy({ $0.minY > threshold }) {
-                // All categories are below threshold → user is above first category
-                if selectedCategory != nil {
-                    selectedCategory = nil
-                }
+    }
+
+    /// Sorted category names in display order
+    private var sortedCategoryKeys: [String] {
+        groupedProducts.keys.sorted { a, b in
+            let aIdx = categories.firstIndex(where: { $0.name == a }) ?? 999
+            let bIdx = categories.firstIndex(where: { $0.name == b }) ?? 999
+            return aIdx < bIdx
+        }
+    }
+
+    /// When a category header scrolls into view
+    private func categoryHeaderAppeared(_ catId: String) {
+        visibleCategoryIds.insert(catId)
+        guard !isTapScrolling else { return }
+        updateSelectedFromVisible()
+    }
+
+    /// When a category header scrolls out of view
+    private func categoryHeaderDisappeared(_ catId: String) {
+        visibleCategoryIds.remove(catId)
+        guard !isTapScrolling else { return }
+        updateSelectedFromVisible()
+    }
+
+    /// Pick the top-most visible category (earliest in the category order)
+    private func updateSelectedFromVisible() {
+        if visibleCategoryIds.isEmpty {
+            // No headers visible — keep current selection (user is between sections)
+            return
+        }
+        // Find the first category (by display order) that is currently visible
+        let ordered = categories.filter { visibleCategoryIds.contains($0.id) }
+        if let first = ordered.first {
+            if selectedCategory != first.id {
+                selectedCategory = first.id
             }
         }
     }
@@ -673,19 +680,6 @@ struct CategoryPill: View {
                 .background(isSelected ? Color(hex: "FFD300") : Color(hex: "F0F0F0"))
                 .cornerRadius(20)
         }
-    }
-}
-
-// MARK: - Category Scroll Offset Detection
-struct CategoryOffset: Equatable {
-    let id: String
-    let minY: CGFloat
-}
-
-struct CategoryOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: [CategoryOffset] = []
-    static func reduce(value: inout [CategoryOffset], nextValue: () -> [CategoryOffset]) {
-        value.append(contentsOf: nextValue())
     }
 }
 
