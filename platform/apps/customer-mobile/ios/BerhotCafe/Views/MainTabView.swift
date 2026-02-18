@@ -44,6 +44,16 @@ struct MainTabView: View {
             }
             .badge(cartManager.itemCount > 0 ? cartManager.itemCount : 0)
             .tag(3)
+
+            // Account
+            NavigationStack {
+                ProfileView()
+            }
+            .tabItem {
+                Image(systemName: selectedTab == 4 ? "person.crop.circle.fill" : "person.crop.circle")
+                Text("Account")
+            }
+            .tag(4)
         }
         .tint(Color(hex: "FFD300"))
     }
