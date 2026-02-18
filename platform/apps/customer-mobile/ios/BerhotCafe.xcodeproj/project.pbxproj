@@ -27,6 +27,7 @@
 		3AEF2BB9924F8FB21F56750C /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD37A55BD50BAA0D4308C70 /* User.swift */; };
 		1CEA595B4C43C46542716515 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59FFCCA139C4697C8D64B82 /* APIClient.swift */; };
 		1E729474EBA062A8F407711C /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C596E48379E27008DD3698BD /* AuthService.swift */; };
+		F429CF29FC8FE77F0C17B2E2 /* HomeDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0917F05A30E21E47256418C5 /* HomeDataCache.swift */; };
 		11D0A46DF41CCAF0E5F6A53D /* ModifierService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E82A92057D6102B5025CD8 /* ModifierService.swift */; };
 		D869F3F48B7A3C933D4D046E /* OrderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA54B5851B67C4DE0B9BFD5A /* OrderService.swift */; };
 		F70FF0FB41AED23F6D33666E /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 828244B76A02FECC6113EA17 /* PaymentService.swift */; };
@@ -100,6 +101,7 @@
 		0BD37A55BD50BAA0D4308C70 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "User.swift"; sourceTree = "<group>"; };
 		C59FFCCA139C4697C8D64B82 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIClient.swift"; sourceTree = "<group>"; };
 		C596E48379E27008DD3698BD /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthService.swift"; sourceTree = "<group>"; };
+		0917F05A30E21E47256418C5 /* HomeDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeDataCache.swift"; sourceTree = "<group>"; };
 		80E82A92057D6102B5025CD8 /* ModifierService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ModifierService.swift"; sourceTree = "<group>"; };
 		EA54B5851B67C4DE0B9BFD5A /* OrderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrderService.swift"; sourceTree = "<group>"; };
 		828244B76A02FECC6113EA17 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaymentService.swift"; sourceTree = "<group>"; };
@@ -247,6 +249,7 @@
 			children = (
 				C59FFCCA139C4697C8D64B82 /* APIClient.swift */,
 				C596E48379E27008DD3698BD /* AuthService.swift */,
+				0917F05A30E21E47256418C5 /* HomeDataCache.swift */,
 				80E82A92057D6102B5025CD8 /* ModifierService.swift */,
 				EA54B5851B67C4DE0B9BFD5A /* OrderService.swift */,
 				828244B76A02FECC6113EA17 /* PaymentService.swift */,
@@ -517,6 +520,7 @@
 				3AEF2BB9924F8FB21F56750C /* User.swift in Sources */,
 				1CEA595B4C43C46542716515 /* APIClient.swift in Sources */,
 				1E729474EBA062A8F407711C /* AuthService.swift in Sources */,
+				F429CF29FC8FE77F0C17B2E2 /* HomeDataCache.swift in Sources */,
 				11D0A46DF41CCAF0E5F6A53D /* ModifierService.swift in Sources */,
 				D869F3F48B7A3C933D4D046E /* OrderService.swift in Sources */,
 				F70FF0FB41AED23F6D33666E /* PaymentService.swift in Sources */,

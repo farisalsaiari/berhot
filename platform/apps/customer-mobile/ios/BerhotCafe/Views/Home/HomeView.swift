@@ -4,6 +4,7 @@ import MapKit
 struct HomeView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var cartManager: CartManager
+    @EnvironmentObject var tabBarVisibility: TabBarVisibility
     @ObservedObject private var locationManager = LocationManager.shared
     @State private var store: Store?
     @State private var products: [Product] = []
@@ -23,6 +24,8 @@ struct HomeView: View {
     @State private var bannerTimer: Timer?
     @State private var isTapScrolling = false   // true while programmatic scroll-to is in flight
     @State private var categoryPositions: [String: CGFloat] = [:]  // catId → minY in global coords
+    @State private var lastScrollOffset: CGFloat = 0  // for scroll direction detection
+    @State private var isCategoryPinned = false  // true when category tabs are stuck at top
 
     /// Live delivery address: prefer LocationManager's current address, fall back to saved
     private var displayAddress: String {
@@ -71,15 +74,57 @@ struct HomeView: View {
                                             .padding(.horizontal, 16)
                                             .padding(.bottom, 100)
                                     } header: {
-                                        categoryTabs(scrollProxy: scrollProxy)
-                                            .padding(.vertical, 10)
-                                            .background(Color.white)
+                                        VStack(spacing: 0) {
+                                            categoryTabs(scrollProxy: scrollProxy)
+                                                .padding(.vertical, 9)
+                                            if isCategoryPinned {
+                                                Divider()
+                                            }
+                                        }
+                                        .background(
+                                            GeometryReader { geo in
+                                                // When pinned, minY in global is near top (~59 safe area)
+                                                // When not pinned, minY is much larger
+                                                Color.white
+                                                    .padding(.top, isCategoryPinned ? -600 : 0)
+                                                    .edgesIgnoringSafeArea(isCategoryPinned ? .all : [])
+                                                    .onChange(of: geo.frame(in: .global).minY) { newY in
+                                                        // Category tabs are "pinned" when near top of safe area (~60pt)
+                                                        let pinned = newY < 100
+                                                        if pinned != isCategoryPinned {
+                                                            isCategoryPinned = pinned
+                                                        }
+                                                    }
+                                                    .onAppear {
+                                                        let y = geo.frame(in: .global).minY
+                                                        isCategoryPinned = y < 100
+                                                    }
+                                            }
+                                        )
+                                        .zIndex(1)
                                     }
                                 }
                             }
                         }
                     }
-                    .ignoresSafeArea(edges: .top)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear
+                                .onChange(of: geo.frame(in: .global).minY) { newY in
+                                    let delta = newY - lastScrollOffset
+                                    if abs(delta) > 10 {
+                                        if delta < 0 && tabBarVisibility.isVisible {
+                                            // Scrolling DOWN → hide tab bar
+                                            tabBarVisibility.isVisible = false
+                                        } else if delta > 0 && !tabBarVisibility.isVisible {
+                                            // Scrolling UP → show tab bar
+                                            tabBarVisibility.isVisible = true
+                                        }
+                                        lastScrollOffset = newY
+                                    }
+                                }
+                        }
+                    )
                 }
 
                 // Floating Cart Button
@@ -125,10 +170,10 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Top Header (yellow card covers address + search)
+    // MARK: - Top Header (address + toggle + search)
     private var topHeaderSection: some View {
         VStack(spacing: 0) {
-            // Yellow area: status bar + address + toggle + search
+            // Header area: address + toggle + search
             VStack(spacing: 0) {
                 // Address & logo bar
                 HStack(alignment: .center) {
@@ -164,7 +209,7 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 60)
+                .padding(.top, 12)
                 .padding(.bottom, 12)
 
                 // Delivery/Pickup toggle + Group Order button
@@ -187,11 +232,11 @@ struct HomeView: View {
                         .foregroundColor(.black)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.5))
+                        .background(Color(hex: "F5F5F5"))
                         .cornerRadius(20)
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.black.opacity(0.15), lineWidth: 1)
+                                .stroke(Color(hex: "E0E0E0"), lineWidth: 1)
                         )
                     }
                 }
@@ -213,14 +258,15 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Color.white)
+                    .background(Color(hex: "F5F5F5"))
                     .cornerRadius(14)
-                    .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
+
+                Divider()
             }
-            .background(brandYellow)
+            .background(Color.white)
         }
     }
 
@@ -255,7 +301,7 @@ struct HomeView: View {
                         isTapScrolling = true
                         withAnimation(.easeInOut(duration: 0.3)) {
                             selectedCategory = nil
-                            scrollProxy.scrollTo("products_top", anchor: .top)
+                            scrollProxy.scrollTo("products_top", anchor: UnitPoint(x: 0, y: -1.5))
                         }
                         // Allow scroll-based auto-select again after animation
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { isTapScrolling = false }
@@ -267,7 +313,8 @@ struct HomeView: View {
                             isTapScrolling = true
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 selectedCategory = cat.id
-                                scrollProxy.scrollTo("cat_\(cat.id)", anchor: .top)
+                                // Negative Y anchor offsets the view downward below the pinned tabs
+                                scrollProxy.scrollTo("cat_\(cat.id)", anchor: UnitPoint(x: 0, y: -1.5))
                             }
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 tabProxy.scrollTo("tab_\(cat.id)", anchor: .center)
@@ -303,10 +350,7 @@ struct HomeView: View {
                 if let items = groupedProducts[categoryName] {
                     let catId = categoryIdFor(name: categoryName)
 
-                    // Scroll anchor (above title so scroll-to lands title below pinned header)
-                    Color.clear.frame(height: 0).id("cat_\(catId)")
-
-                    // Category title with position tracking
+                    // Category title with position tracking + scroll anchor
                     CategoryHeaderView(
                         name: categoryName,
                         catId: catId,
@@ -315,6 +359,7 @@ struct HomeView: View {
                             categoryPositionChanged(id: id, minY: minY)
                         }
                     )
+                    .id("cat_\(catId)")
 
                     ForEach(items) { product in
                         ProductRowView(product: product) {
@@ -412,19 +457,50 @@ struct HomeView: View {
     }
 
     private func loadData() async {
+        let cache = HomeDataCache.shared
+
+        // If cached data exists, use it immediately (no skeleton)
+        if cache.hasCachedData {
+            store = cache.store
+            products = cache.products ?? []
+            categories = cache.categories ?? []
+            bannerSettings = cache.bannerSettings
+            banners = cache.banners ?? []
+            isLoading = false
+
+            // Refresh data silently in the background
+            await refreshData()
+            return
+        }
+
+        // First load — show skeleton
         isLoading = true
+        await refreshData()
+        isLoading = false
+
+        // Load banners (non-blocking)
+        await loadBanners()
+    }
+
+    /// Fetch fresh data from API and update cache
+    private func refreshData() async {
         do {
             async let storeTask = StoreService.fetchStoreInfo()
             async let productsTask = ProductService.fetchProducts()
             async let categoriesTask = ProductService.fetchCategories()
             let (s, p, c) = try await (storeTask, productsTask, categoriesTask)
             store = s; products = p; categories = c
+
+            // Update cache
+            let cache = HomeDataCache.shared
+            cache.store = s
+            cache.products = p
+            cache.categories = c
         } catch {
             print("HomeView load error: \(error)")
         }
-        isLoading = false
 
-        // Load banners (non-blocking)
+        // Also refresh banners
         await loadBanners()
     }
 
@@ -458,6 +534,11 @@ struct HomeView: View {
                 }
                 return b
             }
+
+            // Cache banners
+            let cache = HomeDataCache.shared
+            cache.bannerSettings = decoded
+            cache.banners = banners
 
             // Start auto-slide timer if slider mode
             if decoded.bannerMode == "slider" && banners.count > 1 {

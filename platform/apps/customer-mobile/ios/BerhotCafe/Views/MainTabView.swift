@@ -1,59 +1,80 @@
 import SwiftUI
 
+// Observable class to share tab bar visibility across views
+class TabBarVisibility: ObservableObject {
+    @Published var isVisible: Bool = true
+}
+
 struct MainTabView: View {
     @EnvironmentObject var cartManager: CartManager
+    @StateObject private var tabBarVisibility = TabBarVisibility()
     @State private var selectedTab = 0
 
+    private let brandYellow = Color(hex: "FFD300")
+
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // Menu (Home page with products)
-            HomeView()
-                .tabItem {
-                    Image(systemName: selectedTab == 0 ? "menucard.fill" : "menucard")
-                    Text("Menu")
+        ZStack(alignment: .bottom) {
+            // Content
+            Group {
+                switch selectedTab {
+                case 0:
+                    HomeView()
+                case 1:
+                    NavigationStack { RewardsView() }
+                case 2:
+                    NavigationStack { OrderHistoryView() }
+                case 3:
+                    NavigationStack { ProfileView() }
+                case 4:
+                    NavigationStack { MoreView() }
+                default:
+                    HomeView()
                 }
-                .tag(0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Rewards
-            NavigationStack {
-                RewardsView()
-            }
-            .tabItem {
-                Image(systemName: selectedTab == 1 ? "gift.fill" : "gift")
-                Text("Rewards")
-            }
-            .tag(1)
-
-            // Orders
-            NavigationStack {
-                OrderHistoryView()
-            }
-            .tabItem {
-                Image(systemName: selectedTab == 2 ? "bag.fill" : "bag")
-                Text("Orders")
-            }
-            .tag(2)
-
-            // Account
-            NavigationStack {
-                ProfileView()
-            }
-            .tabItem {
-                Image(systemName: selectedTab == 3 ? "person.fill" : "person")
-                Text("Account")
-            }
-            .tag(3)
-
-            // More
-            NavigationStack {
-                MoreView()
-            }
-            .tabItem {
-                Image(systemName: "ellipsis")
-                Text("More")
-            }
-            .tag(4)
+            // Custom Tab Bar
+            customTabBar
+                .offset(y: tabBarVisibility.isVisible ? 0 : 100) // slide down to hide
+                .animation(.easeInOut(duration: 0.25), value: tabBarVisibility.isVisible)
         }
-        .tint(Color(hex: "FFD300"))
+        .environmentObject(tabBarVisibility)
+        .ignoresSafeArea(.keyboard) // prevent tab bar from jumping with keyboard
+    }
+
+    // MARK: - Custom Tab Bar
+    private var customTabBar: some View {
+        HStack(spacing: 0) {
+            tabBarItem(icon: "menucard", activeIcon: "menucard.fill", label: "Menu", tag: 0)
+            tabBarItem(icon: "gift", activeIcon: "gift.fill", label: "Rewards", tag: 1)
+            tabBarItem(icon: "bag", activeIcon: "bag.fill", label: "Orders", tag: 2)
+            tabBarItem(icon: "person", activeIcon: "person.fill", label: "Account", tag: 3)
+            tabBarItem(icon: "ellipsis", activeIcon: "ellipsis", label: "More", tag: 4)
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 28) // account for home indicator safe area
+        .background(
+            Color.white
+                .shadow(color: .black.opacity(0.08), radius: 8, y: -2)
+                .edgesIgnoringSafeArea(.bottom)
+        )
+    }
+
+    private func tabBarItem(icon: String, activeIcon: String, label: String, tag: Int) -> some View {
+        Button {
+            selectedTab = tag
+            // Always show tab bar when switching tabs
+            tabBarVisibility.isVisible = true
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: selectedTab == tag ? activeIcon : icon)
+                    .font(.system(size: 20))
+                    .frame(height: 24)
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundColor(selectedTab == tag ? brandYellow : Color(hex: "999999"))
+            .frame(maxWidth: .infinity)
+        }
     }
 }
