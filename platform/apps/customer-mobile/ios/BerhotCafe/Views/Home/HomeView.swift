@@ -62,8 +62,7 @@ struct HomeView: View {
                                         .padding(.bottom, 12)
                                 }
 
-                                // ── Sticky: Delivery Toggle + Category Tabs ──
-                                // These pin to top when user scrolls past them
+                                // ── Sticky Category Tabs ──
                                 LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
                                     Section {
                                         // ── Products grouped by category with titles ──
@@ -71,28 +70,9 @@ struct HomeView: View {
                                             .padding(.horizontal, 16)
                                             .padding(.bottom, 100)
                                     } header: {
-                                        VStack(spacing: 0) {
-                                            // Delivery / Pickup Toggle
-                                            deliveryToggle
-                                                .padding(.horizontal, 16)
-                                                .padding(.bottom, 10)
-
-                                            // Menu title
-                                            HStack {
-                                                Text("Menu")
-                                                    .font(.system(size: 22, weight: .bold))
-                                                    .foregroundColor(.textPrimary)
-                                                Spacer()
-                                            }
-                                            .padding(.horizontal, 16)
-                                            .padding(.bottom, 4)
-
-                                            // Category Tabs
-                                            categoryTabs(scrollProxy: scrollProxy)
-                                                .padding(.bottom, 8)
-                                        }
-                                        .padding(.top, 12)
-                                        .background(Color.white)
+                                        categoryTabs(scrollProxy: scrollProxy)
+                                            .padding(.vertical, 10)
+                                            .background(Color.white)
                                     }
                                 }
                             }
@@ -140,7 +120,7 @@ struct HomeView: View {
     // MARK: - Top Header (yellow card covers address + search)
     private var topHeaderSection: some View {
         VStack(spacing: 0) {
-            // Yellow area: status bar + address + search + small gap
+            // Yellow area: status bar + address + toggle + search
             VStack(spacing: 0) {
                 // Address & logo bar
                 HStack(alignment: .center) {
@@ -177,17 +157,54 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
-                .padding(.bottom, 16)
+                .padding(.bottom, 12)
+
+                // Delivery/Pickup toggle + Group Order button
+                HStack(spacing: 10) {
+                    // Delivery / Pickup capsule toggle
+                    deliveryToggleCompact
+
+                    Spacer()
+
+                    // Group Order button
+                    Button {
+                        // Future: group order flow
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "person.2")
+                                .font(.system(size: 12, weight: .medium))
+                            Text("Group order")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.5))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.black.opacity(0.15), lineWidth: 1)
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
 
                 // Search bar (inside yellow area)
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
+                        .foregroundColor(Color(hex: "999999"))
                     Text("Search Berhot Cafe")
                         .font(.system(size: 15))
                         .foregroundColor(Color(hex: "999999"))
                     Spacer()
+                    Rectangle()
+                        .fill(Color(hex: "DDDDDD"))
+                        .frame(width: 1, height: 20)
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(Color(hex: "666666"))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -198,40 +215,29 @@ struct HomeView: View {
                 .padding(.bottom, 16)
             }
             .background(brandYellow)
-
-            // Greeting (on white, below yellow area)
-            HStack {
-                Text(greetingText)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.textPrimary)
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 4)
         }
     }
 
-    // MARK: - Delivery Toggle
-    private var deliveryToggle: some View {
+    // MARK: - Compact Delivery/Pickup Toggle (Binance style)
+    private var deliveryToggleCompact: some View {
         HStack(spacing: 0) {
             ForEach(["Delivery", "Pickup"].indices, id: \.self) { index in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { deliveryMode = index }
                 } label: {
                     Text(["Delivery", "Pickup"][index])
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(deliveryMode == index ? .black : .textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(deliveryMode == index ? brandYellow : Color.clear)
-                        .cornerRadius(10)
+                        .font(.system(size: 13, weight: deliveryMode == index ? .bold : .medium))
+                        .foregroundColor(deliveryMode == index ? .black : Color(hex: "999999"))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(deliveryMode == index ? Color.white : Color.clear)
+                        .cornerRadius(20)
                 }
             }
         }
-        .padding(4)
-        .background(Color(hex: "F0F0F0"))
-        .cornerRadius(12)
+        .padding(3)
+        .background(Color.black.opacity(0.08))
+        .cornerRadius(24)
     }
 
     // MARK: - Category Tabs (with scroll-to support)
@@ -246,7 +252,7 @@ struct HomeView: View {
                             scrollProxy.scrollTo("products_top", anchor: .top)
                         }
                         // Allow scroll-based auto-select again after animation
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { isTapScrolling = false }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { isTapScrolling = false }
                     }
                     .id("tab_all")
 
@@ -260,7 +266,7 @@ struct HomeView: View {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 tabProxy.scrollTo("tab_\(cat.id)", anchor: .center)
                             }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { isTapScrolling = false }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { isTapScrolling = false }
                         }
                         .id("tab_\(cat.id)")
                     }
@@ -291,6 +297,9 @@ struct HomeView: View {
                 if let items = groupedProducts[categoryName] {
                     let catId = categoryIdFor(name: categoryName)
 
+                    // Scroll anchor (above title so scroll-to lands title below pinned header)
+                    Color.clear.frame(height: 0).id("cat_\(catId)")
+
                     // Category title with position tracking
                     CategoryHeaderView(
                         name: categoryName,
@@ -300,7 +309,6 @@ struct HomeView: View {
                             categoryPositionChanged(id: id, minY: minY)
                         }
                     )
-                    .id("cat_\(catId)")
 
                     ForEach(items) { product in
                         ProductRowView(product: product) {
@@ -335,9 +343,9 @@ struct HomeView: View {
 
         guard !isTapScrolling else { return }
 
-        // The pinned header (toggle+menu+tabs) sits at roughly 160pt from screen top
+        // The pinned header (just category tabs) sits at roughly 50pt tall
         // A category "owns" the view when its header has scrolled up to or past this line
-        let threshold: CGFloat = 200
+        let threshold: CGFloat = 120
 
         // Find all categories whose header is at or above the threshold (scrolled past it)
         // The active one is the LAST in display order that crossed the threshold

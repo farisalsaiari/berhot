@@ -14,22 +14,9 @@ struct HomeSkeletonContent: View {
                 skeletonBanner(phase: phase)
                     .padding(.bottom, 12)
 
-                // Delivery toggle
-                skeletonDeliveryToggle(phase: phase)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-
-                // Menu title
-                HStack {
-                    SkeletonBox(width: 70, height: 22, cornerRadius: 6, phase: phase)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 4)
-
                 // Category tabs
                 skeletonCategoryTabs(phase: phase)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 10)
 
                 // Product rows
                 skeletonProductList(phase: phase)
@@ -54,17 +41,6 @@ struct HomeSkeletonContent: View {
             }
         }
         .padding(.top, 12)
-    }
-
-    // MARK: - Delivery Toggle
-    private func skeletonDeliveryToggle(phase: CGFloat) -> some View {
-        HStack(spacing: 4) {
-            SkeletonBox(height: 38, cornerRadius: 10, phase: phase)
-            SkeletonBox(height: 38, cornerRadius: 10, phase: phase)
-        }
-        .padding(4)
-        .background(Color(white: 0.94 + 0.03 * Double(phase)))
-        .cornerRadius(12)
     }
 
     // MARK: - Category Tabs

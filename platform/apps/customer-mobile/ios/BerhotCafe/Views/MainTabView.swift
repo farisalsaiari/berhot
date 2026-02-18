@@ -6,52 +6,51 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Home — DoorDash-style store page
+            // Menu (Home page with products)
             HomeView()
                 .tabItem {
-                    Image(systemName: selectedTab == 0 ? "house.fill" : "house")
-                    Text("Home")
+                    Image(systemName: selectedTab == 0 ? "menucard.fill" : "menucard")
+                    Text("Menu")
                 }
                 .tag(0)
 
-            // Menu — browse/search all products
+            // Rewards
             NavigationStack {
-                MenuView()
+                RewardsView()
             }
             .tabItem {
-                Image(systemName: "fork.knife")
-                Text("Menu")
+                Image(systemName: selectedTab == 1 ? "gift.fill" : "gift")
+                Text("Rewards")
             }
             .tag(1)
 
-            // Orders — order history
+            // Orders
             NavigationStack {
                 OrderHistoryView()
             }
             .tabItem {
-                Image(systemName: "bag")
+                Image(systemName: selectedTab == 2 ? "bag.fill" : "bag")
                 Text("Orders")
             }
             .tag(2)
-
-            // Cart
-            NavigationStack {
-                CartView()
-            }
-            .tabItem {
-                Image(systemName: "cart")
-                Text("Cart")
-            }
-            .badge(cartManager.itemCount > 0 ? cartManager.itemCount : 0)
-            .tag(3)
 
             // Account
             NavigationStack {
                 ProfileView()
             }
             .tabItem {
-                Image(systemName: selectedTab == 4 ? "person.crop.circle.fill" : "person.crop.circle")
+                Image(systemName: selectedTab == 3 ? "person.fill" : "person")
                 Text("Account")
+            }
+            .tag(3)
+
+            // More
+            NavigationStack {
+                MoreView()
+            }
+            .tabItem {
+                Image(systemName: "ellipsis")
+                Text("More")
             }
             .tag(4)
         }
