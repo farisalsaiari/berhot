@@ -16,6 +16,7 @@ struct HomeView: View {
     @State private var searchText = ""
     @State private var showSearch = false
     @State private var showLocationPicker = false
+    @State private var showSearchView = false
     @State private var bannerSettings: BannerSettings?
     @State private var banners: [HomeBanner] = []
     @State private var currentBannerIndex = 0
@@ -95,6 +96,13 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showLocationPicker) {
                 LocationChangeView(locationManager: locationManager)
+            }
+            .fullScreenCover(isPresented: $showSearchView) {
+                SearchView(
+                    products: products,
+                    categories: categories,
+                    deliveryMode: deliveryMode
+                )
             }
         }
         .task { await loadData() }
@@ -190,27 +198,25 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
 
-                // Search bar (inside yellow area)
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(hex: "999999"))
-                    Text("Search Berhot Cafe")
-                        .font(.system(size: 15))
-                        .foregroundColor(Color(hex: "999999"))
-                    Spacer()
-                    Rectangle()
-                        .fill(Color(hex: "DDDDDD"))
-                        .frame(width: 1, height: 20)
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(hex: "666666"))
+                // Search bar (taps to open search view)
+                Button {
+                    showSearchView = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Color(hex: "999999"))
+                        Text("Search Berhot Cafe")
+                            .font(.system(size: 15))
+                            .foregroundColor(Color(hex: "999999"))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.white)
+                    .cornerRadius(14)
+                    .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.white)
-                .cornerRadius(14)
-                .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
             }
