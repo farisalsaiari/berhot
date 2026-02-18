@@ -311,33 +311,31 @@ struct HomeView: View {
         }
     }
 
-    /// When a category header scrolls into view
+    /// When a category header scrolls into view — select it
     private func categoryHeaderAppeared(_ catId: String) {
         visibleCategoryIds.insert(catId)
         guard !isTapScrolling else { return }
-        updateSelectedFromVisible()
+        // Scrolling down: the newly appeared header is the section user just entered
+        // Scrolling up: the newly appeared header is the section user is returning to
+        // Either way, select it
+        if selectedCategory != catId {
+            selectedCategory = catId
+        }
     }
 
     /// When a category header scrolls out of view
     private func categoryHeaderDisappeared(_ catId: String) {
         visibleCategoryIds.remove(catId)
         guard !isTapScrolling else { return }
-        updateSelectedFromVisible()
-    }
-
-    /// Pick the top-most visible category (earliest in the category order)
-    private func updateSelectedFromVisible() {
-        if visibleCategoryIds.isEmpty {
-            // No headers visible — keep current selection (user is between sections)
-            return
-        }
-        // Find the first category (by display order) that is currently visible
+        // After removal, select the last visible category (highest in display order)
+        // This handles scrolling down: previous header leaves, we stay on current
         let ordered = categories.filter { visibleCategoryIds.contains($0.id) }
-        if let first = ordered.first {
-            if selectedCategory != first.id {
-                selectedCategory = first.id
+        if let last = ordered.last {
+            if selectedCategory != last.id {
+                selectedCategory = last.id
             }
         }
+        // If none visible, keep current selection
     }
 
     /// Map category name back to its ID for scroll anchoring
