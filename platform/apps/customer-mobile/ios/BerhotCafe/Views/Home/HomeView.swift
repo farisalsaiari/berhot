@@ -53,29 +53,39 @@ struct HomeView: View {
                                         .padding(.bottom, 12)
                                 }
 
-                                // ── Delivery / Pickup Toggle ──
-                                deliveryToggle
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 12)
+                                // ── Sticky: Delivery Toggle + Category Tabs ──
+                                // These pin to top when user scrolls past them
+                                LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                                    Section {
+                                        // ── Products grouped by category with titles ──
+                                        productsSectionWithAnchors
+                                            .padding(.horizontal, 16)
+                                            .padding(.bottom, 100)
+                                    } header: {
+                                        VStack(spacing: 0) {
+                                            // Delivery / Pickup Toggle
+                                            deliveryToggle
+                                                .padding(.horizontal, 16)
+                                                .padding(.bottom, 10)
 
-                                // ── Menu Section Title ──
-                                HStack {
-                                    Text("Menu")
-                                        .font(.system(size: 22, weight: .bold))
-                                        .foregroundColor(.textPrimary)
-                                    Spacer()
+                                            // Menu title
+                                            HStack {
+                                                Text("Menu")
+                                                    .font(.system(size: 22, weight: .bold))
+                                                    .foregroundColor(.textPrimary)
+                                                Spacer()
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.bottom, 4)
+
+                                            // Category Tabs
+                                            categoryTabs(scrollProxy: scrollProxy)
+                                                .padding(.bottom, 8)
+                                        }
+                                        .padding(.top, 12)
+                                        .background(Color.white)
+                                    }
                                 }
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 4)
-
-                                // ── Category Tabs (scrolls normally, not pinned) ──
-                                categoryTabs(scrollProxy: scrollProxy)
-                                    .padding(.bottom, 8)
-
-                                // ── Products grouped by category with titles ──
-                                productsSectionWithAnchors
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 100)
                             }
                         }
                     }

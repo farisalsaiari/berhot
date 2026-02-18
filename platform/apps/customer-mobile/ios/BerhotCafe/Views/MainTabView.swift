@@ -45,6 +45,6 @@ struct MainTabView: View {
             .badge(cartManager.itemCount > 0 ? cartManager.itemCount : 0)
             .tag(3)
         }
-        .tint(Color(hex: "00B14F"))
+        .tint(Color(hex: "FFD300"))
     }
 }
