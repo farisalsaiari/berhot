@@ -2,8 +2,10 @@ import SwiftUI
 
 struct CartView: View {
     @EnvironmentObject var cartManager: CartManager
+    @EnvironmentObject var authManager: AuthManager
     @StateObject private var viewModel = CartViewModel()
     @State private var showPayment = false
+    @State private var showSignIn = false
 
     var body: some View {
         Group {
@@ -44,7 +46,11 @@ struct CartView: View {
                 }
                 .overlay(alignment: .bottom) {
                     Button {
-                        showPayment = true
+                        if authManager.isAuthenticated {
+                            showPayment = true
+                        } else {
+                            showSignIn = true
+                        }
                     } label: {
                         HStack {
                             Text("Proceed to Payment")
@@ -76,6 +82,21 @@ struct CartView: View {
         }
         .sheet(isPresented: $showPayment) {
             PaymentView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showSignIn) {
+            SignInSheetView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .onChange(of: authManager.isAuthenticated) { isAuth in
+            if isAuth && !showPayment {
+                // User just signed in — open payment automatically
+                showPayment = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .guestCheckoutRequested)) { _ in
+            // Guest checkout: go straight to payment
+            showPayment = true
         }
     }
 }

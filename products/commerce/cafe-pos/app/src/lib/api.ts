@@ -127,6 +127,7 @@ export interface TenantInfo {
   slug: string;
   status: string;
   plan: string;
+  planExpiresAt?: string;
   countryCode: string;
   regionId: string;
   cityId: string;
@@ -260,4 +261,53 @@ export async function deactivateBusinessLocation(id: string): Promise<{ message:
   return apiFetch(`/api/v1/business-locations/${id}`, {
     method: 'DELETE',
   });
+}
+
+// ── Subscription endpoints (billing-subscriptions service) ──
+
+export interface SubscriptionInfo {
+  id: string;
+  tenantId: string;
+  planKey: string;
+  status: string;
+  billingCycle: string;
+  startedAt: string;
+  expiresAt: string | null;
+  previousPlanKey: string | null;
+  createdAt: string;
+}
+
+export interface PlanInfo {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  currency: string;
+  sortOrder: number;
+  trialDurationMinutes: number;
+}
+
+export async function fetchCurrentSubscription(tenantId: string): Promise<SubscriptionInfo> {
+  return apiFetch<SubscriptionInfo>(`/api/v1/subscriptions/current?tenantId=${tenantId}`);
+}
+
+export async function changeSubscriptionPlan(
+  tenantId: string,
+  plan: string,
+  billingCycle: string = 'monthly'
+): Promise<SubscriptionInfo> {
+  return apiFetch<SubscriptionInfo>(`/api/v1/subscriptions/change-plan?tenantId=${tenantId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ plan, billingCycle }),
+  });
+}
+
+export async function fetchSubscriptionHistory(tenantId: string): Promise<SubscriptionInfo[]> {
+  return apiFetch<SubscriptionInfo[]>(`/api/v1/subscriptions/history?tenantId=${tenantId}`);
+}
+
+export async function fetchSubscriptionPlans(): Promise<PlanInfo[]> {
+  return apiFetch<PlanInfo[]>('/api/v1/subscriptions/plans');
 }

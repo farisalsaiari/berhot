@@ -137,6 +137,7 @@ struct SearchView: View {
     }
 
     var body: some View {
+        ZStack(alignment: .bottom) {
         VStack(spacing: 0) {
             // ── Top bar: back + search field + clear ──
             HStack(spacing: 12) {
@@ -296,6 +297,7 @@ struct SearchView: View {
                     }
                     Spacer()
                 }
+                .padding(.bottom, cartManager.isEmpty ? 0 : 70)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -344,10 +346,16 @@ struct SearchView: View {
                             .padding(.bottom, 8)
                         }
                     }
-                    .padding(.bottom, 40)
+                    .padding(.bottom, cartManager.isEmpty ? 40 : 100)
                 }
             }
         }
+
+            // Floating Cart Button
+            if !cartManager.isEmpty {
+                floatingCartButton
+            }
+        } // ZStack
         .background(Color.white)
         .onAppear {
             isSearchFocused = true
@@ -373,6 +381,32 @@ struct SearchView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+    }
+
+    // MARK: - Floating Cart Button
+    private var floatingCartButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "cart.fill").font(.system(size: 16))
+                    Text("\(cartManager.itemCount) items")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                Spacer()
+                Text(cartManager.total.formattedCurrency)
+                    .font(.system(size: 15, weight: .bold))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(brandYellow)
+            .foregroundColor(.black)
+            .cornerRadius(16)
+            .shadow(color: brandYellow.opacity(0.4), radius: 12, y: 6)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Delivery Mode Option Row

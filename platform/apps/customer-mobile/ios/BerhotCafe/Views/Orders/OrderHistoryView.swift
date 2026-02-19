@@ -7,6 +7,10 @@ struct OrderHistoryView: View {
         Group {
             if viewModel.isLoading {
                 LoadingView(message: "Loading orders...")
+            } else if let error = viewModel.error {
+                ErrorView(message: error) {
+                    Task { await viewModel.loadOrders() }
+                }
             } else if viewModel.orders.isEmpty {
                 EmptyStateView(
                     icon: "list.clipboard",

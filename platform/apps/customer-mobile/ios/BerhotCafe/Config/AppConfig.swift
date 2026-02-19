@@ -2,9 +2,25 @@ import Foundation
 
 enum AppConfig {
     // MARK: - API URLs
+    // Simulator uses localhost, real device uses Mac's local IP
+    private static let localIP = "192.168.100.7"
+
+    /// true when running in iOS Simulator
+    private static var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    private static var apiHost: String {
+        isSimulator ? "localhost" : localIP
+    }
+
     #if DEBUG
-    static let identityBaseURL = "http://localhost:8080"
-    static let posBaseURL = "http://localhost:8082"
+    static var identityBaseURL: String { "http://\(apiHost):8080" }
+    static var posBaseURL: String { "http://\(apiHost):8082" }
     #else
     static let identityBaseURL = "https://api.berhot.com"
     static let posBaseURL = "https://pos.berhot.com"
@@ -12,8 +28,8 @@ enum AppConfig {
 
     // MARK: - Tenant
     static var tenantId: String {
-        // Read from UserDefaults or use default
-        UserDefaults.standard.string(forKey: "berhot_tenant_id") ?? ""
+        let saved = UserDefaults.standard.string(forKey: "berhot_tenant_id") ?? ""
+        return saved.isEmpty ? demoTenantId : saved
     }
 
     static func setTenantId(_ id: String) {

@@ -99,21 +99,32 @@ func (h *TenantHandler) HandleGetMyTenant(c *gin.Context) {
 		return
 	}
 
+	// Ensure plan_expires_at column exists
+	h.DB.Exec(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ`)
+
+	// Auto-downgrade expired plans
+	h.DB.Exec(
+		`UPDATE tenants SET plan = 'starter', plan_expires_at = NULL, updated_at = NOW()
+		 WHERE id = $1 AND plan_expires_at IS NOT NULL AND plan_expires_at < NOW()`,
+		tenantID,
+	)
+
 	var name, slug, status, plan string
 	var countryCode, regionID, cityID sql.NullString
 	var logoURL, coverURL, registrationNo sql.NullString
 	var logoShape sql.NullString
 	var showBusinessName sql.NullBool
+	var planExpiresAt sql.NullTime
 	var createdAt time.Time
 	err := h.DB.QueryRow(
 		`SELECT name, slug, status, plan, country_code, region_id::text, city_id::text,
 		        COALESCE(logo_url,''), COALESCE(cover_url,''), COALESCE(registration_no,''),
 		        COALESCE(logo_shape,'square'), COALESCE(show_business_name,true),
-		        created_at
+		        plan_expires_at, created_at
 		 FROM tenants WHERE id = $1`,
 		tenantID,
 	).Scan(&name, &slug, &status, &plan, &countryCode, &regionID, &cityID,
-		&logoURL, &coverURL, &registrationNo, &logoShape, &showBusinessName, &createdAt)
+		&logoURL, &coverURL, &registrationNo, &logoShape, &showBusinessName, &planExpiresAt, &createdAt)
 	if err != nil {
 		c.JSON(404, gin.H{"error": "Tenant not found"})
 		return
@@ -128,13 +139,17 @@ func (h *TenantHandler) HandleGetMyTenant(c *gin.Context) {
 		showName = showBusinessName.Bool
 	}
 
-	c.JSON(200, gin.H{
+	resp := gin.H{
 		"id": tenantID, "name": name, "slug": slug, "status": status, "plan": plan,
 		"countryCode": countryCode.String, "regionId": regionID.String, "cityId": cityID.String,
 		"logoUrl": logoURL.String, "coverUrl": coverURL.String, "registrationNo": registrationNo.String,
 		"logoShape": shape, "showBusinessName": showName,
 		"createdAt": createdAt,
-	})
+	}
+	if planExpiresAt.Valid {
+		resp["planExpiresAt"] = planExpiresAt.Time.Format(time.RFC3339)
+	}
+	c.JSON(200, resp)
 }
 
 // PUT /api/v1/tenants/me — update own tenant info
@@ -208,10 +223,28 @@ func (h *TenantHandler) HandleUpdateMyTenantPlan(c *gin.Context) {
 		return
 	}
 
-	_, err := h.DB.Exec("UPDATE tenants SET plan = $1, updated_at = NOW() WHERE id = $2", req.Plan, tenantID)
+	// Ensure plan_expires_at column exists
+	h.DB.Exec(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ`)
+
+	// For professional/enterprise, set a 5-minute trial expiry; for free/starter clear it
+	var expiresAt *time.Time
+	if req.Plan == "professional" || req.Plan == "enterprise" {
+		t := time.Now().Add(5 * time.Minute)
+		expiresAt = &t
+	}
+
+	_, err := h.DB.Exec(
+		"UPDATE tenants SET plan = $1, plan_expires_at = $2, updated_at = NOW() WHERE id = $3",
+		req.Plan, expiresAt, tenantID,
+	)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Update failed"})
 		return
 	}
-	c.JSON(200, gin.H{"message": "Plan updated", "plan": req.Plan})
+
+	resp := gin.H{"message": "Plan updated", "plan": req.Plan}
+	if expiresAt != nil {
+		resp["planExpiresAt"] = expiresAt.Format(time.RFC3339)
+	}
+	c.JSON(200, resp)
 }

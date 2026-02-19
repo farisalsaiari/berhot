@@ -61,6 +61,17 @@ struct PaymentView: View {
                     OrderConfirmationView(order: order)
                 }
             }
+            .alert("Order Failed", isPresented: Binding(
+                get: { viewModel.error != nil },
+                set: { if !$0 { viewModel.error = nil } }
+            )) {
+                Button("Try Again") {
+                    Task { await viewModel.placeOrder(cart: cartManager) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(viewModel.error ?? "Something went wrong. Please try again.")
+            }
         }
     }
 

@@ -26,6 +26,11 @@ struct HomeView: View {
     @State private var categoryPositions: [String: CGFloat] = [:]  // catId → minY in global coords
     @State private var lastScrollOffset: CGFloat = 0  // for scroll direction detection
     @State private var isCategoryPinned = false  // true when category tabs are stuck at top
+    @State private var loadError: String?
+    @State private var showCart = false
+    @State private var showAccountPage = false
+    @State private var showCategoryMenu = false
+    @State private var pendingScrollCategory: String? = nil  // set by menu sheet, consumed by ScrollViewReader
 
     /// Live delivery address: prefer LocationManager's current address, fall back to saved
     private var displayAddress: String {
@@ -37,12 +42,25 @@ struct HomeView: View {
 
     private let brandYellow = Color(hex: "FFD300")
 
-    /// Time-based greeting
+    /// Time-based greeting using Riyadh timezone (Asia/Riyadh, UTC+3)
     private var greetingText: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        if hour < 12 { return "Good morning ☀️" }
-        if hour < 17 { return "Good afternoon 🌤️" }
-        return "Good evening 🌙"
+        let tz = TimeZone(identifier: "Asia/Riyadh") ?? .current
+        var cal = Calendar.current
+        cal.timeZone = tz
+        let hour = cal.component(.hour, from: Date())
+        if hour < 12 { return "Good morning" }
+        if hour < 17 { return "Good afternoon" }
+        return "Good evening"
+    }
+
+    private var greetingEmoji: String {
+        let tz = TimeZone(identifier: "Asia/Riyadh") ?? .current
+        var cal = Calendar.current
+        cal.timeZone = tz
+        let hour = cal.component(.hour, from: Date())
+        if hour < 12 { return "☀️" }
+        if hour < 17 { return "🌤️" }
+        return "🌙"
     }
 
     var body: some View {
@@ -59,6 +77,12 @@ struct HomeView: View {
                             if isLoading {
                                 // ── Skeleton for content below header ──
                                 HomeSkeletonContent()
+                            } else if let error = loadError, products.isEmpty {
+                                // ── Error state (only when no cached data) ──
+                                ErrorView(message: error) {
+                                    Task { await loadData() }
+                                }
+                                .padding(.top, 60)
                             } else {
                                 // ── Promo Banner / Slider ──
                                 if bannerSettings?.bannerEnabled == true, !banners.isEmpty {
@@ -125,6 +149,21 @@ struct HomeView: View {
                                 }
                         }
                     )
+                    // Scroll to category selected from the menu sheet
+                    .onChange(of: pendingScrollCategory) { target in
+                        guard let target = target else { return }
+                        isTapScrolling = true
+                        let scrollId = target == "__all__" ? "products_top" : "scroll_\(target)"
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                scrollProxy.scrollTo(scrollId, anchor: .top)
+                            }
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            isTapScrolling = false
+                        }
+                        pendingScrollCategory = nil
+                    }
                 }
 
                 // Floating Cart Button
@@ -132,7 +171,13 @@ struct HomeView: View {
                     floatingCartButton
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showCart) {
+                CartView()
+            }
+            .navigationDestination(isPresented: $showAccountPage) {
+                ProfileView()
+            }
             .sheet(isPresented: $showProfile) {
                 NavigationStack { ProfileView() }
             }
@@ -142,12 +187,40 @@ struct HomeView: View {
             .sheet(isPresented: $showLocationPicker) {
                 LocationChangeView(locationManager: locationManager)
             }
+            .overlay {
+                if showCategoryMenu {
+                    // Dim background
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture { withAnimation(.easeOut(duration: 0.25)) { showCategoryMenu = false } }
+
+                    // Bottom panel — edge to edge
+                    VStack(spacing: 0) {
+                        Spacer()
+                        CategoryMenuSheet(
+                            categories: categories,
+                            selectedCategory: $selectedCategory,
+                            onSelect: { catId in
+                                selectedCategory = catId == "__all__" ? nil : catId
+                                pendingScrollCategory = catId
+                                withAnimation(.easeOut(duration: 0.25)) { showCategoryMenu = false }
+                            },
+                            onDismiss: { withAnimation(.easeOut(duration: 0.25)) { showCategoryMenu = false } }
+                        )
+                        .frame(height: UIScreen.main.bounds.height * 0.6)
+                    }
+                    .ignoresSafeArea(.container, edges: .bottom)
+                    .transition(.move(edge: .bottom))
+                }
+            }
+            .animation(.easeOut(duration: 0.25), value: showCategoryMenu)
             .fullScreenCover(isPresented: $showSearchView) {
                 SearchView(
                     products: products,
                     categories: categories,
                     deliveryMode: deliveryMode
                 )
+                .environmentObject(cartManager)
             }
         }
         .task { await loadData() }
@@ -170,185 +243,216 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Top Header (address + toggle + search)
+    // MARK: - Top Header (matching screenshot design exactly)
     private var topHeaderSection: some View {
         VStack(spacing: 0) {
-            // Header area: address + toggle + search
             VStack(spacing: 0) {
-                // Address & logo bar
-                HStack(alignment: .center) {
-                    Button {
-                        showLocationPicker = true
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Deliver now")
-                                .font(.system(size: 13))
-                                .foregroundColor(.black.opacity(0.5))
-                            HStack(spacing: 4) {
-                                if locationManager.isGeocoding {
-                                    Text("Getting location...")
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(.black.opacity(0.6))
-                                        .lineLimit(1)
-                                } else {
-                                    Text(displayAddress.isEmpty ? "Set delivery address" : displayAddress)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(.black)
-                                        .lineLimit(1)
-                                }
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.black)
-                            }
+
+                // ── Row 1: Greeting + Name | Burger menu ──
+                HStack(alignment: .center, spacing: 0) {
+                    // Greeting text + name + emoji
+                    HStack(spacing: 0) {
+                        Text(greetingText + ", ")
+                            .font(.system(size: 16))
+                            .foregroundColor(.black)
+                        if let name = authManager.currentUser?.firstName, !name.isEmpty {
+                            Text(name + "!")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.black)
                         }
+                        Text(" " + greetingEmoji)
+                            .font(.system(size: 15))
                     }
+
                     Spacer()
 
-                    Button { showProfile = true } label: {
-                        BerhotLogoIcon(size: 24, color: .black)
+                    // Berhot logo + Burger menu — opens Account page via push navigation
+                    Button { showAccountPage = true } label: {
+                        HStack(spacing: 10) {
+                            BerhotLogoIcon(size: 22, color: .black)
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.black)
+                        }
+                        .frame(height: 36)
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
-                .padding(.bottom, 12)
+                .padding(.bottom, 10)
 
-                // Delivery/Pickup toggle + Group Order button
-                HStack(spacing: 10) {
-                    // Delivery / Pickup capsule toggle
-                    deliveryToggleCompact
-
-                    Spacer()
-
-                    // Group Order button
+                // ── [Deliver now / Address] left | [Delivery/Pick up toggle] right ──
+                HStack(alignment: .center, spacing: 0) {
+                    // Left: "Deliver now" stacked on address (no gap)
                     Button {
-                        // Future: group order flow
+                        showLocationPicker = true
                     } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "person.2")
-                                .font(.system(size: 12, weight: .medium))
-                            Text("Group order")
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Deliver now")
                                 .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(Color(hex: "999999"))
+                                .padding(.bottom, 3)
+
+                            HStack(spacing: 4) {
+                                if locationManager.isGeocoding {
+                                    Text("Getting location...")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.black.opacity(0.5))
+                                        .lineLimit(1)
+                                } else {
+                                    Text(displayAddress.isEmpty ? "Set delivery address" : displayAddress)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.black.opacity(0.7))
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.black.opacity(0.4))
+                            }
                         }
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color(hex: "F5F5F5"))
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color(hex: "E0E0E0"), lineWidth: 1)
-                        )
                     }
+
+                    Spacer(minLength: 4)
+
+                    // Right: Delivery / Pick up toggle
+                    deliveryToggleCompact
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
 
-                // Search bar (taps to open search view)
+                // ── Row 3: Search bar ──
                 Button {
                     showSearchView = true
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(Color(hex: "999999"))
-                        Text("Search Berhot Cafe")
-                            .font(.system(size: 15))
-                            .foregroundColor(Color(hex: "999999"))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(Color(hex: "AAAAAA"))
+                        Text(store?.name != nil ? "Search \(store!.name)" : "Search Berhot Cafe")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "AAAAAA"))
                         Spacer()
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Color(hex: "F5F5F5"))
-                    .cornerRadius(14)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background(Color(hex: "F3F3F3"))
+                    .cornerRadius(12)
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 16)
+                .padding(.bottom, 14)
 
                 Divider()
+                    .padding(.horizontal, 20)
             }
             .background(Color.white)
         }
     }
 
-    // MARK: - Compact Delivery/Pickup Toggle (Binance style)
+    // MARK: - Compact Delivery/Pick up Toggle
     private var deliveryToggleCompact: some View {
         HStack(spacing: 0) {
-            ForEach(["Delivery", "Pickup"].indices, id: \.self) { index in
+            ForEach(Array(["Delivery", "Pick up"].enumerated()), id: \.offset) { index, label in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { deliveryMode = index }
                 } label: {
-                    Text(["Delivery", "Pickup"][index])
-                        .font(.system(size: 13, weight: deliveryMode == index ? .bold : .medium))
+                    Text(label)
+                        .font(.system(size: 12, weight: deliveryMode == index ? .bold : .medium))
                         .foregroundColor(deliveryMode == index ? .black : Color(hex: "999999"))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
                         .background(deliveryMode == index ? Color.white : Color.clear)
-                        .cornerRadius(20)
+                        .cornerRadius(18)
+                        .shadow(color: deliveryMode == index ? .black.opacity(0.06) : .clear, radius: 2, y: 1)
                 }
             }
         }
         .padding(3)
-        .background(Color.black.opacity(0.08))
-        .cornerRadius(24)
+        .background(Color(hex: "EFEFEF"))
+        .cornerRadius(22)
     }
 
-    // MARK: - Category Tabs (with scroll-to support)
+    // MARK: - Category Tabs (underline style) + Filter Chips
     private func categoryTabs(scrollProxy: ScrollViewProxy) -> some View {
-        ScrollViewReader { tabProxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    CategoryPill(name: "All", isSelected: selectedCategory == nil) {
-                        isTapScrolling = true
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            selectedCategory = nil
-                            scrollProxy.scrollTo("products_top", anchor: UnitPoint(x: 0, y: -1.5))
+        VStack(spacing: 10) {
+            // ── Row 1: Category names with underline indicator ──
+            ScrollViewReader { tabProxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 20) {
+                        // Menu icon — opens all categories sheet
+                        Button { withAnimation(.easeOut(duration: 0.25)) { showCategoryMenu = true } } label: {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.black)
                         }
-                        // Allow scroll-based auto-select again after animation
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { isTapScrolling = false }
-                    }
-                    .id("tab_all")
+                        .padding(.trailing, 4)
 
-                    ForEach(categories) { cat in
-                        CategoryPill(name: cat.name, isSelected: selectedCategory == cat.id) {
+                        CategoryUnderlineTab(name: "All", isSelected: selectedCategory == nil) {
                             isTapScrolling = true
+                            selectedCategory = nil
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedCategory = cat.id
-                                // Negative Y anchor offsets the view downward below the pinned tabs
-                                scrollProxy.scrollTo("cat_\(cat.id)", anchor: UnitPoint(x: 0, y: -1.5))
-                            }
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                tabProxy.scrollTo("tab_\(cat.id)", anchor: .center)
+                                scrollProxy.scrollTo("products_top", anchor: .top)
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { isTapScrolling = false }
                         }
-                        .id("tab_\(cat.id)")
+                        .id("tab_all")
+
+                        ForEach(categories) { cat in
+                            CategoryUnderlineTab(name: cat.name, isSelected: selectedCategory == cat.id) {
+                                isTapScrolling = true
+                                selectedCategory = cat.id
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    scrollProxy.scrollTo("scroll_\(cat.id)", anchor: .top)
+                                }
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    tabProxy.scrollTo("tab_\(cat.id)", anchor: .center)
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { isTapScrolling = false }
+                            }
+                            .id("tab_\(cat.id)")
+                        }
                     }
+                    .padding(.horizontal, 16)
+                }
+                // Keep the tab strip centered on the active category
+                .onChange(of: selectedCategory) { newVal in
+                    if let id = newVal {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            tabProxy.scrollTo("tab_\(id)", anchor: .center)
+                        }
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            tabProxy.scrollTo("tab_all", anchor: .center)
+                        }
+                    }
+                }
+            }
+
+            // ── Row 2: Filter chips (sorting, filtering) ──
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    HomeFilterChip(label: "Offers", icon: "tag.fill")
+                    HomeFilterChip(label: "Delivery fee", icon: nil, showChevron: true)
+                    HomeFilterChip(label: "Under 30 min", icon: nil)
+                    HomeFilterChip(label: "Highest rated", icon: "star.fill")
                 }
                 .padding(.horizontal, 16)
-            }
-            // Keep the tab strip centered on the active category
-            .onChange(of: selectedCategory) { newVal in
-                if let id = newVal {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        tabProxy.scrollTo("tab_\(id)", anchor: .center)
-                    }
-                } else {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        tabProxy.scrollTo("tab_all", anchor: .center)
-                    }
-                }
             }
         }
     }
 
     // MARK: - Products Section (with category titles + scroll-detection)
     private var productsSectionWithAnchors: some View {
-        LazyVStack(spacing: 12) {
+        VStack(spacing: 12) {
             Color.clear.frame(height: 0).id("products_top")
 
             ForEach(sortedCategoryKeys, id: \.self) { categoryName in
                 if let items = groupedProducts[categoryName] {
                     let catId = categoryIdFor(name: categoryName)
+
+                    // Invisible scroll target for tap-to-scroll
+                    Color.clear.frame(height: 0).id("scroll_\(catId)")
 
                     // Category title with position tracking + scroll anchor
                     CategoryHeaderView(
@@ -424,8 +528,8 @@ struct HomeView: View {
 
     // MARK: - Floating Cart
     private var floatingCartButton: some View {
-        NavigationLink {
-            CartView()
+        Button {
+            showCart = true
         } label: {
             HStack {
                 HStack(spacing: 6) {
@@ -484,6 +588,7 @@ struct HomeView: View {
 
     /// Fetch fresh data from API and update cache
     private func refreshData() async {
+        loadError = nil
         do {
             async let storeTask = StoreService.fetchStoreInfo()
             async let productsTask = ProductService.fetchProducts()
@@ -497,7 +602,13 @@ struct HomeView: View {
             cache.products = p
             cache.categories = c
         } catch {
-            print("HomeView load error: \(error)")
+            print("Home data load error: \(error)")
+            // Silently skip — don't block the UI
+        }
+
+        // Fetch saved address from backend (alongside other data)
+        if locationManager.address.isEmpty {
+            await locationManager.fetchSavedAddress(customerId: authManager.currentUser?.id)
         }
 
         // Also refresh banners
@@ -806,21 +917,171 @@ struct CategoryHeaderView: View {
     }
 }
 
-// MARK: - Category Pill
-struct CategoryPill: View {
+// MARK: - Category Underline Tab (text + underline indicator)
+struct CategoryUnderlineTab: View {
     let name: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(name)
-                .font(.system(size: 13, weight: isSelected ? .bold : .medium))
-                .foregroundColor(isSelected ? .black : .textPrimary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(isSelected ? Color(hex: "FFD300") : Color(hex: "F0F0F0"))
-                .cornerRadius(20)
+            VStack(spacing: 6) {
+                Text(name)
+                    .font(.system(size: 14, weight: isSelected ? .bold : .regular))
+                    .foregroundColor(isSelected ? .black : Color(hex: "999999"))
+
+                // Underline indicator
+                Rectangle()
+                    .fill(isSelected ? Color.black : Color.clear)
+                    .frame(height: 2.5)
+                    .cornerRadius(1.25)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Category Menu Sheet
+struct CategoryMenuSheet: View {
+    let categories: [Category]
+    @Binding var selectedCategory: String?
+    var onSelect: (String?) -> Void  // passes catId (nil = All)
+    var onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // ── Drag handle ──
+            Capsule()
+                .fill(Color(hex: "DDDDDD"))
+                .frame(width: 36, height: 4)
+                .padding(.top, 10)
+                .padding(.bottom, 6)
+
+            // ── Header: "Menu" title ──
+            Text("Menu")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+
+            Divider()
+
+            // ── Category list ──
+            ScrollView {
+                VStack(spacing: 0) {
+                    // "All" option
+                    categoryRow(name: "All", icon: "square.grid.2x2", isSelected: selectedCategory == nil) {
+                        onSelect("__all__")
+                    }
+
+                    Divider().padding(.leading, 56)
+
+                    // Each category
+                    ForEach(Array(categories.enumerated()), id: \.element.id) { index, cat in
+                        categoryRow(name: cat.name, icon: iconForCategory(cat.name), isSelected: selectedCategory == cat.id) {
+                            onSelect(cat.id)
+                        }
+
+                        if index < categories.count - 1 {
+                            Divider().padding(.leading, 56)
+                        }
+                    }
+                }
+            }
+
+            // ── Dismiss button — flush to bottom ──
+            Button { onDismiss() } label: {
+                Text("Dismiss")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color.black)
+                    .cornerRadius(8)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 34)
+        }
+        .background(Color.white)
+    }
+
+    private func categoryRow(name: String, icon: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(isSelected ? .black : Color(hex: "999999"))
+                    .frame(width: 28, height: 28)
+
+                Text(name)
+                    .font(.system(size: 16, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? .black : Color(hex: "333333"))
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.black)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(isSelected ? Color(hex: "F5F5F5") : Color.clear)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func iconForCategory(_ name: String) -> String {
+        let lower = name.lowercased()
+        if lower.contains("hot") || lower.contains("coffee") { return "cup.and.saucer.fill" }
+        if lower.contains("iced") || lower.contains("cold") { return "snowflake" }
+        if lower.contains("pastri") || lower.contains("bake") { return "birthday.cake.fill" }
+        if lower.contains("dessert") || lower.contains("sweet") { return "fork.knife" }
+        if lower.contains("snack") { return "leaf.fill" }
+        if lower.contains("special") { return "star.fill" }
+        if lower.contains("drink") || lower.contains("beverage") { return "wineglass.fill" }
+        return "tag.fill"
+    }
+}
+
+// MARK: - Filter Chip
+struct HomeFilterChip: View {
+    let label: String
+    var icon: String? = nil
+    var showChevron: Bool = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(hex: "666666"))
+            }
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color(hex: "333333"))
+            if showChevron {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(Color(hex: "999999"))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color(hex: "F3F3F3"))
+        .cornerRadius(18)
+    }
+}
+
+// MARK: - Zero Corner Radius (for sheet edge-to-edge)
+struct ZeroCornerRadius: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.4, *) {
+            content.presentationCornerRadius(0)
+        } else {
+            content
         }
     }
 }

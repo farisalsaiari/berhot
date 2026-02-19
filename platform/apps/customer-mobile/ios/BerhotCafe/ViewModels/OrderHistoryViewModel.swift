@@ -13,7 +13,7 @@ class OrderHistoryViewModel: ObservableObject {
             let result = try await OrderService.fetchOrders()
             self.orders = result.sorted { ($0.createdAt ?? "") > ($1.createdAt ?? "") }
         } catch {
-            self.error = error.localizedDescription
+            self.error = "Unable to load orders. Please check your connection and try again."
         }
         isLoading = false
     }

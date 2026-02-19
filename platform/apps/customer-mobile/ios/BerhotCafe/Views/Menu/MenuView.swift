@@ -50,6 +50,11 @@ struct MenuView: View {
                 if viewModel.isLoading {
                     LoadingView(message: "Loading menu...")
                         .padding(.top, 60)
+                } else if let error = viewModel.error {
+                    ErrorView(message: error) {
+                        Task { await viewModel.loadMenu() }
+                    }
+                    .padding(.top, 60)
                 } else if viewModel.filteredProducts.isEmpty {
                     EmptyStateView(
                         icon: "menucard",

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@berhot/i18n';
-import { fetchMyTenant, updateMyPlan } from '../lib/api';
+import { fetchMyTenant, changeSubscriptionPlan } from '../lib/api';
 import ThemeSettings from './ThemeSettings';
 import SecuritySettings from './SecuritySettings';
 
@@ -383,24 +383,29 @@ export function SettingsSubscriptionContent({ C, isLight }: SettingsContentProps
   const { t } = useTranslation();
   const [annual, setAnnual] = useState(true);
   const [currentPlan, setCurrentPlan] = useState('free');
+  const [tenantId, setTenantId] = useState('');
   const [planLoading, setPlanLoading] = useState(true);
   const [updating, setUpdating] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     fetchMyTenant()
-      .then((tenant) => { setCurrentPlan(tenant.plan || 'free'); setPlanLoading(false); })
+      .then((tenant) => {
+        setCurrentPlan(tenant.plan || 'free');
+        setTenantId(tenant.id);
+        setPlanLoading(false);
+      })
       .catch(() => setPlanLoading(false));
   }, []);
 
   const handleChangePlan = async (plan: string) => {
-    if (plan === currentPlan) return;
+    if (plan === currentPlan || !tenantId) return;
     const tierName = plan.charAt(0).toUpperCase() + plan.slice(1);
     if (!confirm(t('plan.confirmUpgrade').replace('{{plan}}', tierName))) return;
     setUpdating(plan); setMessage('');
     try {
-      await updateMyPlan(plan);
-      setCurrentPlan(plan);
+      const sub = await changeSubscriptionPlan(tenantId, plan);
+      setCurrentPlan(sub.planKey);
       setMessage(t('plan.planUpdated'));
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to update plan');

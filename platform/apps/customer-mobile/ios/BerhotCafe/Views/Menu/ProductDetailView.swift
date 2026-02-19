@@ -10,6 +10,7 @@ struct ProductDetailView: View {
     @State private var modifierGroups: [ModifierGroup] = []
     @State private var selectedModifiers: [String: Set<String>] = [:] // groupId -> set of itemIds
     @State private var isLoadingModifiers = false
+    @State private var modifierError: String?
 
     private let brandGreen = Color(hex: "00B14F")
 
@@ -92,6 +93,30 @@ struct ProductDetailView: View {
                     if isLoadingModifiers {
                         ProgressView()
                             .padding()
+                    } else if let error = modifierError {
+                        VStack(spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 24))
+                                .foregroundColor(.orange)
+                            Text(error)
+                                .font(.system(size: 13))
+                                .foregroundColor(.textSecondary)
+                                .multilineTextAlignment(.center)
+                            Button {
+                                Task { await loadModifiers() }
+                            } label: {
+                                Text("Try Again")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 10)
+                                    .background(Color.brand)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(hex: "FAFAFA"))
                     } else {
                         ForEach(modifierGroups) { group in
                             modifierSection(group: group)
@@ -299,6 +324,7 @@ struct ProductDetailView: View {
 
     private func loadModifiers() async {
         isLoadingModifiers = true
+        modifierError = nil
         do {
             let groups = try await ModifierService.fetchProductModifiers(productId: product.id)
             modifierGroups = groups
@@ -314,7 +340,7 @@ struct ProductDetailView: View {
                 }
             }
         } catch {
-            print("Failed to load modifiers: \(error)")
+            modifierError = "Failed to load customization options. Please try again."
         }
         isLoadingModifiers = false
     }

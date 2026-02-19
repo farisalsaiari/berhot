@@ -64,10 +64,10 @@ class AuthViewModel: ObservableObject {
                 return
             }
 
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            // Check if customer already exists in POS engine (with timeout)
+            let existing = await findExistingCustomer(phone: fullPhone, timeout: 3)
 
-            // Check if customer already exists in POS engine by fetching customers and matching phone
-            if let existing = await findExistingCustomer(phone: fullPhone) {
+            if let existing = existing {
                 // Returning user — sign in directly, skip registration
                 let user = User(
                     id: existing.id,
@@ -126,35 +126,40 @@ class AuthViewModel: ObservableObject {
             // Demo mode: create a local dummy user and sign in
             let trimmedFirst = firstName.trimmingCharacters(in: .whitespaces)
             let trimmedLast = lastName.trimmingCharacters(in: .whitespaces)
+            let userId = UUID().uuidString
 
-            // Also create customer in POS engine DB so they show in the dashboard
-            if let url = URL(string: "\(AppConfig.posBaseURL)/api/v1/pos/customers") {
-                var req = URLRequest(url: url)
-                req.httpMethod = "POST"
-                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                req.setValue(AppConfig.demoTenantId, forHTTPHeaderField: "X-Tenant-ID")
-                let body = ["firstName": trimmedFirst, "lastName": trimmedLast, "phone": fullPhone]
-                req.httpBody = try? JSONEncoder().encode(body)
-                _ = try? await URLSession.shared.data(for: req)
-            }
-
+            // Sign in immediately — don't wait for POS customer creation
             let demoUser = User(
-                id: UUID().uuidString,
+                id: userId,
                 email: nil,
                 phone: fullPhone,
                 firstName: trimmedFirst,
                 lastName: trimmedLast,
                 role: "customer",
                 status: "active",
-                tenantId: "demo-tenant"
+                tenantId: AppConfig.demoTenantId
             )
             await AuthManager.shared.signIn(
                 accessToken: "demo-access-token",
                 refreshToken: "demo-refresh-token",
                 user: demoUser,
-                tenantId: "demo-tenant"
+                tenantId: AppConfig.demoTenantId
             )
             isLoading = false
+
+            // Create customer in POS engine in the background (non-blocking)
+            let phone = fullPhone
+            Task.detached {
+                guard let url = URL(string: "\(AppConfig.posBaseURL)/api/v1/pos/customers") else { return }
+                var req = URLRequest(url: url)
+                req.httpMethod = "POST"
+                req.timeoutInterval = 5
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                req.setValue(AppConfig.demoTenantId, forHTTPHeaderField: "X-Tenant-ID")
+                let body = ["firstName": trimmedFirst, "lastName": trimmedLast, "phone": phone]
+                req.httpBody = try? JSONEncoder().encode(body)
+                _ = try? await URLSession.shared.data(for: req)
+            }
             return
         }
 
@@ -176,10 +181,11 @@ class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
-    // Look up a customer by phone in the POS engine
-    private func findExistingCustomer(phone: String) async -> DemoCustomer? {
+    // Look up a customer by phone in the POS engine (with timeout)
+    private func findExistingCustomer(phone: String, timeout: TimeInterval = 3) async -> DemoCustomer? {
         guard let url = URL(string: "\(AppConfig.posBaseURL)/api/v1/pos/customers") else { return nil }
         var req = URLRequest(url: url)
+        req.timeoutInterval = timeout
         req.setValue(AppConfig.demoTenantId, forHTTPHeaderField: "X-Tenant-ID")
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let json = try? JSONDecoder().decode(DemoCustomersResponse.self, from: data) else { return nil }

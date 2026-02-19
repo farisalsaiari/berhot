@@ -1,0 +1,35 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: billing-subscriptions
+  datasource:
+    url: jdbc:postgresql://localhost:5555/berhot_dev
+    username: berhot
+    password: berhot_dev_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: billing-subscriptions
+      auto-offset-reset: earliest
+
+# Subscription defaults
+subscription:
+  trial-duration-minutes: 5
+  default-plan: starter
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

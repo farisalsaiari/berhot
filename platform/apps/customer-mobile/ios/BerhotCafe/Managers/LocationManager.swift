@@ -130,6 +130,49 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         return true
     }
 
+    /// Fetch the user's default saved address from the backend
+    func fetchSavedAddress(customerId: String?) async {
+        guard let cid = customerId, !cid.isEmpty else { return }
+        guard let url = URL(string: "\(AppConfig.posBaseURL)/api/v1/pos/addresses/\(cid)") else { return }
+
+        var req = URLRequest(url: url)
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(AppConfig.demoTenantId, forHTTPHeaderField: "X-Tenant-ID")
+
+        guard let (data, response) = try? await URLSession.shared.data(for: req),
+              let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode) else { return }
+
+        // Parse response: { "addresses": [ { "address": "...", "city": "...", ... } ] }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let addresses = json["addresses"] as? [[String: Any]],
+              let first = addresses.first(where: { ($0["isDefault"] as? Bool) == true }) ?? addresses.first
+        else { return }
+
+        let addr = first["address"] as? String ?? ""
+        let c = first["city"] as? String ?? ""
+        let co = first["country"] as? String ?? ""
+        let pc = first["postalCode"] as? String ?? ""
+        let lat = first["latitude"] as? Double ?? 0
+        let lng = first["longitude"] as? Double ?? 0
+
+        guard !addr.isEmpty else { return }
+
+        // Update published properties
+        address = addr
+        city = c
+        country = co
+        postalCode = pc
+        if lat != 0 && lng != 0 {
+            userLocation = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        }
+
+        // Persist locally as well
+        UserDefaults.standard.set(addr, forKey: "berhot_saved_address")
+        if lat != 0 { UserDefaults.standard.set(lat, forKey: "berhot_saved_lat") }
+        if lng != 0 { UserDefaults.standard.set(lng, forKey: "berhot_saved_lng") }
+    }
+
     var hasSavedAddress: Bool {
         UserDefaults.standard.string(forKey: "berhot_saved_address") != nil
     }

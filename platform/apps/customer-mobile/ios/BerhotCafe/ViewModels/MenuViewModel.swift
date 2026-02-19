@@ -30,7 +30,7 @@ class MenuViewModel: ObservableObject {
             self.products = p
             self.categories = c
         } catch {
-            self.error = error.localizedDescription
+            self.error = "Unable to load menu. Please check your connection and try again."
         }
         isLoading = false
     }

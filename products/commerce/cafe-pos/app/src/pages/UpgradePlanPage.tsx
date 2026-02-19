@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@berhot/i18n';
-import { fetchMyTenant, updateMyPlan } from '../lib/api';
+import { fetchMyTenant, changeSubscriptionPlan } from '../lib/api';
 
 interface Tier {
   key: string;
@@ -96,6 +96,7 @@ export default function UpgradePlanPage() {
   const { t } = useTranslation();
   const [annual, setAnnual] = useState(true);
   const [currentPlan, setCurrentPlan] = useState('free');
+  const [tenantId, setTenantId] = useState('');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState('');
   const [message, setMessage] = useState('');
@@ -104,21 +105,23 @@ export default function UpgradePlanPage() {
     fetchMyTenant()
       .then((tenant) => {
         setCurrentPlan(tenant.plan || 'free');
+        setTenantId(tenant.id);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
   const handleChangePlan = async (plan: string) => {
-    if (plan === currentPlan) return;
+    if (plan === currentPlan || !tenantId) return;
     const tierName = plan.charAt(0).toUpperCase() + plan.slice(1);
     if (!confirm(t('plan.confirmUpgrade').replace('{{plan}}', tierName))) return;
 
     setUpdating(plan);
     setMessage('');
     try {
-      await updateMyPlan(plan);
-      setCurrentPlan(plan);
+      const billingCycle = annual ? 'yearly' : 'monthly';
+      const sub = await changeSubscriptionPlan(tenantId, plan, billingCycle);
+      setCurrentPlan(sub.planKey);
       setMessage(t('plan.planUpdated'));
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to update plan');

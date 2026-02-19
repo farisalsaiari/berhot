@@ -23,6 +23,7 @@ import OrdersContent from './OrdersContent';
 import CustomersContent from './CustomersContent';
 import ReviewsContent from './ReviewsContent';
 import ManageAppsContent from './ManageAppsContent';
+import ProToolsContent from './ProToolsContent';
 import { fetchBusinessLocations, BusinessLocation } from '../lib/api';
 
 /* ──────────────────────────────────────────────────────────────────
@@ -291,7 +292,21 @@ const navTopConfig: { tKey: string; icon: React.ReactNode; shortcut?: string }[]
   { tKey: 'dashboard.search', icon: <SearchIcon />, shortcut: '/' },
 ];
 
-const navMainConfig: { tKey: string; icon: React.ReactNode; path: string }[] = [
+function ProToolsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M6 3h12l-3 7h4L7 21l2-8H5l1-10z" fill="url(#proToolsGrad)"/>
+      <defs>
+        <linearGradient id="proToolsGrad" x1="5" y1="3" x2="19" y2="21">
+          <stop offset="0%" stopColor="#8b5cf6"/>
+          <stop offset="100%" stopColor="#3b82f6"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+const navMainConfig: { tKey: string; icon: React.ReactNode; path: string; proBadge?: boolean }[] = [
   { tKey: 'dashboard.home', icon: <GridIcon />, path: 'home' },
   { tKey: 'dashboard.analytics', icon: <AnalyticsIcon />, path: 'analytics' },
   { tKey: 'dashboard.products', icon: <ProductsIcon />, path: 'products' },
@@ -300,6 +315,7 @@ const navMainConfig: { tKey: string; icon: React.ReactNode; path: string }[] = [
   { tKey: 'dashboard.reviews', icon: <ReviewsIcon />, path: 'reviews' },
   { tKey: 'dashboard.discounts', icon: <DiscountsIcon />, path: 'discounts' },
   { tKey: 'dashboard.apps', icon: <AppsIcon />, path: 'apps' },
+  { tKey: 'dashboard.proTools', icon: <ProToolsIcon />, path: 'pro-tools', proBadge: true },
 ];
 
 // ── Settings sidebar navigation config ───────────────────────────
@@ -425,6 +441,8 @@ export default function DashboardPage() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [dashboardLocations, setDashboardLocations] = useState<BusinessLocation[]>([]);
   const userCurrency = typeof localStorage !== 'undefined' ? (localStorage.getItem('d2_currency') || 'SAR') : 'SAR';
+  const [currentPlan, setCurrentPlan] = useState('free');
+  const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const [perfTab, setPerfTab] = useState('overview');
   // ── Filter chip states ──
   const [openChip, setOpenChip] = useState<'date' | 'vs' | 'bills' | null>(null);
@@ -639,6 +657,8 @@ export default function DashboardPage() {
         if (data.name) setSidebarBusinessName(data.name);
         if (data.logoShape) setSidebarLogoShape(data.logoShape);
         if (typeof data.showBusinessName === 'boolean') setSidebarShowName(data.showBusinessName);
+        if (data.plan) setCurrentPlan(data.plan);
+        if (data.planExpiresAt) setPlanExpiresAt(data.planExpiresAt);
         setSidebarLoaded(true);
       } catch { setSidebarLoaded(true); }
     };
@@ -1295,7 +1315,19 @@ export default function DashboardPage() {
                             color: isActive ? accentVisible : SC.textSecond,
                             transition: 'color 0.15s',
                           }}>{item.icon}</span>
-                          {!sidebarCollapsed && <span style={{ flex: 1, textAlign: 'start' }}>{item.label}</span>}
+                          {!sidebarCollapsed && (
+                            <span style={{ flex: 1, textAlign: 'start', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {item.label}
+                              {(item as any).proBadge && (
+                                <span style={{
+                                  fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                                  padding: '2px 6px', borderRadius: 4,
+                                  background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+                                  color: '#fff', lineHeight: '14px',
+                                }}>PRO</span>
+                              )}
+                            </span>
+                          )}
                         </button>
                         {sidebarCollapsed && hoveredNav === item.label && (
                           <div style={{
@@ -2620,6 +2652,11 @@ export default function DashboardPage() {
               {/* ── Page: Manage Apps ── */}
               {(pagePath === 'apps' || pagePath.startsWith('apps/')) && (
                 <ManageAppsContent C={C} isLight={isLight} isMobile={isMobile} subPath={pagePath.replace('apps/', '').replace('apps', '')} />
+              )}
+
+              {/* ── Page: Pro Tools (Professional plan only) ── */}
+              {pagePath === 'pro-tools' && (
+                <ProToolsContent C={C} isLight={isLight} currentPlan={currentPlan} planExpiresAt={planExpiresAt} navigate={navigate} lang={lang} />
               )}
 
               {/* ── Settings sub-pages: Account ── */}

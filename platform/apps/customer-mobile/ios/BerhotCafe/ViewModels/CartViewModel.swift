@@ -78,7 +78,7 @@ class CartViewModel: ObservableObject {
 
             cart.clear()
         } catch {
-            self.error = error.localizedDescription
+            self.error = "Unable to place your order. Please check your connection and try again."
         }
 
         isPlacingOrder = false
