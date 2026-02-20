@@ -88,7 +88,7 @@ struct HomeView: View {
                                 // ── Promo Banner / Slider ──
                                 if bannerSettings?.bannerEnabled == true, !banners.isEmpty {
                                     bannerSection
-                                        .padding(.bottom, 8)
+                                        .padding(.bottom, 1)
                                 }
 
                                 // ── Sticky Category Tabs ──
@@ -166,7 +166,13 @@ struct HomeView: View {
 
                 // Floating Cart Button
                 if !cartManager.isEmpty {
-                    floatingCartButton
+                    VStack(spacing: 0) {
+                        floatingCartButton
+                    }
+                    .background(
+                        Color.white
+                            .edgesIgnoringSafeArea(.bottom)
+                    )
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -335,7 +341,7 @@ struct HomeView: View {
                         Spacer()
                     }
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
+                    .padding(.vertical, 15)
                     .background(Color(hex: "F3F3F3"))
                     .cornerRadius(12)
                 }
@@ -358,7 +364,7 @@ struct HomeView: View {
                     withAnimation(.easeInOut(duration: 0.2)) { deliveryMode = index }
                 } label: {
                     Text(label)
-                        .font(.system(size: 12, weight: deliveryMode == index ? .bold : .medium))
+                        .font(.system(size: 13, weight: deliveryMode == index ? .bold : .medium))
                         .foregroundColor(deliveryMode == index ? .black : Color(hex: "999999"))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
@@ -471,6 +477,7 @@ struct HomeView: View {
                         name: categoryName,
                         catId: catId,
                         isFirst: index == 0,
+                        isGridView: isGridView,
                         onPositionChange: { id, minY in
                             guard !isTapScrolling else { return }
                             categoryPositionChanged(id: id, minY: minY)
@@ -484,7 +491,9 @@ struct HomeView: View {
                     } else {
                         // ── List View: full-width rows ──
                         ForEach(Array(items.enumerated()), id: \.element.id) { index, product in
-                            ProductListRow(product: product, tagType: productTagType(index: index, product: product), isLast: index == items.count - 1, discountPrice: discountPrice(for: product), onAdd: {
+                            let available = isProductAvailable(product)
+                            ProductListRow(product: product, tagType: productTagType(index: index, product: product), isLast: index == items.count - 1, discountPrice: discountPrice(for: product), isAvailable: available, showDescription: shouldShowDescription(product), onAdd: {
+                                guard available else { return }
                                 if product.needsModifierSelection {
                                     selectedProduct = product
                                 } else {
@@ -492,10 +501,14 @@ struct HomeView: View {
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 }
                             }, onTap: {
+                                guard available else { return }
                                 selectedProduct = product
                             })
                         }
                     }
+
+                    // Bottom padding after last product before next category divider
+                    Spacer().frame(height: 10)
                 }
             }
         }
@@ -522,11 +535,27 @@ struct HomeView: View {
         return (discounted * 100).rounded() / 100 // Round to 2 decimals
     }
 
+    /// Some products are marked unavailable for demo (consistent via hash)
+    /// Roughly every 5th product is unavailable
+    private func isProductAvailable(_ product: Product) -> Bool {
+        let hash = abs(product.id.hashValue)
+        return hash % 5 != 2
+    }
+
+    /// Some products have no description for demo variety (consistent via hash)
+    /// Roughly every 3rd product hides description
+    private func shouldShowDescription(_ product: Product) -> Bool {
+        let hash = abs(product.id.hashValue)
+        return hash % 3 != 1
+    }
+
     private func productGrid(items: [Product]) -> some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 2)
         return LazyVGrid(columns: columns, spacing: 10) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, product in
-                ProductGridCard(product: product, tagType: productTagType(index: index, product: product), discountPrice: discountPrice(for: product), onAdd: {
+                let available = isProductAvailable(product)
+                ProductGridCard(product: product, tagType: productTagType(index: index, product: product), discountPrice: discountPrice(for: product), isAvailable: available, showDescription: shouldShowDescription(product), onAdd: {
+                    guard available else { return }
                     if product.needsModifierSelection {
                         selectedProduct = product
                     } else {
@@ -534,6 +563,7 @@ struct HomeView: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
                 }, onTap: {
+                    guard available else { return }
                     selectedProduct = product
                 })
             }
@@ -584,30 +614,107 @@ struct HomeView: View {
         categories.first(where: { $0.name == name })?.id ?? name
     }
 
-    // MARK: - Floating Cart
+    // MARK: - Floating Cart + Free Delivery Bar
+    private let freeDeliveryThreshold: Double = 100.0
+
     private var floatingCartButton: some View {
-        Button {
-            showCart = true
-        } label: {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "cart.fill").font(.system(size: 16))
-                    Text("\(cartManager.itemCount) items")
-                        .font(.system(size: 14, weight: .semibold))
+        VStack(spacing: 0) {
+            // ── Free Delivery Progress Bar (white bg, no gap to button) ──
+            freeDeliveryBar
+
+            // ── Cart Button (black) ──
+            Button {
+                showCart = true
+            } label: {
+                HStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Text("View Cart")
+                            .font(.system(size: 16, weight: .bold))
+
+                        Text("\(cartManager.itemCount)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(width: 22, height: 22)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                    }
+
+                    Spacer()
+
+                    Text(cartManager.total.formattedCurrency)
+                        .font(.system(size: 16, weight: .bold))
                 }
-                Spacer()
-                Text(cartManager.total.formattedCurrency)
-                    .font(.system(size: 15, weight: .bold))
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(Color.black)
+                .foregroundColor(.white)
+                .cornerRadius(14)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(brandYellow)
-            .foregroundColor(.black)
-            .cornerRadius(16)
-            .shadow(color: brandYellow.opacity(0.4), radius: 12, y: 6)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+    }
+
+    // MARK: - Free Delivery Progress Bar
+    private var freeDeliveryBar: some View {
+        let subtotal = cartManager.subtotal
+        let remaining = max(freeDeliveryThreshold - subtotal, 0)
+        let progress = min(subtotal / freeDeliveryThreshold, 1.0)
+        let isFree = subtotal >= freeDeliveryThreshold
+
+        return VStack(spacing: 8) {
+            // Message row
+            HStack(spacing: 6) {
+                Image(systemName: isFree ? "checkmark.circle.fill" : "shippingbox.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(isFree ? Color(hex: "43A047") : Color(hex: "E65100"))
+
+                if isFree {
+                    Text("You've unlocked free delivery!")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: "43A047"))
+                } else {
+                    Text("Add ")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(Color(hex: "555555"))
+                    + Text(remaining.formattedCurrency)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "E65100"))
+                    + Text(" more for free delivery")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(Color(hex: "555555"))
+                }
+
+                Spacer()
+            }
+
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(hex: "EEEEEE"))
+                        .frame(height: 4)
+
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(
+                            isFree
+                                ? AnyShapeStyle(Color(hex: "43A047"))
+                                : AnyShapeStyle(LinearGradient(
+                                    colors: [Color(hex: "FF6D00"), Color(hex: "E65100")],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                  ))
+                        )
+                        .frame(width: geo.size.width * progress, height: 4)
+                        .animation(.easeInOut(duration: 0.4), value: progress)
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .background(Color.white)
     }
 
     // MARK: - Helpers
@@ -805,7 +912,7 @@ struct HomeView: View {
             }
         }
         .padding(.top, 10)
-        .padding(.bottom, 10)
+        .padding(.bottom, 4)
 //        .background(
 //            LinearGradient(
 //                colors: [Color(hex: "e9f3ff"), Color.clear],
@@ -1132,21 +1239,25 @@ struct ProductListRow: View {
     let tagType: ProductTagType?
     let isLast: Bool
     let discountPrice: Double?
+    let isAvailable: Bool
+    let showDescription: Bool
     let onAdd: () -> Void
     let onTap: () -> Void
 
-    init(product: Product, tagType: ProductTagType? = nil, isLast: Bool = false, discountPrice: Double? = nil, onAdd: @escaping () -> Void, onTap: @escaping () -> Void) {
+    init(product: Product, tagType: ProductTagType? = nil, isLast: Bool = false, discountPrice: Double? = nil, isAvailable: Bool = true, showDescription: Bool = true, onAdd: @escaping () -> Void, onTap: @escaping () -> Void) {
         self.product = product
         self.tagType = tagType
         self.isLast = isLast
         self.discountPrice = discountPrice
+        self.isAvailable = isAvailable
+        self.showDescription = showDescription
         self.onAdd = onAdd
         self.onTap = onTap
     }
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
+            Button(action: onTap) {
                 HStack(alignment: .top, spacing: 10) {
                     // Text info (left)
                     VStack(alignment: .leading, spacing: 3) {
@@ -1155,22 +1266,33 @@ struct ProductListRow: View {
                             .foregroundColor(.black)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                            .padding(.bottom, 3)
 
-                        PriceKcalRow(price: product.price, fontSize: 16, discountPrice: discountPrice)
-
-                        if let desc = product.description, !desc.isEmpty {
+                        if showDescription, let desc = product.description, !desc.isEmpty {
+                            let hasTag = !isAvailable || tagType != nil
                             Text(desc)
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundColor(Color(hex: "878787"))
-                                .lineLimit(3)
+                                .lineLimit(hasTag ? 1 : 2)
+                                .truncationMode(.tail)
                                 .multilineTextAlignment(.leading)
                                 .padding(.top, 2)
                         }
 
-                        if let tag = tagType {
+                        PriceKcalRow(price: product.price, fontSize: 16, discountPrice: discountPrice)
+                            .padding(.top, 4)
+
+                        if !isAvailable {
+                            Text("Unavailable")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color(hex: "EBEBEB"))
+                                .cornerRadius(4)
+                                .padding(.top, 3)
+                        } else if let tag = tagType {
                             ProductTag(type: tag)
-                                .padding(.top, 4)
+                                .padding(.top, 3)
                         }
                     }
 
@@ -1179,28 +1301,37 @@ struct ProductListRow: View {
                     // Product image (right) with + button inside corner
                     ZStack(alignment: .bottomTrailing) {
                         CachedAsyncImage(url: product.resolvedImageUrl) {
-                            Image(systemName: "cup.and.saucer")
-                                .font(.system(size: 18))
-                                .foregroundColor(Color(hex: "CCCCCC"))
+                            LinearGradient(
+                                colors: [Color(hex: "ECECEC"), Color(hex: "E2E2E2")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .overlay(
+                                Image(systemName: "takeoutbag.and.cup.and.straw")
+                                    .font(.system(size: 22, weight: .light))
+                                    .foregroundColor(Color(hex: "BFBFBF"))
+                            )
                         }
                         .frame(width: 97, height: 97)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
 
-                        ProductAddButton(action: onAdd)
-                            .offset(x: -4, y: -4)
+                        if isAvailable {
+                            ProductAddButton(action: onAdd)
+                                .offset(x: -4, y: -4)
+                        }
                     }
                 }
                 .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+            .allowsHitTesting(isAvailable)
 
-                // Bottom divider (hide on last item in category)
-                if !isLast {
-                    Rectangle()
-                        .fill(Color(hex: "D0D0D0"))
-                        .frame(height: 0.5)
-                }
+            // Bottom divider
+            if !isLast {
+                Color(hex: "a6a6a6")
+                    .frame(height: 1 / UIScreen.main.scale)
             }
         }
-        .buttonStyle(.plain)
     }
 
     private func randomKcal(for product: Product) -> Int {
@@ -1215,13 +1346,17 @@ struct ProductGridCard: View {
     let product: Product
     let tagType: ProductTagType?
     let discountPrice: Double?
+    let isAvailable: Bool
+    let showDescription: Bool
     let onAdd: () -> Void
     let onTap: () -> Void
 
-    init(product: Product, tagType: ProductTagType? = nil, discountPrice: Double? = nil, onAdd: @escaping () -> Void, onTap: @escaping () -> Void) {
+    init(product: Product, tagType: ProductTagType? = nil, discountPrice: Double? = nil, isAvailable: Bool = true, showDescription: Bool = true, onAdd: @escaping () -> Void, onTap: @escaping () -> Void) {
         self.product = product
         self.tagType = tagType
         self.discountPrice = discountPrice
+        self.isAvailable = isAvailable
+        self.showDescription = showDescription
         self.onAdd = onAdd
         self.onTap = onTap
     }
@@ -1233,14 +1368,30 @@ struct ProductGridCard: View {
                 GeometryReader { geo in
                     ZStack {
                         CachedAsyncImage(url: product.resolvedImageUrl) {
-                            Image(systemName: "cup.and.saucer")
-                                .font(.system(size: 22))
-                                .foregroundColor(Color(hex: "CCCCCC"))
+                            LinearGradient(
+                                colors: [Color(hex: "ECECEC"), Color(hex: "E2E2E2")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .overlay(
+                                Image(systemName: "takeoutbag.and.cup.and.straw")
+                                    .font(.system(size: 26, weight: .light))
+                                    .foregroundColor(Color(hex: "BFBFBF"))
+                            )
                         }
                         .frame(width: geo.size.width, height: geo.size.width)
 
                         // Tag — top left inside image
-                        if let tag = tagType {
+                        if !isAvailable {
+                            // Unavailable tag centered on image
+                            Text("Unavailable")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(hex: "EBEBEB").opacity(0.9))
+                                .cornerRadius(6)
+                        } else if let tag = tagType {
                             VStack {
                                 HStack {
                                     ProductTag(type: tag)
@@ -1252,16 +1403,19 @@ struct ProductGridCard: View {
                             }
                         }
 
-                        // + button — bottom right inside image
-                        VStack {
-                            Spacer()
-                            HStack {
+                        // + button — bottom right inside image (hidden if unavailable)
+                        if isAvailable {
+                            VStack {
                                 Spacer()
-                                ProductAddButton(action: onAdd)
-                                    .padding(.trailing, 6)
-                                    .padding(.bottom, 6)
+                                HStack {
+                                    Spacer()
+                                    ProductAddButton(action: onAdd)
+                                        .padding(.trailing, 6)
+                                        .padding(.bottom, 6)
+                                }
                             }
                         }
+
                     }
                     .frame(width: geo.size.width, height: geo.size.width)
                 }
@@ -1269,6 +1423,7 @@ struct ProductGridCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 // Product info (bottom)
+                let hasDesc = showDescription && product.description != nil && !product.description!.isEmpty
                 VStack(alignment: .leading, spacing: 3) {
                     Text(product.name)
                         .font(.system(size: 16, weight: .semibold))
@@ -1276,15 +1431,24 @@ struct ProductGridCard: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
 
-                    PriceKcalRow(price: product.price, fontSize: 15, discountPrice: discountPrice)
-
-                    if let desc = product.description, !desc.isEmpty {
-                        Text(desc)
+                    if hasDesc {
+                        Text(product.description!)
                             .font(.system(size: 14, weight: .regular))
                             .foregroundColor(Color(hex: "878787"))
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
                             .padding(.top, 2)
+                    }
+
+                    PriceKcalRow(price: product.price, fontSize: 15, discountPrice: discountPrice)
+                        .padding(.top, hasDesc ? 0 : 2)
+
+                    // Invisible spacer to keep card height consistent
+                    if !hasDesc {
+                        Text(" \n ")
+                            .font(.system(size: 14))
+                            .foregroundColor(.clear)
+                            .lineLimit(2)
                     }
                 }
                 .padding(.horizontal, 8)
@@ -1295,6 +1459,7 @@ struct ProductGridCard: View {
             .cornerRadius(10)
         }
         .buttonStyle(.plain)
+        .allowsHitTesting(isAvailable)
     }
 
     private func randomKcal(for product: Product) -> Int {
@@ -1308,6 +1473,7 @@ struct CategoryHeaderView: View {
     let name: String
     let catId: String
     var isFirst: Bool = false
+    var isGridView: Bool = false
     let onPositionChange: (String, CGFloat) -> Void
 
     var body: some View {
@@ -1329,7 +1495,7 @@ struct CategoryHeaderView: View {
             }
         }
         .padding(.top, 2)
-        .padding(.bottom, 6)
+        .padding(.bottom, isGridView ? 16 : 10)
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -1352,7 +1518,7 @@ struct CategoryUnderlineTab: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 7) {
                 Text(name)
                     .font(.system(size: 15, weight: isSelected ? .bold : .medium))
                     .foregroundColor(isSelected ? .black : Color(hex: "999999"))

@@ -204,13 +204,16 @@ extension CachedAsyncImage where Placeholder == DefaultImagePlaceholder {
 
 struct DefaultImagePlaceholder: View {
     var body: some View {
-        Rectangle()
-            .fill(Color(hex: "F0F0F0"))
-            .overlay(
-                Image(systemName: "cup.and.saucer")
-                    .font(.title3)
-                    .foregroundColor(.textTertiary)
-            )
+        LinearGradient(
+            colors: [Color(hex: "ECECEC"), Color(hex: "E2E2E2")],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .overlay(
+            Image(systemName: "takeoutbag.and.cup.and.straw")
+                .font(.system(size: 28, weight: .light))
+                .foregroundColor(Color(hex: "BFBFBF"))
+        )
     }
 }
 

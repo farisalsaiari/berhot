@@ -33,10 +33,10 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Custom Tab Bar
-            customTabBar
-                .offset(y: tabBarVisibility.isVisible ? 0 : 100) // slide down to hide
-                .animation(.easeInOut(duration: 0.25), value: tabBarVisibility.isVisible)
+            // Custom Tab Bar (hidden)
+            // customTabBar
+            //     .offset(y: tabBarVisibility.isVisible ? 0 : 100) // slide down to hide
+            //     .animation(.easeInOut(duration: 0.25), value: tabBarVisibility.isVisible)
         }
         .environmentObject(tabBarVisibility)
         .ignoresSafeArea(.keyboard) // prevent tab bar from jumping with keyboard
