@@ -109,7 +109,7 @@ struct CartItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Product image (cached)
-            CachedAsyncImage(url: URL(string: item.imageUrl ?? "")) {
+            CachedAsyncImage(url: item.resolvedImageUrl) {
                 RoundedRectangle(cornerRadius: 10).fill(Color.surfaceSecondary)
                     .overlay(Image(systemName: "cup.and.saucer").foregroundColor(.textTertiary))
             }

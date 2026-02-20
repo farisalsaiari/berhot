@@ -31,6 +31,7 @@ struct HomeView: View {
     @State private var showAccountPage = false
     @State private var showCategoryMenu = false
     @State private var pendingScrollCategory: String? = nil  // set by menu sheet, consumed by ScrollViewReader
+    @State private var isGridView = false  // false = list view, true = grid view
 
     /// Live delivery address: prefer LocationManager's current address, fall back to saved
     private var displayAddress: String {
@@ -87,7 +88,7 @@ struct HomeView: View {
                                 // ── Promo Banner / Slider ──
                                 if bannerSettings?.bannerEnabled == true, !banners.isEmpty {
                                     bannerSection
-                                        .padding(.bottom, 12)
+                                        .padding(.bottom, 8)
                                 }
 
                                 // ── Sticky Category Tabs ──
@@ -95,15 +96,12 @@ struct HomeView: View {
                                     Section {
                                         // ── Products grouped by category with titles ──
                                         productsSectionWithAnchors
-                                            .padding(.horizontal, 16)
-                                            .padding(.bottom, 100)
+                                            .padding(.horizontal, 20)
                                     } header: {
                                         VStack(spacing: 0) {
                                             categoryTabs(scrollProxy: scrollProxy)
-                                                .padding(.vertical, 9)
-                                            if isCategoryPinned {
-                                                Divider()
-                                            }
+                                                .padding(.top, 10)
+                                                .padding(.bottom, 10)
                                         }
                                         .background(
                                             GeometryReader { geo in
@@ -308,9 +306,10 @@ struct HomeView: View {
                                 }
 
                                 Image(systemName: "chevron.down")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.black.opacity(0.4))
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.black.opacity(0.6))
                             }
+                            .frame(maxWidth: UIScreen.main.bounds.width * 0.55, alignment: .leading)
                         }
                     }
 
@@ -341,11 +340,12 @@ struct HomeView: View {
                     .cornerRadius(12)
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 14)
-
-                Divider()
-                    .padding(.horizontal, 20)
+                .padding(.bottom, 0)
+//
+//                Divider()
+//                    .padding(.horizontal, 20)
             }
+//            .background(Color(hex: "e9f3ff"))
             .background(Color.white)
         }
     }
@@ -373,21 +373,24 @@ struct HomeView: View {
         .cornerRadius(22)
     }
 
-    // MARK: - Category Tabs (underline style) + Filter Chips
+    // MARK: - Category Tabs (underline style)
     private func categoryTabs(scrollProxy: ScrollViewProxy) -> some View {
-        VStack(spacing: 10) {
-            // ── Row 1: Category names with underline indicator ──
+        VStack(spacing: 0) {
+            // ── Category names with underline indicator ──
             ScrollViewReader { tabProxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 20) {
-                        // Menu icon — opens all categories sheet
-                        Button { withAnimation(.easeOut(duration: 0.25)) { showCategoryMenu = true } } label: {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.system(size: 16, weight: .medium))
+                    HStack(alignment: .center, spacing: 16) {
+                        // Grid / List toggle
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) { isGridView.toggle() }
+                        } label: {
+                            Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
+                                .font(.system(size: 19, weight: .medium))
                                 .foregroundColor(.black)
+                                .padding(.bottom, 5)
                         }
-                        .padding(.trailing, 4)
 
+                        HStack(alignment: .center, spacing: 18) {
                         CategoryUnderlineTab(name: "All", isSelected: selectedCategory == nil) {
                             isTapScrolling = true
                             selectedCategory = nil
@@ -412,8 +415,16 @@ struct HomeView: View {
                             }
                             .id("tab_\(cat.id)")
                         }
+                        }
+                        .background(alignment: .bottom) {
+                            // Gray bar starting from All, extending to right edge
+                            Rectangle()
+                                .fill(Color(hex: "f0f0f0"))
+                                .frame(height: 4)
+                                .padding(.trailing, -500) // extend far to right edge of screen
+                        } // end inner HStack
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 18)
                 }
                 // Keep the tab strip centered on the active category
                 .onChange(of: selectedCategory) { newVal in
@@ -429,25 +440,26 @@ struct HomeView: View {
                 }
             }
 
-            // ── Row 2: Filter chips (sorting, filtering) ──
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    HomeFilterChip(label: "Offers", icon: "tag.fill")
-                    HomeFilterChip(label: "Delivery fee", icon: nil, showChevron: true)
-                    HomeFilterChip(label: "Under 30 min", icon: nil)
-                    HomeFilterChip(label: "Highest rated", icon: "star.fill")
-                }
-                .padding(.horizontal, 16)
-            }
+            // ── Filter chips (hidden for now — uncomment when needed) ──
+            // ScrollView(.horizontal, showsIndicators: false) {
+            //     HStack(spacing: 8) {
+            //         HomeFilterChip(label: "Offers", icon: "tag.fill")
+            //         HomeFilterChip(label: "Delivery fee", icon: nil, showChevron: true)
+            //         HomeFilterChip(label: "Under 30 min", icon: nil)
+            //         HomeFilterChip(label: "Highest rated", icon: "star.fill")
+            //     }
+            //     .padding(.horizontal, 16)
+            // }
+
         }
     }
 
     // MARK: - Products Section (with category titles + scroll-detection)
     private var productsSectionWithAnchors: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 4) {
             Color.clear.frame(height: 0).id("products_top")
 
-            ForEach(sortedCategoryKeys, id: \.self) { categoryName in
+            ForEach(Array(sortedCategoryKeys.enumerated()), id: \.element) { index, categoryName in
                 if let items = groupedProducts[categoryName] {
                     let catId = categoryIdFor(name: categoryName)
 
@@ -458,6 +470,7 @@ struct HomeView: View {
                     CategoryHeaderView(
                         name: categoryName,
                         catId: catId,
+                        isFirst: index == 0,
                         onPositionChange: { id, minY in
                             guard !isTapScrolling else { return }
                             categoryPositionChanged(id: id, minY: minY)
@@ -465,19 +478,64 @@ struct HomeView: View {
                     )
                     .id("cat_\(catId)")
 
-                    ForEach(items) { product in
-                        ProductRowView(product: product) {
-                            if product.needsModifierSelection {
+                    if isGridView {
+                        // ── Grid View: 2-column grid ──
+                        productGrid(items: items)
+                    } else {
+                        // ── List View: full-width rows ──
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, product in
+                            ProductListRow(product: product, tagType: productTagType(index: index, product: product), isLast: index == items.count - 1, discountPrice: discountPrice(for: product), onAdd: {
+                                if product.needsModifierSelection {
+                                    selectedProduct = product
+                                } else {
+                                    cartManager.addItem(product: product)
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
+                            }, onTap: {
                                 selectedProduct = product
-                            } else {
-                                cartManager.addItem(product: product)
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                        } onTap: {
-                            selectedProduct = product
+                            })
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: - Product Grid (2 columns)
+    /// Returns tag type for a product: first item = Popular, some others = Hot 🔥
+    private func productTagType(index: Int, product: Product) -> ProductTagType? {
+        if index == 0 { return .popular }
+        // Consistent "Hot" tag based on product id hash — roughly every 3rd product
+        let hash = abs(product.id.hashValue)
+        if hash % 3 == 0 { return .hot }
+        return nil
+    }
+
+    /// Returns a discount price for some products (consistent via hash)
+    /// Roughly every 4th product gets a discount of 15-30%
+    private func discountPrice(for product: Product) -> Double? {
+        let hash = abs(product.id.hashValue)
+        guard hash % 4 == 1 else { return nil }
+        // Discount between 15% and 30%
+        let discountPercent = 15 + (hash % 16) // 15-30
+        let discounted = product.price * (1.0 - Double(discountPercent) / 100.0)
+        return (discounted * 100).rounded() / 100 // Round to 2 decimals
+    }
+
+    private func productGrid(items: [Product]) -> some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 2)
+        return LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, product in
+                ProductGridCard(product: product, tagType: productTagType(index: index, product: product), discountPrice: discountPrice(for: product), onAdd: {
+                    if product.needsModifierSelection {
+                        selectedProduct = product
+                    } else {
+                        cartManager.addItem(product: product)
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                }, onTap: {
+                    selectedProduct = product
+                })
             }
         }
     }
@@ -603,6 +661,9 @@ struct HomeView: View {
             cache.categories = c
         } catch {
             print("Home data load error: \(error)")
+            print("  → Base URL: \(AppConfig.posBaseURL)")
+            print("  → Tenant ID: \(AppConfig.tenantId)")
+            print("  → Demo mode: \(AppConfig.demoMode)")
             // Silently skip — don't block the UI
         }
 
@@ -743,7 +804,16 @@ struct HomeView: View {
                 }
             }
         }
-        .padding(.top, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 10)
+//        .background(
+//            LinearGradient(
+//                colors: [Color(hex: "e9f3ff"), Color.clear],
+//                startPoint: .top,
+//                endPoint: .bottom
+//            )
+//        )
+        .background(Color.white)
     }
 }
 
@@ -830,61 +900,406 @@ struct BannersResponse: Codable {
     let banners: [HomeBanner]
 }
 
-// MARK: - Product Row (DoorDash style)
-struct ProductRowView: View {
+// MARK: - Saudi Riyal Symbol Shape (official SVG paths from dashboard)
+struct RiyalShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        // Original viewBox: 0 0 1124 1257
+        let sx = w / 1124.0
+        let sy = h / 1257.0
+
+        var path = Path()
+
+        // Path 1: bottom-right stroke
+        path.move(to: CGPoint(x: 699.62 * sx, y: 1113.02 * sy))
+        path.addCurve(
+            to: CGPoint(x: 661.22 * sx, y: 1256.39 * sy),
+            control1: CGPoint(x: 679.56 * sx, y: 1157.50 * sy),
+            control2: CGPoint(x: 666.30 * sx, y: 1205.77 * sy)
+        )
+        path.addLine(to: CGPoint(x: 1085.73 * sx, y: 1166.15 * sy))
+        path.addCurve(
+            to: CGPoint(x: 1124.13 * sx, y: 1022.78 * sy),
+            control1: CGPoint(x: 1105.79 * sx, y: 1121.68 * sy),
+            control2: CGPoint(x: 1119.04 * sx, y: 1073.40 * sy)
+        )
+        path.closeSubpath()
+
+        // Path 2: main riyal body
+        path.move(to: CGPoint(x: 1085.73 * sx, y: 895.80 * sy))
+        path.addCurve(
+            to: CGPoint(x: 1124.13 * sx, y: 752.43 * sy),
+            control1: CGPoint(x: 1105.79 * sx, y: 851.33 * sy),
+            control2: CGPoint(x: 1119.05 * sx, y: 803.05 * sy)
+        )
+        path.addLine(to: CGPoint(x: 793.45 * sx, y: 822.76 * sy))
+        path.addLine(to: CGPoint(x: 793.45 * sx, y: 687.56 * sy))
+        path.addLine(to: CGPoint(x: 1085.72 * sx, y: 625.45 * sy))
+        path.addCurve(
+            to: CGPoint(x: 1124.12 * sx, y: 482.08 * sy),
+            control1: CGPoint(x: 1105.78 * sx, y: 580.98 * sy),
+            control2: CGPoint(x: 1119.04 * sx, y: 532.70 * sy)
+        )
+        path.addLine(to: CGPoint(x: 793.44 * sx, y: 552.35 * sy))
+        path.addLine(to: CGPoint(x: 793.44 * sx, y: 66.13 * sy))
+        path.addCurve(
+            to: CGPoint(x: 661.19 * sx, y: 177.12 * sy),
+            control1: CGPoint(x: 742.77 * sx, y: 94.58 * sy),
+            control2: CGPoint(x: 697.77 * sx, y: 132.45 * sy)
+        )
+        path.addLine(to: CGPoint(x: 661.19 * sx, y: 580.47 * sy))
+        path.addLine(to: CGPoint(x: 528.94 * sx, y: 608.58 * sy))
+        path.addLine(to: CGPoint(x: 528.94 * sx, y: 0 * sy))
+        path.addCurve(
+            to: CGPoint(x: 396.69 * sx, y: 110.99 * sy),
+            control1: CGPoint(x: 478.27 * sx, y: 28.44 * sy),
+            control2: CGPoint(x: 433.27 * sx, y: 66.32 * sy)
+        )
+        path.addLine(to: CGPoint(x: 396.69 * sx, y: 636.68 * sy))
+        path.addLine(to: CGPoint(x: 100.78 * sx, y: 699.56 * sy))
+        path.addCurve(
+            to: CGPoint(x: 62.36 * sx, y: 842.93 * sy),
+            control1: CGPoint(x: 80.72 * sx, y: 744.03 * sy),
+            control2: CGPoint(x: 67.45 * sx, y: 792.31 * sy)
+        )
+        path.addLine(to: CGPoint(x: 396.69 * sx, y: 771.88 * sy))
+        path.addLine(to: CGPoint(x: 396.69 * sx, y: 942.14 * sy))
+        path.addLine(to: CGPoint(x: 38.39 * sx, y: 1018.28 * sy))
+        path.addCurve(
+            to: CGPoint(x: 0 * sx, y: 1161.65 * sy),
+            control1: CGPoint(x: 18.33 * sx, y: 1062.75 * sy),
+            control2: CGPoint(x: 5.07 * sx, y: 1111.03 * sy)
+        )
+        path.addLine(to: CGPoint(x: 375.04 * sx, y: 1081.95 * sy))
+        path.addCurve(
+            to: CGPoint(x: 448.87 * sx, y: 1032.71 * sy),
+            control1: CGPoint(x: 405.57 * sx, y: 1075.60 * sy),
+            control2: CGPoint(x: 431.81 * sx, y: 1057.55 * sy)
+        )
+        path.addLine(to: CGPoint(x: 517.65 * sx, y: 930.74 * sy))
+        path.addCurve(
+            to: CGPoint(x: 528.95 * sx, y: 893.77 * sy),
+            control1: CGPoint(x: 524.79 * sx, y: 920.19 * sy),
+            control2: CGPoint(x: 528.95 * sx, y: 907.47 * sy)
+        )
+        path.addLine(to: CGPoint(x: 528.95 * sx, y: 743.79 * sy))
+        path.addLine(to: CGPoint(x: 661.20 * sx, y: 715.68 * sy))
+        path.addLine(to: CGPoint(x: 661.20 * sx, y: 986.08 * sy))
+        path.addLine(to: CGPoint(x: 1085.73 * sx, y: 895.80 * sy))
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+// MARK: - Saudi Riyal Icon View
+struct SaudiRiyalIcon: View {
+    let size: CGFloat
+    let color: Color
+
+    init(size: CGFloat = 12, color: Color = Color(hex: "555555")) {
+        self.size = size
+        self.color = color
+    }
+
+    var body: some View {
+        RiyalShape()
+            .fill(color)
+            .frame(width: size, height: size * (1257.0 / 1124.0))
+    }
+}
+
+// MARK: - Price + Kcal row helper
+struct PriceKcalRow: View {
+    let price: Double
+    let fontSize: CGFloat
+    let kcal: Int
+    let discountPrice: Double?
+
+    init(price: Double, fontSize: CGFloat = 13, kcal: Int = 0, discountPrice: Double? = nil) {
+        self.price = price
+        self.fontSize = fontSize
+        self.kcal = kcal
+        self.discountPrice = discountPrice
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if let discountPrice {
+                // Old price with strikethrough line across number + riyal
+                HStack(spacing: 2) {
+                    Text(String(format: "%.0f", price))
+                        .font(.system(size: fontSize - 1, weight: .regular))
+                        .foregroundColor(Color(hex: "AAAAAA"))
+
+                    SaudiRiyalIcon(size: fontSize - 3, color: Color(hex: "AAAAAA"))
+                }
+                .overlay(
+                    Rectangle()
+                        .fill(Color(hex: "AAAAAA"))
+                        .frame(height: 1)
+                )
+
+                // New discounted price in red
+                HStack(spacing: 2) {
+                    Text(String(format: "%.0f", discountPrice))
+                        .font(.system(size: fontSize, weight: .semibold))
+                        .foregroundColor(Color(hex: "D32F2F"))
+
+                    SaudiRiyalIcon(size: fontSize - 2, color: Color(hex: "D32F2F"))
+                }
+            } else {
+                // Regular price
+                Text(String(format: "%.0f", price))
+                    .font(.system(size: fontSize, weight: .semibold))
+                    .foregroundColor(Color(hex: "444444"))
+
+                SaudiRiyalIcon(size: fontSize - 2, color: Color(hex: "444444"))
+            }
+        }
+    }
+}
+
+// MARK: - Popular Tag
+enum ProductTagType {
+    case popular
+    case hot
+
+    var label: String {
+        switch self {
+        case .popular: return "Popular"
+        case .hot: return "Hot"
+        }
+    }
+
+    var textColor: Color {
+        switch self {
+        case .popular: return .white
+        case .hot: return .white
+        }
+    }
+
+    var bgColor: Color {
+        switch self {
+        case .popular: return Color(hex: "2E7D32")
+        case .hot: return Color(hex: "D32F2F")
+        }
+    }
+}
+
+struct ProductTag: View {
+    let type: ProductTagType
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Text(type.label)
+                .font(.system(size: 12, weight: .semibold))
+            if type == .hot {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 10))
+            }
+        }
+        .foregroundColor(type.textColor)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(type.bgColor)
+        .cornerRadius(4)
+    }
+}
+
+// MARK: - Product "+" Add Button
+struct ProductAddButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "plus")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(Color(hex: "555555"))
+                .frame(width: 34, height: 34)
+                .background(Color.white)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color(hex: "E0E0E0"), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.06), radius: 1, y: 1)
+        }
+    }
+}
+
+// MARK: - Product List Row (text left, image right — flat with divider)
+struct ProductListRow: View {
     let product: Product
+    let tagType: ProductTagType?
+    let isLast: Bool
+    let discountPrice: Double?
     let onAdd: () -> Void
     let onTap: () -> Void
 
+    init(product: Product, tagType: ProductTagType? = nil, isLast: Bool = false, discountPrice: Double? = nil, onAdd: @escaping () -> Void, onTap: @escaping () -> Void) {
+        self.product = product
+        self.tagType = tagType
+        self.isLast = isLast
+        self.discountPrice = discountPrice
+        self.onAdd = onAdd
+        self.onTap = onTap
+    }
+
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+            VStack(spacing: 0) {
+                HStack(alignment: .top, spacing: 10) {
+                    // Text info (left)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(product.name)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.black)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .padding(.bottom, 3)
+
+                        PriceKcalRow(price: product.price, fontSize: 16, discountPrice: discountPrice)
+
+                        if let desc = product.description, !desc.isEmpty {
+                            Text(desc)
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(Color(hex: "878787"))
+                                .lineLimit(3)
+                                .multilineTextAlignment(.leading)
+                                .padding(.top, 2)
+                        }
+
+                        if let tag = tagType {
+                            ProductTag(type: tag)
+                                .padding(.top, 4)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    // Product image (right) with + button inside corner
+                    ZStack(alignment: .bottomTrailing) {
+                        CachedAsyncImage(url: product.resolvedImageUrl) {
+                            Image(systemName: "cup.and.saucer")
+                                .font(.system(size: 18))
+                                .foregroundColor(Color(hex: "CCCCCC"))
+                        }
+                        .frame(width: 97, height: 97)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                        ProductAddButton(action: onAdd)
+                            .offset(x: -4, y: -4)
+                    }
+                }
+                .padding(.vertical, 10)
+
+                // Bottom divider (hide on last item in category)
+                if !isLast {
+                    Rectangle()
+                        .fill(Color(hex: "D0D0D0"))
+                        .frame(height: 0.5)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func randomKcal(for product: Product) -> Int {
+        // Generate consistent kcal based on product id hash
+        let hash = abs(product.id.hashValue)
+        return 80 + (hash % 200)
+    }
+}
+
+// MARK: - Product Grid Card (image top, info bottom — flat, no shadow)
+struct ProductGridCard: View {
+    let product: Product
+    let tagType: ProductTagType?
+    let discountPrice: Double?
+    let onAdd: () -> Void
+    let onTap: () -> Void
+
+    init(product: Product, tagType: ProductTagType? = nil, discountPrice: Double? = nil, onAdd: @escaping () -> Void, onTap: @escaping () -> Void) {
+        self.product = product
+        self.tagType = tagType
+        self.discountPrice = discountPrice
+        self.onAdd = onAdd
+        self.onTap = onTap
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Product image (top) — true square via GeometryReader
+                GeometryReader { geo in
+                    ZStack {
+                        CachedAsyncImage(url: product.resolvedImageUrl) {
+                            Image(systemName: "cup.and.saucer")
+                                .font(.system(size: 22))
+                                .foregroundColor(Color(hex: "CCCCCC"))
+                        }
+                        .frame(width: geo.size.width, height: geo.size.width)
+
+                        // Tag — top left inside image
+                        if let tag = tagType {
+                            VStack {
+                                HStack {
+                                    ProductTag(type: tag)
+                                        .padding(.leading, 8)
+                                        .padding(.top, 8)
+                                    Spacer()
+                                }
+                                Spacer()
+                            }
+                        }
+
+                        // + button — bottom right inside image
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                ProductAddButton(action: onAdd)
+                                    .padding(.trailing, 6)
+                                    .padding(.bottom, 6)
+                            }
+                        }
+                    }
+                    .frame(width: geo.size.width, height: geo.size.width)
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                // Product info (bottom)
+                VStack(alignment: .leading, spacing: 3) {
                     Text(product.name)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.textPrimary)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.black)
                         .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    PriceKcalRow(price: product.price, fontSize: 15, discountPrice: discountPrice)
 
                     if let desc = product.description, !desc.isEmpty {
                         Text(desc)
-                            .font(.system(size: 13))
-                            .foregroundColor(.textSecondary)
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(Color(hex: "878787"))
                             .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .padding(.top, 2)
                     }
-
-                    Text("SAR \(String(format: "%.0f", product.price))")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.textPrimary)
-                        .padding(.top, 2)
                 }
-                Spacer()
-
-                ZStack(alignment: .bottomTrailing) {
-                    CachedAsyncImage(url: URL(string: product.imageUrl ?? "")) {
-                        RoundedRectangle(cornerRadius: 12).fill(Color(hex: "F5F5F5"))
-                            .overlay(Image(systemName: "cup.and.saucer").font(.title3).foregroundColor(.textTertiary))
-                    }
-                    .frame(width: 100, height: 100)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    Button { onAdd() } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.black)
-                            .frame(width: 28, height: 28)
-                            .background(Color(hex: "FFD300"))
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
-                    }
-                    .offset(x: 4, y: 4)
-                }
+                .padding(.horizontal, 8)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
             }
-            .padding(12)
-            .background(Color.surfacePrimary)
-            .cornerRadius(14)
-            .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+            .background(Color.white)
+            .cornerRadius(10)
         }
         .buttonStyle(.plain)
+    }
+
+    private func randomKcal(for product: Product) -> Int {
+        let hash = abs(product.id.hashValue)
+        return 80 + (hash % 200)
     }
 }
 
@@ -892,17 +1307,29 @@ struct ProductRowView: View {
 struct CategoryHeaderView: View {
     let name: String
     let catId: String
+    var isFirst: Bool = false
     let onPositionChange: (String, CGFloat) -> Void
 
     var body: some View {
-        HStack {
-            Text(name)
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.textPrimary)
-            Spacer()
+        VStack(spacing: 0) {
+            // Thick section divider above category title (hidden for first category)
+            if !isFirst {
+                Rectangle()
+                    .fill(Color(hex: "EBEBEB"))
+                    .frame(height: 3)
+                    .padding(.horizontal, -16)
+                    .padding(.bottom, 12)
+            }
+
+            HStack {
+                Text(name)
+                    .font(.system(size: 19, weight: .bold))
+                    .foregroundColor(.textPrimary)
+                Spacer()
+            }
         }
-        .padding(.top, 16)
-        .padding(.bottom, 4)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -927,14 +1354,13 @@ struct CategoryUnderlineTab: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Text(name)
-                    .font(.system(size: 14, weight: isSelected ? .bold : .regular))
+                    .font(.system(size: 15, weight: isSelected ? .bold : .medium))
                     .foregroundColor(isSelected ? .black : Color(hex: "999999"))
 
-                // Underline indicator
+                // Underline: black for selected, light gray for unselected (continuous bar)
                 Rectangle()
-                    .fill(isSelected ? Color.black : Color.clear)
-                    .frame(height: 2.5)
-                    .cornerRadius(1.25)
+                    .fill(isSelected ? Color.black : Color(hex: "f0f0f0"))
+                    .frame(height: 4)
             }
         }
         .buttonStyle(.plain)

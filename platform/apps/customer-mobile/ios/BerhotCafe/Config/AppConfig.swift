@@ -3,7 +3,7 @@ import Foundation
 enum AppConfig {
     // MARK: - API URLs
     // Simulator uses localhost, real device uses Mac's local IP
-    private static let localIP = "192.168.100.7"
+    private static let localIP = "192.168.100.143"
 
     /// true when running in iOS Simulator
     private static var isSimulator: Bool {

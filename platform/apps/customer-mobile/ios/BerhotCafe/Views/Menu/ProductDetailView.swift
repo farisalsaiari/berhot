@@ -47,7 +47,7 @@ struct ProductDetailView: View {
             VStack(spacing: 0) {
                 // Product Image
                 ZStack(alignment: .topTrailing) {
-                    CachedAsyncImage(url: URL(string: product.imageUrl ?? "")) {
+                    CachedAsyncImage(url: product.resolvedImageUrl) {
                         Rectangle().fill(Color(hex: "F5F5F5"))
                             .overlay(
                                 Image(systemName: "cup.and.saucer.fill")

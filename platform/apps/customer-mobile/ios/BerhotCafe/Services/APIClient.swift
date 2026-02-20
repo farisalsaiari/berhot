@@ -75,7 +75,8 @@ actor APIClient {
         urlRequest.httpMethod = method
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        if authenticated, let token = KeychainHelper.readString(forKey: "access_token") {
+        // In demo mode, skip sending the fake auth token — POS only needs X-Tenant-ID
+        if authenticated && !AppConfig.demoMode, let token = KeychainHelper.readString(forKey: "access_token") {
             urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -101,8 +102,8 @@ actor APIClient {
             throw APIError.unknown
         }
 
-        // Handle 401 — attempt token refresh
-        if httpResponse.statusCode == 401 && authenticated && !isRetry {
+        // Handle 401 — attempt token refresh (skip in demo mode)
+        if httpResponse.statusCode == 401 && authenticated && !isRetry && !AppConfig.demoMode {
             let refreshed = await refreshToken()
             if refreshed {
                 return try await request(method, baseURL: baseURL, path: path, body: body, authenticated: authenticated, includeTenantId: includeTenantId, isRetry: true)

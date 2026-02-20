@@ -31,4 +31,13 @@ struct CartItem: Codable, Identifiable {
         let names = modifiers.map(\.itemName)
         return names.isEmpty ? nil : names.joined(separator: ", ")
     }
+
+    /// Resolves relative image paths to full URLs using POS base
+    var resolvedImageUrl: URL? {
+        guard let raw = imageUrl, !raw.isEmpty else { return nil }
+        if raw.hasPrefix("http") {
+            return URL(string: raw)
+        }
+        return URL(string: AppConfig.posBaseURL + raw)
+    }
 }

@@ -883,7 +883,7 @@ struct SearchProductRow: View {
 
                 // Product image + add button
                 ZStack(alignment: .bottomTrailing) {
-                    CachedAsyncImage(url: URL(string: product.imageUrl ?? "")) {
+                    CachedAsyncImage(url: product.resolvedImageUrl) {
                         RoundedRectangle(cornerRadius: 12).fill(Color(hex: "F5F5F5"))
                             .overlay(Image(systemName: "cup.and.saucer").font(.title3).foregroundColor(.textTertiary))
                     }

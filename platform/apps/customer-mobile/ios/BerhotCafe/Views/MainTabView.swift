@@ -55,7 +55,6 @@ struct MainTabView: View {
         .padding(.bottom, 28) // account for home indicator safe area
         .background(
             Color.white
-                .shadow(color: .black.opacity(0.08), radius: 8, y: -2)
                 .edgesIgnoringSafeArea(.bottom)
         )
     }

@@ -23,6 +23,16 @@ struct Product: Codable, Identifiable {
     var needsModifierSelection: Bool {
         hasRequiredModifiers ?? false
     }
+
+    /// Resolves relative image paths (e.g. "/uploads/xxx.png") to full URLs using POS base
+    var resolvedImageUrl: URL? {
+        guard let raw = imageUrl, !raw.isEmpty else { return nil }
+        if raw.hasPrefix("http") {
+            return URL(string: raw)
+        }
+        // Relative path — prepend POS base URL
+        return URL(string: AppConfig.posBaseURL + raw)
+    }
 }
 
 struct ProductsResponse: Codable {

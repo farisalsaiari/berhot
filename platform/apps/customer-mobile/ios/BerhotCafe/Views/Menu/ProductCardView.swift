@@ -8,7 +8,7 @@ struct ProductCardView: View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 // Image (cached with shimmer)
-                CachedAsyncImage(url: URL(string: product.imageUrl ?? "")) {
+                CachedAsyncImage(url: product.resolvedImageUrl) {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.surfaceSecondary)
                         .overlay(

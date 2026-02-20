@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   fetchProducts, fetchCategories, createProduct, updateProduct,
-  createCategory, Product, Category,
+  createCategory, uploadImage, Product, Category,
 } from '../lib/posApi';
 
 interface Props {
@@ -30,6 +30,9 @@ export default function ProductsContent({ C, isLight, isMobile }: Props) {
   const [formCategory, setFormCategory] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formAvailable, setFormAvailable] = useState(true);
+  const [formImageUrl, setFormImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Category form
   const [catName, setCatName] = useState('');
@@ -60,6 +63,7 @@ export default function ProductsContent({ C, isLight, isMobile }: Props) {
     setEditingProduct(null);
     setFormName(''); setFormSku(''); setFormPrice(''); setFormCost('');
     setFormCategory(''); setFormDescription(''); setFormAvailable(true);
+    setFormImageUrl('');
     setShowModal(true);
   }
 
@@ -68,6 +72,7 @@ export default function ProductsContent({ C, isLight, isMobile }: Props) {
     setFormName(p.name); setFormSku(p.sku); setFormPrice(String(p.price));
     setFormCost(p.cost ? String(p.cost) : ''); setFormCategory(p.categoryId || '');
     setFormDescription(p.description || ''); setFormAvailable(p.isAvailable);
+    setFormImageUrl(p.imageUrl || '');
     setShowModal(true);
   }
 
@@ -84,6 +89,7 @@ export default function ProductsContent({ C, isLight, isMobile }: Props) {
         categoryId: formCategory || undefined,
         description: formDescription.trim() || undefined,
         isAvailable: formAvailable,
+        imageUrl: formImageUrl || undefined,
       };
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
@@ -111,6 +117,27 @@ export default function ProductsContent({ C, isLight, isMobile }: Props) {
       setError(e instanceof Error ? e.message : 'Failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleImageUpload(file: File) {
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Image must be smaller than 10MB');
+      return;
+    }
+    setUploading(true);
+    setError('');
+    try {
+      const result = await uploadImage(file);
+      setFormImageUrl(result.url);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -261,6 +288,82 @@ export default function ProductsContent({ C, isLight, isMobile }: Props) {
             <h3 style={{ fontSize: 18, fontWeight: 700, color: C.textPrimary, margin: '0 0 20px' }}>
               {editingProduct ? 'Edit Product' : 'New Product'}
             </h3>
+
+            {/* Image Upload */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: C.textSecond, marginBottom: 6 }}>Product Image</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file);
+                  e.target.value = '';
+                }}
+              />
+              {formImageUrl ? (
+                <div style={{ position: 'relative', width: '100%', height: 180, borderRadius: 10, overflow: 'hidden', background: isLight ? '#f5f5f5' : '#1e1e1e' }}>
+                  <img src={formImageUrl} alt="Product" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        padding: '6px 12px', borderRadius: 6, border: 'none',
+                        background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 12,
+                        fontWeight: 500, cursor: 'pointer', backdropFilter: 'blur(4px)',
+                      }}
+                    >Change</button>
+                    <button
+                      onClick={() => setFormImageUrl('')}
+                      style={{
+                        padding: '6px 12px', borderRadius: 6, border: 'none',
+                        background: 'rgba(239,68,68,0.8)', color: '#fff', fontSize: 12,
+                        fontWeight: 500, cursor: 'pointer', backdropFilter: 'blur(4px)',
+                      }}
+                    >Remove</button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => !uploading && fileInputRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={e => {
+                    e.preventDefault(); e.stopPropagation();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleImageUpload(file);
+                  }}
+                  style={{
+                    width: '100%', height: 140, borderRadius: 10,
+                    border: `2px dashed ${C.cardBorder}`,
+                    background: isLight ? '#fafafa' : '#1a1a1a',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    cursor: uploading ? 'wait' : 'pointer', gap: 8, transition: 'border-color 0.15s',
+                  }}
+                >
+                  {uploading ? (
+                    <>
+                      <div style={{
+                        width: 28, height: 28, border: `3px solid ${C.cardBorder}`,
+                        borderTopColor: C.btnBg, borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                      }} />
+                      <span style={{ fontSize: 13, color: C.textDim }}>Uploading...</span>
+                      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+                      </svg>
+                      <span style={{ fontSize: 13, color: C.textDim, fontWeight: 500 }}>Click or drag to upload image</span>
+                      <span style={{ fontSize: 11, color: C.textDim }}>JPG, PNG, WebP · Max 10MB</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>

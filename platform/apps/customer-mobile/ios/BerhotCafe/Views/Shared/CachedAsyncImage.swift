@@ -7,17 +7,19 @@ final class ImageCacheManager {
     static let shared = ImageCacheManager()
 
     private let cache = NSCache<NSString, UIImage>()
+    private let bgCache = NSCache<NSString, UIImage>() // Gray-bg processed images
     private let session: URLSession
 
     private init() {
-        cache.countLimit = 150           // max 150 images in memory
-        cache.totalCostLimit = 80 * 1024 * 1024  // ~80 MB
+        cache.countLimit = 150
+        cache.totalCostLimit = 80 * 1024 * 1024
+        bgCache.countLimit = 150
+        bgCache.totalCostLimit = 80 * 1024 * 1024
 
-        // URLSession with disk cache for network layer
         let config = URLSessionConfiguration.default
         config.urlCache = URLCache(
-            memoryCapacity: 30 * 1024 * 1024,   // 30 MB memory
-            diskCapacity: 150 * 1024 * 1024,     // 150 MB disk
+            memoryCapacity: 30 * 1024 * 1024,
+            diskCapacity: 150 * 1024 * 1024,
             diskPath: "berhot_image_cache"
         )
         config.requestCachePolicy = .returnCacheDataElseLoad
@@ -28,46 +30,105 @@ final class ImageCacheManager {
         cache.object(forKey: url.absoluteString as NSString)
     }
 
+    func bgImage(for url: URL) -> UIImage? {
+        bgCache.object(forKey: url.absoluteString as NSString)
+    }
+
     func store(_ image: UIImage, for url: URL) {
         let cost = image.pngData()?.count ?? 0
         cache.setObject(image, forKey: url.absoluteString as NSString, cost: cost)
     }
 
-    func load(url: URL) async -> UIImage? {
-        // 1. Check in-memory cache first
-        if let cached = image(for: url) {
-            return cached
-        }
+    func storeBg(_ image: UIImage, for url: URL) {
+        let cost = image.pngData()?.count ?? 0
+        bgCache.setObject(image, forKey: url.absoluteString as NSString, cost: cost)
+    }
 
-        // 2. Fetch from network (URLSession disk cache kicks in too)
+    func load(url: URL) async -> UIImage? {
+        if let cached = image(for: url) { return cached }
+
         do {
             let (data, response) = try await session.data(from: url)
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode),
-                  let uiImage = UIImage(data: data) else {
-                return nil
-            }
-
-            // 3. Store in memory cache
+                  let uiImage = UIImage(data: data) else { return nil }
             store(uiImage, for: url)
             return uiImage
         } catch {
             return nil
         }
     }
+
+    /// Replaces white/near-white pixels with a gray gradient color
+    /// Image stays full size — no shrinking
+    func replaceWhiteWithGray(_ image: UIImage) -> UIImage {
+        guard let cgImage = image.cgImage else { return image }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * width
+        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+
+        guard let context = CGContext(
+            data: nil, width: width, height: height,
+            bitsPerComponent: 8, bytesPerRow: bytesPerRow,
+            space: colorSpace, bitmapInfo: bitmapInfo
+        ), let _ = context.data else { return image }
+
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let pixelData = context.data else { return image }
+
+        let pixels = pixelData.bindMemory(to: UInt8.self, capacity: width * height * bytesPerPixel)
+
+        // Gray gradient target colors (top to bottom) — lighter
+        // Top: RGB(245,245,245)  Bottom: RGB(235,235,235)
+        let grayTop: CGFloat = 245
+        let grayBottom: CGFloat = 235
+
+        for y in 0..<height {
+            // Gradient gray value for this row
+            let progress = CGFloat(y) / CGFloat(max(height - 1, 1))
+            let grayValue = UInt8(grayTop + (grayBottom - grayTop) * progress)
+
+            for x in 0..<width {
+                let offset = (y * width + x) * bytesPerPixel
+                let r = pixels[offset]
+                let g = pixels[offset + 1]
+                let b = pixels[offset + 2]
+
+                // Check if pixel is white or near-white
+                if r >= 240 && g >= 240 && b >= 240 {
+                    // Pure white → replace with gray
+                    pixels[offset] = grayValue
+                    pixels[offset + 1] = grayValue
+                    pixels[offset + 2] = grayValue
+                    pixels[offset + 3] = 255
+                } else if r >= 220 && g >= 220 && b >= 220 {
+                    // Near-white → blend toward gray for smooth transition
+                    let brightness = CGFloat(max(r, g, b))
+                    let blendFactor = (brightness - 220.0) / (255.0 - 220.0) // 0 at 220, 1 at 255
+                    pixels[offset] = UInt8(CGFloat(r) * (1 - blendFactor) + CGFloat(grayValue) * blendFactor)
+                    pixels[offset + 1] = UInt8(CGFloat(g) * (1 - blendFactor) + CGFloat(grayValue) * blendFactor)
+                    pixels[offset + 2] = UInt8(CGFloat(b) * (1 - blendFactor) + CGFloat(grayValue) * blendFactor)
+                }
+            }
+        }
+
+        guard let result = context.makeImage() else { return image }
+        return UIImage(cgImage: result, scale: image.scale, orientation: image.imageOrientation)
+    }
 }
 
 // MARK: - CachedAsyncImage View
 
-/// Drop-in replacement for AsyncImage with:
-/// - Shimmer skeleton placeholder while loading
-/// - In-memory + disk caching — scroll back = instant, no refetch
 struct CachedAsyncImage<Placeholder: View>: View {
     let url: URL?
     let contentMode: ContentMode
     let placeholder: () -> Placeholder
 
-    @State private var image: UIImage?
+    @State private var displayImage: UIImage?
     @State private var isLoading = true
 
     init(
@@ -82,8 +143,8 @@ struct CachedAsyncImage<Placeholder: View>: View {
 
     var body: some View {
         Group {
-            if let image {
-                Image(uiImage: image)
+            if let displayImage {
+                Image(uiImage: displayImage)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
             } else if isLoading {
@@ -96,35 +157,48 @@ struct CachedAsyncImage<Placeholder: View>: View {
     }
 
     private func loadImage() {
-        guard let url else {
+        guard let url else { isLoading = false; return }
+        let manager = ImageCacheManager.shared
+
+        // Check processed bg cache
+        if let cached = manager.bgImage(for: url) {
+            displayImage = cached
             isLoading = false
             return
         }
 
-        // Instant hit from memory cache — no async needed
-        if let cached = ImageCacheManager.shared.image(for: url) {
-            self.image = cached
-            self.isLoading = false
+        // Check raw cache
+        if let raw = manager.image(for: url) {
+            processInBackground(raw, url: url)
             return
         }
 
-        // Async fetch
+        // Fetch from network
         Task {
-            let loaded = await ImageCacheManager.shared.load(url: url)
+            guard let loaded = await manager.load(url: url) else {
+                await MainActor.run { isLoading = false }
+                return
+            }
+            await MainActor.run { processInBackground(loaded, url: url) }
+        }
+    }
+
+    private func processInBackground(_ raw: UIImage, url: URL) {
+        Task.detached(priority: .userInitiated) {
+            let processed = ImageCacheManager.shared.replaceWhiteWithGray(raw)
             await MainActor.run {
-                self.image = loaded
-                self.isLoading = false
+                ImageCacheManager.shared.storeBg(processed, for: url)
+                displayImage = processed
+                isLoading = false
             }
         }
     }
 }
 
-// Convenience init with no custom placeholder (uses default icon)
+// Convenience init
 extension CachedAsyncImage where Placeholder == DefaultImagePlaceholder {
     init(url: URL?, contentMode: ContentMode = .fill) {
-        self.init(url: url, contentMode: contentMode) {
-            DefaultImagePlaceholder()
-        }
+        self.init(url: url, contentMode: contentMode) { DefaultImagePlaceholder() }
     }
 }
 
