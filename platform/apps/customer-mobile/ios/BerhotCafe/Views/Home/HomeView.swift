@@ -1268,7 +1268,7 @@ struct ProductListRow: View {
                             .truncationMode(.tail)
 
                         if showDescription, let desc = product.description, !desc.isEmpty {
-                            let hasTag = !isAvailable || tagType != nil
+                            let hasTag = (isAvailable && tagType != nil)
                             Text(desc)
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundColor(Color(hex: "878787"))
@@ -1281,16 +1281,7 @@ struct ProductListRow: View {
                         PriceKcalRow(price: product.price, fontSize: 16, discountPrice: discountPrice)
                             .padding(.top, 4)
 
-                        if !isAvailable {
-                            Text("Unavailable")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color(hex: "EBEBEB"))
-                                .cornerRadius(4)
-                                .padding(.top, 3)
-                        } else if let tag = tagType {
+                        if isAvailable, let tag = tagType {
                             ProductTag(type: tag)
                                 .padding(.top, 3)
                         }
@@ -1298,8 +1289,8 @@ struct ProductListRow: View {
 
                     Spacer(minLength: 0)
 
-                    // Product image (right) with + button inside corner
-                    ZStack(alignment: .bottomTrailing) {
+                    // Product image (right) with + button and unavailable tag
+                    ZStack {
                         CachedAsyncImage(url: product.resolvedImageUrl) {
                             LinearGradient(
                                 colors: [Color(hex: "ECECEC"), Color(hex: "E2E2E2")],
@@ -1315,11 +1306,31 @@ struct ProductListRow: View {
                         .frame(width: 97, height: 97)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
 
+                        // Unavailable tag centered on image
+                        if !isAvailable {
+                            Text("Unavailable")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color(hex: "EBEBEB").opacity(0.9))
+                                .cornerRadius(5)
+                        }
+
+                        // + button bottom right
                         if isAvailable {
-                            ProductAddButton(action: onAdd)
-                                .offset(x: -4, y: -4)
+                            VStack {
+                                Spacer()
+                                HStack {
+                                    Spacer()
+                                    ProductAddButton(action: onAdd)
+                                        .padding(.trailing, 4)
+                                        .padding(.bottom, 4)
+                                }
+                            }
                         }
                     }
+                    .frame(width: 97, height: 97)
                 }
                 .padding(.vertical, 10)
             }
@@ -1518,7 +1529,7 @@ struct CategoryUnderlineTab: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 7) {
+            VStack(spacing: 8) {
                 Text(name)
                     .font(.system(size: 15, weight: isSelected ? .bold : .medium))
                     .foregroundColor(isSelected ? .black : Color(hex: "999999"))
