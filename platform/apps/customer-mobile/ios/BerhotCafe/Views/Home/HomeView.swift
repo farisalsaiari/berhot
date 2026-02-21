@@ -49,9 +49,9 @@ struct HomeView: View {
         var cal = Calendar.current
         cal.timeZone = tz
         let hour = cal.component(.hour, from: Date())
-        if hour < 12 { return "Good morning" }
-        if hour < 17 { return "Good afternoon" }
-        return "Good evening"
+        if hour < 12 { return L.goodMorning }
+        if hour < 17 { return L.goodAfternoon }
+        return L.goodEvening
     }
 
     private var greetingEmoji: String {
@@ -292,19 +292,19 @@ struct HomeView: View {
                         showLocationPicker = true
                     } label: {
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("Deliver now")
+                            Text(L.deliverNow)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(Color(hex: "999999"))
                                 .padding(.bottom, 3)
 
                             HStack(spacing: 4) {
                                 if locationManager.isGeocoding {
-                                    Text("Getting location...")
+                                    Text(L.gettingLocation)
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(.black.opacity(0.5))
                                         .lineLimit(1)
                                 } else {
-                                    Text(displayAddress.isEmpty ? "Set delivery address" : displayAddress)
+                                    Text(displayAddress.isEmpty ? L.setDeliveryAddress : displayAddress)
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(.black.opacity(0.7))
                                         .lineLimit(1)
@@ -335,7 +335,7 @@ struct HomeView: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(Color(hex: "AAAAAA"))
-                        Text(store?.name != nil ? "Search \(store!.name)" : "Search Berhot Cafe")
+                        Text(store?.name != nil ? L.searchStore(store!.name) : L.searchBerhotCafe)
                             .font(.system(size: 14))
                             .foregroundColor(Color(hex: "AAAAAA"))
                         Spacer()
@@ -359,7 +359,7 @@ struct HomeView: View {
     // MARK: - Compact Delivery/Pick up Toggle
     private var deliveryToggleCompact: some View {
         HStack(spacing: 0) {
-            ForEach(Array(["Delivery", "Pick up"].enumerated()), id: \.offset) { index, label in
+            ForEach(Array([L.delivery, L.pickUp].enumerated()), id: \.offset) { index, label in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { deliveryMode = index }
                 } label: {
@@ -397,7 +397,7 @@ struct HomeView: View {
                         }
 
                         HStack(alignment: .center, spacing: 18) {
-                        CategoryUnderlineTab(name: "All", isSelected: selectedCategory == nil) {
+                        CategoryUnderlineTab(name: L.all, isSelected: selectedCategory == nil) {
                             isTapScrolling = true
                             selectedCategory = nil
                             withAnimation(.easeInOut(duration: 0.3)) {
@@ -408,7 +408,7 @@ struct HomeView: View {
                         .id("tab_all")
 
                         ForEach(categories) { cat in
-                            CategoryUnderlineTab(name: cat.name, isSelected: selectedCategory == cat.id) {
+                            CategoryUnderlineTab(name: cat.localizedName, isSelected: selectedCategory == cat.id) {
                                 isTapScrolling = true
                                 selectedCategory = cat.id
                                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -573,8 +573,8 @@ struct HomeView: View {
     /// Sorted category names in display order
     private var sortedCategoryKeys: [String] {
         groupedProducts.keys.sorted { a, b in
-            let aIdx = categories.firstIndex(where: { $0.name == a }) ?? 999
-            let bIdx = categories.firstIndex(where: { $0.name == b }) ?? 999
+            let aIdx = categories.firstIndex(where: { $0.localizedName == a }) ?? 999
+            let bIdx = categories.firstIndex(where: { $0.localizedName == b }) ?? 999
             return aIdx < bIdx
         }
     }
@@ -611,7 +611,7 @@ struct HomeView: View {
 
     /// Map category name back to its ID for scroll anchoring
     private func categoryIdFor(name: String) -> String {
-        categories.first(where: { $0.name == name })?.id ?? name
+        categories.first(where: { $0.localizedName == name })?.id ?? name
     }
 
     // MARK: - Floating Cart + Free Delivery Bar
@@ -628,7 +628,7 @@ struct HomeView: View {
             } label: {
                 HStack(spacing: 0) {
                     HStack(spacing: 8) {
-                        Text("View Cart")
+                        Text(L.viewCart)
                             .font(.system(size: 16, weight: .bold))
 
                         Text("\(cartManager.itemCount)")
@@ -670,17 +670,17 @@ struct HomeView: View {
                     .foregroundColor(isFree ? Color(hex: "43A047") : Color(hex: "E65100"))
 
                 if isFree {
-                    Text("You've unlocked free delivery!")
+                    Text(L.freeDeliveryUnlocked)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(Color(hex: "43A047"))
                 } else {
-                    Text("Add ")
+                    Text(L.addPrefix)
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(Color(hex: "555555"))
                     + Text(remaining.formattedCurrency)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(Color(hex: "E65100"))
-                    + Text(" more for free delivery")
+                    + Text(L.moreForFreeDelivery)
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(Color(hex: "555555"))
                 }
@@ -721,7 +721,7 @@ struct HomeView: View {
     private var groupedProducts: [String: [Product]] {
         // Always show all products (no filtering) — scrolling handles navigation
         Dictionary(grouping: products) { p in
-            p.categoryName ?? p.category?.name ?? "Other"
+            p.localizedCategoryName ?? p.category?.localizedName ?? "Other"
         }
     }
 
@@ -1261,13 +1261,13 @@ struct ProductListRow: View {
                 HStack(alignment: .top, spacing: 10) {
                     // Text info (left)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(product.name)
+                        Text(product.localizedName)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.black)
                             .lineLimit(1)
                             .truncationMode(.tail)
 
-                        if showDescription, let desc = product.description, !desc.isEmpty {
+                        if showDescription, let desc = product.localizedDescription, !desc.isEmpty {
                             let hasTag = (isAvailable && tagType != nil)
                             Text(desc)
                                 .font(.system(size: 14, weight: .regular))
@@ -1308,7 +1308,7 @@ struct ProductListRow: View {
 
                         // Unavailable tag centered on image
                         if !isAvailable {
-                            Text("Unavailable")
+                            Text(L.unavailable)
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 10)
@@ -1395,7 +1395,7 @@ struct ProductGridCard: View {
                         // Tag — top left inside image
                         if !isAvailable {
                             // Unavailable tag centered on image
-                            Text("Unavailable")
+                            Text(L.unavailable)
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 12)
@@ -1434,16 +1434,17 @@ struct ProductGridCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 // Product info (bottom)
-                let hasDesc = showDescription && product.description != nil && !product.description!.isEmpty
+                let localDesc = product.localizedDescription
+                let hasDesc = showDescription && localDesc != nil && !localDesc!.isEmpty
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(product.name)
+                    Text(product.localizedName)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.black)
                         .lineLimit(1)
                         .truncationMode(.tail)
 
                     if hasDesc {
-                        Text(product.description!)
+                        Text(localDesc!)
                             .font(.system(size: 14, weight: .regular))
                             .foregroundColor(Color(hex: "878787"))
                             .lineLimit(2)
@@ -1561,7 +1562,7 @@ struct CategoryMenuSheet: View {
                 .padding(.bottom, 6)
 
             // ── Header: "Menu" title ──
-            Text("Menu")
+            Text(L.menu)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
@@ -1573,7 +1574,7 @@ struct CategoryMenuSheet: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // "All" option
-                    categoryRow(name: "All", icon: "square.grid.2x2", isSelected: selectedCategory == nil) {
+                    categoryRow(name: L.all, icon: "square.grid.2x2", isSelected: selectedCategory == nil) {
                         onSelect("__all__")
                     }
 
@@ -1581,7 +1582,7 @@ struct CategoryMenuSheet: View {
 
                     // Each category
                     ForEach(Array(categories.enumerated()), id: \.element.id) { index, cat in
-                        categoryRow(name: cat.name, icon: iconForCategory(cat.name), isSelected: selectedCategory == cat.id) {
+                        categoryRow(name: cat.localizedName, icon: iconForCategory(cat.name), isSelected: selectedCategory == cat.id) {
                             onSelect(cat.id)
                         }
 
@@ -1594,7 +1595,7 @@ struct CategoryMenuSheet: View {
 
             // ── Dismiss button — flush to bottom ──
             Button { onDismiss() } label: {
-                Text("Dismiss")
+                Text(L.dismiss)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -1638,13 +1639,18 @@ struct CategoryMenuSheet: View {
 
     private func iconForCategory(_ name: String) -> String {
         let lower = name.lowercased()
-        if lower.contains("hot") || lower.contains("coffee") { return "cup.and.saucer.fill" }
+        if lower.contains("drip") && lower.contains("hot") { return "cup.and.saucer.fill" }
+        if lower.contains("drip") && lower.contains("cold") { return "snowflake" }
+        if lower.contains("hot") && lower.contains("drink") { return "cup.and.saucer.fill" }
+        if lower.contains("cold") && lower.contains("drink") { return "snowflake" }
+        if lower.contains("coffee") { return "cup.and.saucer.fill" }
         if lower.contains("iced") || lower.contains("cold") { return "snowflake" }
         if lower.contains("pastri") || lower.contains("bake") { return "birthday.cake.fill" }
-        if lower.contains("dessert") || lower.contains("sweet") { return "fork.knife" }
+        if lower.contains("dessert") || lower.contains("sweet") || lower.contains("cake") { return "fork.knife" }
         if lower.contains("snack") { return "leaf.fill" }
         if lower.contains("special") { return "star.fill" }
         if lower.contains("drink") || lower.contains("beverage") { return "wineglass.fill" }
+        if lower.contains("other") { return "ellipsis.circle.fill" }
         return "tag.fill"
     }
 }
@@ -1732,7 +1738,7 @@ struct LocationChangeView: View {
                             .foregroundColor(.textPrimary)
                     }
                     Spacer()
-                    Text("Delivery Address")
+                    Text(L.deliveryAddress)
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(.textPrimary)
                     Spacer()
@@ -1758,11 +1764,11 @@ struct LocationChangeView: View {
                                 .foregroundColor(brandGreen)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Use my current location")
+                            Text(L.useMyCurrentLocation)
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.textPrimary)
                             if locationManager.isGeocoding {
-                                Text("Getting address...")
+                                Text(L.gettingAddress)
                                     .font(.system(size: 13))
                                     .foregroundColor(.textSecondary)
                             } else if !locationManager.address.isEmpty {
@@ -1788,7 +1794,7 @@ struct LocationChangeView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16))
                         .foregroundColor(Color(hex: "999999"))
-                    TextField("Search for an address", text: $searchText)
+                    TextField(L.searchForAnAddress, text: $searchText)
                         .font(.system(size: 15))
                         .focused($isFocused)
                         .onChange(of: searchText) { query in
@@ -1820,7 +1826,7 @@ struct LocationChangeView: View {
                         Image(systemName: "map")
                             .font(.system(size: 40))
                             .foregroundColor(Color(hex: "DDDDDD"))
-                        Text("Search for your delivery address")
+                        Text(L.searchForAddress)
                             .font(.system(size: 15))
                             .foregroundColor(.textSecondary)
                         Spacer()

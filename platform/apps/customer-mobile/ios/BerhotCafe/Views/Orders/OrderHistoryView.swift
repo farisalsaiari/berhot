@@ -6,7 +6,7 @@ struct OrderHistoryView: View {
     var body: some View {
         Group {
             if viewModel.isLoading {
-                LoadingView(message: "Loading orders...")
+                LoadingView(message: L.loadingOrders)
             } else if let error = viewModel.error {
                 ErrorView(message: error) {
                     Task { await viewModel.loadOrders() }
@@ -14,8 +14,8 @@ struct OrderHistoryView: View {
             } else if viewModel.orders.isEmpty {
                 EmptyStateView(
                     icon: "list.clipboard",
-                    title: "No orders yet",
-                    message: "Your order history will appear here"
+                    title: L.noOrdersYet,
+                    message: L.orderHistoryAppear
                 )
             } else {
                 ScrollView {
@@ -31,7 +31,7 @@ struct OrderHistoryView: View {
                 }
             }
         }
-        .navigationTitle("My Orders")
+        .navigationTitle(L.myOrders)
         .refreshable {
             await viewModel.loadOrders()
         }
@@ -58,7 +58,7 @@ struct OrderRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("Order #\(order.orderNumber)")
+                    Text(L.orderNumber(order.orderNumber))
                         .font(.subheadline.bold())
                         .foregroundColor(.textPrimary)
 

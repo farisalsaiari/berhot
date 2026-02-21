@@ -171,7 +171,7 @@ struct SplashView: View {
                 // Cross-fade between text and spinner
                 ZStack {
                     if !showSpinner {
-                        Text("berhot")
+                        Text(L.berhot)
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .foregroundColor(.white.opacity(0.85))
                             .tracking(-0.3)

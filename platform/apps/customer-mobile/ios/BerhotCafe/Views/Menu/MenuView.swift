@@ -12,7 +12,7 @@ struct MenuView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.textTertiary)
-                    TextField("Search menu...", text: $viewModel.searchText)
+                    TextField(L.searchMenu, text: $viewModel.searchText)
                         .font(.body)
                 }
                 .padding(12)
@@ -26,7 +26,7 @@ struct MenuView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             CategoryChip(
-                                name: "All",
+                                name: L.all,
                                 isSelected: viewModel.selectedCategory == nil
                             ) {
                                 viewModel.selectCategory(nil)
@@ -34,7 +34,7 @@ struct MenuView: View {
 
                             ForEach(viewModel.categories) { category in
                                 CategoryChip(
-                                    name: category.name,
+                                    name: category.localizedName,
                                     isSelected: viewModel.selectedCategory == category.id
                                 ) {
                                     viewModel.selectCategory(category.id)
@@ -48,7 +48,7 @@ struct MenuView: View {
 
                 // Products grid
                 if viewModel.isLoading {
-                    LoadingView(message: "Loading menu...")
+                    LoadingView(message: L.loadingMenu)
                         .padding(.top, 60)
                 } else if let error = viewModel.error {
                     ErrorView(message: error) {
@@ -58,8 +58,8 @@ struct MenuView: View {
                 } else if viewModel.filteredProducts.isEmpty {
                     EmptyStateView(
                         icon: "menucard",
-                        title: "No items found",
-                        message: viewModel.searchText.isEmpty ? "Menu items will appear here" : "Try a different search"
+                        title: L.noItemsFound,
+                        message: viewModel.searchText.isEmpty ? L.menuItemsAppear : L.tryDifferentSearch
                     )
                     .padding(.top, 60)
                 } else {
@@ -77,7 +77,7 @@ struct MenuView: View {
                 }
             }
         }
-        .navigationTitle("Menu")
+        .navigationTitle(L.menu)
         .refreshable {
             await viewModel.loadMenu()
         }

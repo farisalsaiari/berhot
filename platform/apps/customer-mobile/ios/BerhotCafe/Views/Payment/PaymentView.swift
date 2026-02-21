@@ -43,7 +43,7 @@ struct PaymentView: View {
                     payButton
                 }
             }
-            .navigationTitle("Payment")
+            .navigationTitle(L.payment)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -61,16 +61,16 @@ struct PaymentView: View {
                     OrderConfirmationView(order: order)
                 }
             }
-            .alert("Order Failed", isPresented: Binding(
+            .alert(L.orderFailed, isPresented: Binding(
                 get: { viewModel.error != nil },
                 set: { if !$0 { viewModel.error = nil } }
             )) {
-                Button("Try Again") {
+                Button(L.tryAgain) {
                     Task { await viewModel.placeOrder(cart: cartManager) }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(L.cancel, role: .cancel) {}
             } message: {
-                Text(viewModel.error ?? "Something went wrong. Please try again.")
+                Text(viewModel.error ?? L.somethingWentWrongTryAgain)
             }
         }
     }
@@ -81,7 +81,7 @@ struct PaymentView: View {
             HStack {
                 Image(systemName: "location.fill")
                     .foregroundColor(brandGreen)
-                Text("Delivery Address")
+                Text(L.deliveryAddress)
                     .font(.system(size: 15, weight: .bold))
                 Spacer()
             }
@@ -95,7 +95,7 @@ struct PaymentView: View {
                         .foregroundColor(.textPrimary)
                         .lineLimit(2)
                     Spacer()
-                    Button("Change") {
+                    Button(L.change) {
                         showLocationFlow = true
                     }
                     .font(.system(size: 13, weight: .semibold))
@@ -108,7 +108,7 @@ struct PaymentView: View {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .foregroundColor(brandGreen)
-                        Text("Add Delivery Address")
+                        Text(L.addDeliveryAddress)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(brandGreen)
                     }
@@ -126,9 +126,9 @@ struct PaymentView: View {
             HStack {
                 Image(systemName: "bag.fill")
                     .foregroundColor(brandGreen)
-                Text("Order Summary")
+                Text(L.orderSummary)
                     .font(.system(size: 15, weight: .bold))
-                Text("(\(cartManager.itemCount) items)")
+                Text(L.itemsCount(cartManager.itemCount))
                     .font(.system(size: 13))
                     .foregroundColor(.textSecondary)
                 Spacer()
@@ -142,7 +142,7 @@ struct PaymentView: View {
                         .frame(width: 30, alignment: .leading)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.productName)
+                        Text(item.localizedProductName)
                             .font(.system(size: 14))
                             .foregroundColor(.textPrimary)
                         if let summary = item.modifiersSummary {
@@ -171,11 +171,11 @@ struct PaymentView: View {
             Image(systemName: "ticket.fill")
                 .foregroundColor(brandGreen)
 
-            TextField("Promo code", text: $promoCode)
+            TextField(L.promoCode, text: $promoCode)
                 .font(.system(size: 14))
                 .textInputAutocapitalization(.characters)
 
-            Button("Apply") {}
+            Button(L.apply) {}
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(brandGreen)
                 .padding(.horizontal, 12)
@@ -191,7 +191,7 @@ struct PaymentView: View {
     // MARK: - Payment Methods
     private var paymentMethodsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Payment Method")
+            Text(L.paymentMethod)
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.textPrimary)
 
@@ -228,11 +228,11 @@ struct PaymentView: View {
     // MARK: - Total
     private var totalSection: some View {
         VStack(spacing: 8) {
-            SummaryRow(label: "Subtotal", value: cartManager.subtotal.formattedCurrency)
-            SummaryRow(label: "Delivery Fee", value: cartManager.deliveryFee.formattedCurrency)
-            SummaryRow(label: "Tax (15%)", value: cartManager.taxAmount.formattedCurrency)
+            SummaryRow(label: L.subtotal, value: cartManager.subtotal.formattedCurrency)
+            SummaryRow(label: L.deliveryFee, value: cartManager.deliveryFee.formattedCurrency)
+            SummaryRow(label: L.tax15, value: cartManager.taxAmount.formattedCurrency)
             Divider()
-            SummaryRow(label: "Total", value: cartManager.total.formattedCurrency, isBold: true)
+            SummaryRow(label: L.total, value: cartManager.total.formattedCurrency, isBold: true)
         }
         .padding(16)
         .background(Color.surfacePrimary)
@@ -254,8 +254,8 @@ struct PaymentView: View {
                     ProgressView().tint(.white)
                 }
                 Text(viewModel.isProcessingPayment
-                     ? "Processing..."
-                     : "Pay \(cartManager.total.formattedCurrency)")
+                     ? L.processing
+                     : L.payAmount(cartManager.total.formattedCurrency))
                     .font(.system(size: 16, weight: .bold))
             }
             .frame(maxWidth: .infinity)

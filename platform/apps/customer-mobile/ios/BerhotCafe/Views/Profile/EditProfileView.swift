@@ -24,11 +24,11 @@ struct EditProfileView: View {
                 // Form
                 VStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("First Name")
+                        Text(L.firstNameLabel)
                             .font(.subheadline.bold())
                             .foregroundColor(.textSecondary)
 
-                        TextField("First name", text: $firstName)
+                        TextField(L.firstName, text: $firstName)
                             .textContentType(.givenName)
                             .padding(14)
                             .background(Color.surfaceSecondary)
@@ -36,11 +36,11 @@ struct EditProfileView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Last Name")
+                        Text(L.lastNameLabel)
                             .font(.subheadline.bold())
                             .foregroundColor(.textSecondary)
 
-                        TextField("Last name", text: $lastName)
+                        TextField(L.lastName, text: $lastName)
                             .textContentType(.familyName)
                             .padding(14)
                             .background(Color.surfaceSecondary)
@@ -74,7 +74,7 @@ struct EditProfileView: View {
                         if viewModel.isSaving {
                             ProgressView().tint(.white)
                         }
-                        Text("Save Changes")
+                        Text(L.saveChanges)
                             .font(.body.bold())
                     }
                     .frame(maxWidth: .infinity)
@@ -87,11 +87,11 @@ struct EditProfileView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 20)
             }
-            .navigationTitle("Edit Profile")
+            .navigationTitle(L.editProfile)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button(L.cancel) { dismiss() }
                 }
             }
             .onAppear {

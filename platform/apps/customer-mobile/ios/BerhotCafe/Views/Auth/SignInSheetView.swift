@@ -29,11 +29,11 @@ struct SignInSheetView: View {
 
                 // ── Welcome Title ──
                 VStack(spacing: 8) {
-                    Text("Welcome to Berhot")
+                    Text(L.welcomeToBerhot)
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.textPrimary)
 
-                    Text("Sign in to complete your order")
+                    Text(L.signInToComplete)
                         .font(.system(size: 15))
                         .foregroundColor(.textSecondary)
                 }
@@ -42,7 +42,7 @@ struct SignInSheetView: View {
 
                 // ── Phone Input Row ──
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Phone number")
+                    Text(L.phoneNumber)
                         .font(.system(size: 13))
                         .foregroundColor(.textSecondary)
                         .padding(.leading, 4)
@@ -105,7 +105,7 @@ struct SignInSheetView: View {
                         if viewModel.isLoading {
                             ProgressView().tint(.black)
                         }
-                        Text("Continue")
+                        Text(L.continueBtn)
                             .font(.system(size: 16, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
@@ -121,7 +121,7 @@ struct SignInSheetView: View {
                 // ── Divider with "or" ──
                 HStack {
                     Rectangle().fill(Color(hex: "E8E8E8")).frame(height: 1)
-                    Text("or")
+                    Text(L.or)
                         .font(.system(size: 14))
                         .foregroundColor(.textTertiary)
                         .padding(.horizontal, 16)
@@ -132,9 +132,9 @@ struct SignInSheetView: View {
 
                 // ── Social / Alternative Sign-in Options ──
                 VStack(spacing: 10) {
-                    socialButton(icon: "apple.logo", label: "Continue with Apple", systemIcon: true)
-                    socialButton(icon: "g.circle.fill", label: "Continue with Google", systemIcon: true)
-                    socialButton(icon: "envelope", label: "Continue with Email", systemIcon: true)
+                    socialButton(icon: "apple.logo", label: L.continueWithApple, systemIcon: true)
+                    socialButton(icon: "g.circle.fill", label: L.continueWithGoogle, systemIcon: true)
+                    socialButton(icon: "envelope", label: L.continueWithEmail, systemIcon: true)
 
                     Button {
                         // Guest checkout: dismiss and proceed
@@ -146,7 +146,7 @@ struct SignInSheetView: View {
                             Image(systemName: "person")
                                 .font(.system(size: 16))
                                 .frame(width: 24)
-                            Text("Continue as guest")
+                            Text(L.continueAsGuest)
                                 .font(.system(size: 15, weight: .medium))
                         }
                         .foregroundColor(.textPrimary)

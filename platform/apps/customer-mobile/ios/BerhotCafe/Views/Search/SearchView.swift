@@ -70,8 +70,10 @@ struct SearchView: View {
         if !searchText.isEmpty {
             let query = searchText.lowercased()
             result = result.filter {
-                $0.name.lowercased().contains(query) ||
-                ($0.description?.lowercased().contains(query) ?? false)
+                $0.localizedName.lowercased().contains(query) ||
+                ($0.nameEn?.lowercased().contains(query) ?? false) ||
+                ($0.nameAr?.lowercased().contains(query) ?? false) ||
+                ($0.localizedDescription?.lowercased().contains(query) ?? false)
             }
         }
 
@@ -99,9 +101,9 @@ struct SearchView: View {
         case .newest:
             result.sort { ($0.createdAt ?? "") > ($1.createdAt ?? "") }
         case .nameAZ:
-            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            result.sort { $0.localizedName.localizedCaseInsensitiveCompare($1.localizedName) == .orderedAscending }
         case .nameZA:
-            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+            result.sort { $0.localizedName.localizedCaseInsensitiveCompare($1.localizedName) == .orderedDescending }
         }
 
         return result
@@ -151,7 +153,7 @@ struct SearchView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 15))
                         .foregroundColor(Color(hex: "999999"))
-                    TextField("Search Berhot Cafe", text: $searchText)
+                    TextField(L.searchBerhotCafe, text: $searchText)
                         .font(.system(size: 16))
                         .focused($isSearchFocused)
                     if !searchText.isEmpty {
@@ -178,10 +180,10 @@ struct SearchView: View {
                 showDeliveryMenu.toggle()
             } label: {
                 HStack(spacing: 4) {
-                    Text("Showing results in")
+                    Text(L.showingResultsIn)
                         .font(.system(size: 13))
                         .foregroundColor(.textSecondary)
-                    Text(selectedDeliveryMode == 0 ? "Delivery" : "Pickup")
+                    Text(selectedDeliveryMode == 0 ? L.delivery : L.pickup)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(brandYellow)
                     Image(systemName: "chevron.down")
@@ -197,9 +199,9 @@ struct SearchView: View {
             // Delivery mode dropdown
             if showDeliveryMenu {
                 VStack(spacing: 0) {
-                    deliveryModeOption(title: "Delivery", icon: "bicycle", index: 0)
+                    deliveryModeOption(title: L.delivery, icon: "bicycle", index: 0)
                     Divider().padding(.horizontal, 16)
-                    deliveryModeOption(title: "Pickup", icon: "bag", index: 1)
+                    deliveryModeOption(title: L.pickup, icon: "bag", index: 1)
                 }
                 .background(Color(hex: "FAFAFA"))
                 .cornerRadius(12)
@@ -243,7 +245,7 @@ struct SearchView: View {
                         // Sort By chip
                         FilterChip(
                             icon: "arrow.up.arrow.down",
-                            label: sortOption == .relevance ? "Sort By" : sortOption.rawValue,
+                            label: sortOption == .relevance ? L.sortBy : sortOption.rawValue,
                             isActive: sortOption != .relevance
                         ) {
                             showSortSheet = true
@@ -252,7 +254,7 @@ struct SearchView: View {
                         // Category chips
                         FilterChip(
                             icon: nil,
-                            label: "All",
+                            label: L.all,
                             isActive: selectedCategory == nil
                         ) {
                             selectedCategory = nil
@@ -284,14 +286,14 @@ struct SearchView: View {
                         .font(.system(size: 40))
                         .foregroundColor(Color(hex: "DDDDDD"))
                     if searchText.isEmpty && selectedCategory == nil {
-                        Text("Search for items")
+                        Text(L.searchForItems)
                             .font(.system(size: 16))
                             .foregroundColor(.textSecondary)
                     } else {
-                        Text("No results found")
+                        Text(L.noResultsFound)
                             .font(.system(size: 16))
                             .foregroundColor(.textSecondary)
-                        Text("Try adjusting your filters or search")
+                        Text(L.tryAdjustingFilters)
                             .font(.system(size: 13))
                             .foregroundColor(.textTertiary)
                     }
@@ -303,7 +305,7 @@ struct SearchView: View {
                     LazyVStack(spacing: 0) {
                         // Results count + sort indicator
                         HStack {
-                            Text("\(filteredProducts.count) item\(filteredProducts.count == 1 ? "" : "s") found")
+                            Text(L.itemsFound(filteredProducts.count))
                                 .font(.system(size: 13))
                                 .foregroundColor(.textSecondary)
                             Spacer()
@@ -391,7 +393,7 @@ struct SearchView: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "cart.fill").font(.system(size: 16))
-                    Text("\(cartManager.itemCount) items")
+                    Text("\(cartManager.itemCount) \(L.items)")
                         .font(.system(size: 14, weight: .semibold))
                 }
                 Spacer()
@@ -449,7 +451,7 @@ struct SortBySheet: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Sort By")
+                Text(L.sortBy)
                     .font(.system(size: 18, weight: .bold))
                 Spacer()
                 Button { dismiss() } label: {
@@ -547,9 +549,9 @@ struct SearchFilterView: View {
                 VStack(alignment: .leading, spacing: 24) {
 
                     // ── Category ──
-                    filterSection(title: "Category") {
+                    filterSection(title: L.category) {
                         FlowLayout(spacing: 8) {
-                            FilterToggleChip(label: "All", isSelected: localSelectedCategory == nil) {
+                            FilterToggleChip(label: L.all, isSelected: localSelectedCategory == nil) {
                                 localSelectedCategory = nil
                             }
                             ForEach(categories) { cat in
@@ -563,7 +565,7 @@ struct SearchFilterView: View {
                     Divider()
 
                     // ── Price Range ──
-                    filterSection(title: "Price Range (SAR)") {
+                    filterSection(title: L.priceRangeSAR) {
                         VStack(spacing: 12) {
                             HStack {
                                 Text("SAR \(Int(localMinPrice))")
@@ -586,7 +588,7 @@ struct SearchFilterView: View {
                     Divider()
 
                     // ── Drink Type ──
-                    filterSection(title: "Drink Type") {
+                    filterSection(title: L.drinkType) {
                         FlowLayout(spacing: 8) {
                             ForEach(drinkTypes, id: \.self) { type in
                                 FilterToggleChip(
@@ -606,7 +608,7 @@ struct SearchFilterView: View {
                     Divider()
 
                     // ── Dietary Preferences ──
-                    filterSection(title: "Dietary Preferences") {
+                    filterSection(title: L.dietaryPreferences) {
                         FlowLayout(spacing: 8) {
                             ForEach(dietaryList, id: \.self) { option in
                                 FilterToggleChip(
@@ -626,11 +628,11 @@ struct SearchFilterView: View {
                     Divider()
 
                     // ── Other Options ──
-                    filterSection(title: "Other") {
+                    filterSection(title: L.other) {
                         VStack(spacing: 0) {
-                            filterToggleRow(title: "Available items only", icon: "checkmark.circle", isOn: $localAvailableOnly)
+                            filterToggleRow(title: L.availableItemsOnly, icon: "checkmark.circle", isOn: $localAvailableOnly)
                             Divider().padding(.leading, 40)
-                            filterToggleRow(title: "With photos only", icon: "photo", isOn: $localHasImage)
+                            filterToggleRow(title: L.withPhotosOnly, icon: "photo", isOn: $localHasImage)
                         }
                         .background(Color(hex: "FAFAFA"))
                         .cornerRadius(12)
@@ -640,11 +642,11 @@ struct SearchFilterView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 100)
             }
-            .navigationTitle("Filters")
+            .navigationTitle(L.filters)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Reset") {
+                    Button(L.reset) {
                         resetFilters()
                     }
                     .font(.system(size: 15))
@@ -663,7 +665,7 @@ struct SearchFilterView: View {
                     applyFilters()
                     dismiss()
                 } label: {
-                    Text("Apply Filters")
+                    Text(L.applyFilters)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
@@ -860,12 +862,12 @@ struct SearchProductRow: View {
             HStack(spacing: 12) {
                 // Details
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(product.name)
+                    Text(product.localizedName)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.textPrimary)
                         .lineLimit(2)
 
-                    if let desc = product.description, !desc.isEmpty {
+                    if let desc = product.localizedDescription, !desc.isEmpty {
                         Text(desc)
                             .font(.system(size: 13))
                             .foregroundColor(.textSecondary)

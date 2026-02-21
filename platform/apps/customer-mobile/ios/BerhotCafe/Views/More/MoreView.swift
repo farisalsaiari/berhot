@@ -3,16 +3,16 @@ import SwiftUI
 struct MoreView: View {
     @EnvironmentObject var cartManager: CartManager
 
-    private let menuItems: [(icon: String, title: String)] = [
-        ("cart", "Cart"),
-        ("heart", "Favorites"),
-        ("bell", "Notifications"),
-        ("ticket", "Promotions"),
-        ("questionmark.circle", "Help & Support"),
-        ("doc.text", "Terms & Conditions"),
-        ("shield.checkered", "Privacy Policy"),
-        ("info.circle", "About"),
-    ]
+    private var menuItems: [(icon: String, title: String)] {[
+        ("cart", L.cart),
+        ("heart", L.favorites),
+        ("bell", L.notifications),
+        ("ticket", L.promotions),
+        ("questionmark.circle", L.helpSupport),
+        ("doc.text", L.termsConditions),
+        ("shield.checkered", L.privacyPolicy),
+        ("info.circle", L.about),
+    ]}
 
     var body: some View {
         ScrollView {
@@ -30,7 +30,7 @@ struct MoreView: View {
 
                         Spacer()
 
-                        if item.title == "Cart" && cartManager.itemCount > 0 {
+                        if item.title == L.cart && cartManager.itemCount > 0 {
                             Text("\(cartManager.itemCount)")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(.white)
@@ -54,6 +54,6 @@ struct MoreView: View {
             .padding(.top, 16)
         }
         .background(Color.white)
-        .navigationTitle("More")
+        .navigationTitle(L.more)
     }
 }

@@ -123,11 +123,11 @@ struct LocationMapView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     if locationManager.isGeocoding {
-                        Text("Getting address...")
+                        Text(L.gettingAddress)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.textSecondary)
                     } else if locationManager.address.isEmpty {
-                        Text("Move the map to set location")
+                        Text(L.moveMapToSetLocation)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.textSecondary)
                     } else {
@@ -165,7 +165,7 @@ struct LocationMapView: View {
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: "666666"))
 
-                Text("Your rider will deliver to the pinned location. You can edit your written address on the next page.")
+                Text(L.riderWillDeliver)
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "666666"))
                     .lineSpacing(2)
@@ -191,7 +191,7 @@ struct LocationMapView: View {
                     if isSaving {
                         ProgressView().tint(.white)
                     }
-                    Text("Confirm")
+                    Text(L.confirmLocation)
                         .font(.system(size: 16, weight: .bold))
                 }
                 .foregroundColor(.white)

@@ -81,11 +81,11 @@ struct OrderConfirmationView: View {
 
                             // Title
                             VStack(spacing: 6) {
-                                Text("Order Placed! 🎉")
+                                Text(L.orderPlaced)
                                     .font(.system(size: 28, weight: .bold))
                                     .foregroundColor(.textPrimary)
 
-                                Text("Order #\(order.orderNumber)")
+                                Text(L.orderNumber(order.orderNumber))
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(brandGreen)
                                     .padding(.horizontal, 14)
@@ -102,7 +102,7 @@ struct OrderConfirmationView: View {
                                 Image(systemName: "clock.fill")
                                     .foregroundColor(.orange)
                                     .font(.system(size: 18))
-                                Text("Estimated: 15-30 min")
+                                Text(L.estimatedTime)
                                     .font(.system(size: 15, weight: .medium))
                                     .foregroundColor(.textSecondary)
                             }
@@ -120,11 +120,11 @@ struct OrderConfirmationView: View {
                             HStack {
                                 Image(systemName: "bag.fill")
                                     .foregroundColor(brandGreen)
-                                Text("Order Summary")
+                                Text(L.orderSummary)
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(.textPrimary)
                                 Spacer()
-                                Text("\(order.items?.count ?? 0) items")
+                                Text("\(order.items?.count ?? 0) \(L.items)")
                                     .font(.system(size: 13))
                                     .foregroundColor(.textTertiary)
                             }
@@ -176,7 +176,7 @@ struct OrderConfirmationView: View {
                             // Totals
                             VStack(spacing: 6) {
                                 HStack {
-                                    Text("Subtotal")
+                                    Text(L.subtotal)
                                         .font(.system(size: 13))
                                         .foregroundColor(.textSecondary)
                                     Spacer()
@@ -186,7 +186,7 @@ struct OrderConfirmationView: View {
                                 }
                                 if order.taxAmount > 0 {
                                     HStack {
-                                        Text("Tax")
+                                        Text(L.tax)
                                             .font(.system(size: 13))
                                             .foregroundColor(.textSecondary)
                                         Spacer()
@@ -197,7 +197,7 @@ struct OrderConfirmationView: View {
                                 }
                                 if let disc = order.discountAmount, disc > 0 {
                                     HStack {
-                                        Text("Discount")
+                                        Text(L.discount)
                                             .font(.system(size: 13))
                                             .foregroundColor(brandGreen)
                                         Spacer()
@@ -208,7 +208,7 @@ struct OrderConfirmationView: View {
                                 }
                                 Divider()
                                 HStack {
-                                    Text("Total Paid")
+                                    Text(L.totalPaid)
                                         .font(.system(size: 15, weight: .bold))
                                         .foregroundColor(.textPrimary)
                                     Spacer()
@@ -259,7 +259,7 @@ struct OrderConfirmationView: View {
                                         .font(.system(size: 18))
                                         .foregroundColor(.purple)
                                 }
-                                Text("Paid")
+                                Text(L.paid)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.textSecondary)
                             }
@@ -278,7 +278,7 @@ struct OrderConfirmationView: View {
                                         .font(.system(size: 18))
                                         .foregroundColor(.orange)
                                 }
-                                Text("15-30 min")
+                                Text(L.estimatedDelivery)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.textSecondary)
                             }
@@ -301,7 +301,7 @@ struct OrderConfirmationView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "location.fill")
                                         .font(.system(size: 16))
-                                    Text("Track Your Order")
+                                    Text(L.trackOrder)
                                         .font(.system(size: 16, weight: .bold))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -325,7 +325,7 @@ struct OrderConfirmationView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "house.fill")
                                         .font(.system(size: 14))
-                                    Text("Back to Home")
+                                    Text(L.backToHome)
                                         .font(.system(size: 15, weight: .medium))
                                 }
                                 .foregroundColor(.textSecondary)

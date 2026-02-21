@@ -14,26 +14,26 @@ struct IntroView: View {
     @State private var currentPage = 0
     private let brandGreen = Color(hex: "34A853")
 
-    private let pages: [IntroPage] = [
+    private var pages: [IntroPage] {[
         IntroPage(
             emoji: "fork.knife",
-            headline: "Fast delivery\nof delicious food",
-            subheadline: "Order food within minutes and enjoy fresh meals delivered to your door.",
+            headline: L.introTitle1,
+            subheadline: L.introDesc1,
             gradientColors: [Color(hex: "1a1a1a"), Color(hex: "2d1f0e")]
         ),
         IntroPage(
             emoji: "mappin.and.ellipse",
-            headline: "Live tracking\nof your order",
-            subheadline: "Know exactly where your order is in real-time from kitchen to doorstep.",
+            headline: L.introTitle2,
+            subheadline: L.introDesc2,
             gradientColors: [Color(hex: "1a1a1a"), Color(hex: "0e1f2d")]
         ),
         IntroPage(
             emoji: "star.fill",
-            headline: "Best restaurants\nnear you",
-            subheadline: "Discover top-rated cafes and restaurants in your neighborhood.",
+            headline: L.introTitle3,
+            subheadline: L.introDesc3,
             gradientColors: [Color(hex: "1a1a1a"), Color(hex: "1f0e2d")]
         )
-    ]
+    ]}
 
     var body: some View {
         ZStack {
@@ -93,7 +93,7 @@ struct IntroView: View {
 
                 // Get Started button
                 Button(action: onGetStarted) {
-                    Text("Get started")
+                    Text(L.getStarted)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

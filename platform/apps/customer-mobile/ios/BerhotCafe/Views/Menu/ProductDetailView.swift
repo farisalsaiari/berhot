@@ -71,7 +71,7 @@ struct ProductDetailView: View {
 
                     // Name + Price + Description
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(product.name)
+                        Text(product.localizedName)
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.textPrimary)
 
@@ -79,7 +79,7 @@ struct ProductDetailView: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(brandGreen)
 
-                        if let desc = product.description, !desc.isEmpty {
+                        if let desc = product.localizedDescription, !desc.isEmpty {
                             Text(desc)
                                 .font(.system(size: 14))
                                 .foregroundColor(.textSecondary)
@@ -105,7 +105,7 @@ struct ProductDetailView: View {
                             Button {
                                 Task { await loadModifiers() }
                             } label: {
-                                Text("Try Again")
+                                Text(L.tryAgain)
                                     .font(.system(size: 14, weight: .bold))
                                     .padding(.horizontal, 20)
                                     .padding(.vertical, 10)
@@ -125,11 +125,11 @@ struct ProductDetailView: View {
 
                     // Special Instructions
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Special Instructions")
+                        Text(L.specialInstructions)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.textPrimary)
 
-                        TextField("Any special requests...", text: $notes, axis: .vertical)
+                        TextField(L.anySpecialRequests, text: $notes, axis: .vertical)
                             .lineLimit(2...4)
                             .padding(12)
                             .background(Color(hex: "F5F5F5"))
@@ -139,7 +139,7 @@ struct ProductDetailView: View {
 
                     // Quantity
                     HStack {
-                        Text("Quantity")
+                        Text(L.quantity)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.textPrimary)
 
@@ -177,8 +177,8 @@ struct ProductDetailView: View {
                     HStack {
                         Image(systemName: addedToCart ? "checkmark" : "cart.badge.plus")
                         Text(addedToCart
-                             ? "Added!"
-                             : "Add to Cart — SAR \(String(format: "%.0f", totalPrice))")
+                             ? L.added
+                             : L.addToCartPrice(String(format: "%.0f", totalPrice)))
                             .font(.body.bold())
                     }
                     .frame(maxWidth: .infinity)
@@ -214,7 +214,7 @@ struct ProductDetailView: View {
                     .foregroundColor(.textPrimary)
 
                 if group.isRequired {
-                    Text("Required")
+                    Text(L.required)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
@@ -241,7 +241,7 @@ struct ProductDetailView: View {
                             .font(.system(size: 20))
                             .foregroundColor(isSelected ? brandGreen : Color(hex: "CCCCCC"))
 
-                        Text(item.name)
+                        Text(item.localizedName)
                             .font(.system(size: 14))
                             .foregroundColor(.textPrimary)
 
@@ -254,7 +254,7 @@ struct ProductDetailView: View {
                         }
 
                         if item.isDefault {
-                            Text("Popular")
+                            Text(L.popular)
                                 .font(.system(size: 10, weight: .medium))
                                 .foregroundColor(brandGreen)
                                 .padding(.horizontal, 6)
@@ -298,9 +298,9 @@ struct ProductDetailView: View {
                 for item in group.items where selectedIds.contains(item.id) {
                     mods.append(SelectedModifier(
                         groupId: group.id,
-                        groupName: group.name,
+                        groupName: group.localizedName,
                         itemId: item.id,
-                        itemName: item.name,
+                        itemName: item.localizedName,
                         priceAdjustment: item.priceAdjustment
                     ))
                 }
@@ -340,7 +340,7 @@ struct ProductDetailView: View {
                 }
             }
         } catch {
-            modifierError = "Failed to load customization options. Please try again."
+            modifierError = L.failedLoadOptions
         }
         isLoadingModifiers = false
     }

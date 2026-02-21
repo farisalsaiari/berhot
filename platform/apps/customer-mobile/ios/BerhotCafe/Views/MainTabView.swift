@@ -45,11 +45,11 @@ struct MainTabView: View {
     // MARK: - Custom Tab Bar
     private var customTabBar: some View {
         HStack(spacing: 0) {
-            tabBarItem(icon: "menucard", activeIcon: "menucard.fill", label: "Menu", tag: 0)
-            tabBarItem(icon: "gift", activeIcon: "gift.fill", label: "Rewards", tag: 1)
-            tabBarItem(icon: "bag", activeIcon: "bag.fill", label: "Orders", tag: 2)
-            tabBarItem(icon: "person", activeIcon: "person.fill", label: "Account", tag: 3)
-            tabBarItem(icon: "ellipsis", activeIcon: "ellipsis", label: "More", tag: 4)
+            tabBarItem(icon: "menucard", activeIcon: "menucard.fill", label: L.tabMenu, tag: 0)
+            tabBarItem(icon: "gift", activeIcon: "gift.fill", label: L.tabRewards, tag: 1)
+            tabBarItem(icon: "bag", activeIcon: "bag.fill", label: L.tabOrders, tag: 2)
+            tabBarItem(icon: "person", activeIcon: "person.fill", label: L.tabAccount, tag: 3)
+            tabBarItem(icon: "ellipsis", activeIcon: "ellipsis", label: L.tabMore, tag: 4)
         }
         .padding(.top, 10)
         .padding(.bottom, 28) // account for home indicator safe area

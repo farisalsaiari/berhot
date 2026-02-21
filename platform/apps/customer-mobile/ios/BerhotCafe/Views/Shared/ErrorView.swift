@@ -15,7 +15,7 @@ struct ErrorView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.orange)
 
-            Text("Something went wrong")
+            Text(L.somethingWentWrong)
                 .font(.headline)
                 .foregroundColor(.textPrimary)
 
@@ -26,7 +26,7 @@ struct ErrorView: View {
 
             if let retry = retryAction {
                 Button(action: retry) {
-                    Text("Try Again")
+                    Text(L.tryAgain)
                         .font(.body.bold())
                         .padding(.horizontal, 24)
                         .padding(.vertical, 12)

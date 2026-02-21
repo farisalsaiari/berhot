@@ -9,11 +9,21 @@ struct CartItem: Codable, Identifiable {
 
     let productId: String
     let productName: String
+    let productNameEn: String?
+    let productNameAr: String?
     let price: Double
     var quantity: Int
     var notes: String?
     let imageUrl: String?
     var modifiers: [SelectedModifier]
+
+    /// Returns the localized product name for display.
+    var localizedProductName: String {
+        if LanguageManager.shared.currentLanguage == .arabic {
+            return (productNameAr?.isEmpty == false) ? productNameAr! : productName
+        }
+        return (productNameEn?.isEmpty == false) ? productNameEn! : productName
+    }
 
     var modifiersTotal: Double {
         modifiers.reduce(0) { $0 + $1.priceAdjustment }

@@ -22,7 +22,7 @@ struct AddressSearchView: View {
                     }
 
                     HStack(spacing: 8) {
-                        TextField("Enter your address", text: $searchText)
+                        TextField(L.enterYourAddress, text: $searchText)
                             .font(.system(size: 16))
                             .focused($isFocused)
                             .onChange(of: searchText) { query in
@@ -55,7 +55,7 @@ struct AddressSearchView: View {
                     VStack(spacing: 16) {
                         Spacer().frame(height: 40)
 
-                        Text("What's your address?")
+                        Text(L.whatIsYourAddress)
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.textPrimary)
 
@@ -64,7 +64,7 @@ struct AddressSearchView: View {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 16))
                                 .foregroundColor(Color(hex: "999999"))
-                            Text("Enter your address")
+                            Text(L.enterYourAddress)
                                 .font(.system(size: 15))
                                 .foregroundColor(Color(hex: "999999"))
                             Spacer()
@@ -132,7 +132,7 @@ struct AddressSearchView: View {
                 Button {
                     dismiss()
                 } label: {
-                    Text("Confirm")
+                    Text(L.confirmLocation)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

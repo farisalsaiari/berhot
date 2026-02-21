@@ -7,11 +7,11 @@ struct OTPVerifyView: View {
     var body: some View {
         VStack(spacing: 20) {
             VStack(spacing: 8) {
-                Text("Verify your number")
+                Text(L.verifyYourNumber)
                     .font(.title3.bold())
                     .foregroundColor(.textPrimary)
 
-                Text("Enter the \(AppConfig.otpLength)-digit code sent to\n\(AppConfig.defaultCountryCode) \(viewModel.phone)")
+                Text(L.enterOTPCode(length: AppConfig.otpLength, countryCode: AppConfig.defaultCountryCode, phone: viewModel.phone))
                     .font(.subheadline)
                     .foregroundColor(.textSecondary)
                     .multilineTextAlignment(.center)
@@ -64,7 +64,7 @@ struct OTPVerifyView: View {
                     if viewModel.isLoading {
                         ProgressView().tint(.white)
                     }
-                    Text("Verify")
+                    Text(L.verify)
                         .font(.body.bold())
                 }
                 .frame(maxWidth: .infinity)
@@ -78,7 +78,7 @@ struct OTPVerifyView: View {
             Button {
                 viewModel.goBack()
             } label: {
-                Text("Change phone number")
+                Text(L.changePhoneNumber)
                     .font(.subheadline)
                     .foregroundColor(.brand)
             }

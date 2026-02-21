@@ -6,24 +6,24 @@ struct RegisterView: View {
     var body: some View {
         VStack(spacing: 20) {
             VStack(spacing: 8) {
-                Text("Create your account")
+                Text(L.createYourAccount)
                     .font(.title3.bold())
                     .foregroundColor(.textPrimary)
 
-                Text("Enter your name to complete registration")
+                Text(L.enterNameToComplete)
                     .font(.subheadline)
                     .foregroundColor(.textSecondary)
             }
 
             VStack(spacing: 12) {
-                TextField("First name", text: $viewModel.firstName)
+                TextField(L.firstName, text: $viewModel.firstName)
                     .font(.body)
                     .padding(14)
                     .background(Color.surfaceSecondary)
                     .cornerRadius(12)
                     .textContentType(.givenName)
 
-                TextField("Last name", text: $viewModel.lastName)
+                TextField(L.lastName, text: $viewModel.lastName)
                     .font(.body)
                     .padding(14)
                     .background(Color.surfaceSecondary)
@@ -45,7 +45,7 @@ struct RegisterView: View {
                     if viewModel.isLoading {
                         ProgressView().tint(.white)
                     }
-                    Text("Create Account")
+                    Text(L.createAccount)
                         .font(.body.bold())
                 }
                 .frame(maxWidth: .infinity)
@@ -59,7 +59,7 @@ struct RegisterView: View {
             Button {
                 viewModel.goBack()
             } label: {
-                Text("Back")
+                Text(L.back)
                     .font(.subheadline)
                     .foregroundColor(.brand)
             }

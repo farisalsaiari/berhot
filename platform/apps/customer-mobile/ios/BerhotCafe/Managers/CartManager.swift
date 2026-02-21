@@ -39,6 +39,8 @@ class CartManager: ObservableObject {
         let newItem = CartItem(
             productId: product.id,
             productName: product.name,
+            productNameEn: product.nameEn,
+            productNameAr: product.nameAr,
             price: product.price,
             quantity: quantity,
             notes: notes,

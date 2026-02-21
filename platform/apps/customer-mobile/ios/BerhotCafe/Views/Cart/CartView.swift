@@ -12,8 +12,8 @@ struct CartView: View {
             if cartManager.isEmpty {
                 EmptyStateView(
                     icon: "cart",
-                    title: "Your cart is empty",
-                    message: "Browse the menu and add items to get started"
+                    title: L.yourCartEmpty,
+                    message: L.browseMenuAddItems
                 )
             } else {
                 ScrollView {
@@ -31,11 +31,11 @@ struct CartView: View {
 
                         // Summary
                         VStack(spacing: 8) {
-                            SummaryRow(label: "Subtotal", value: cartManager.subtotal.formattedCurrency)
-                            SummaryRow(label: "Delivery Fee", value: cartManager.deliveryFee.formattedCurrency)
-                            SummaryRow(label: "Tax (15%)", value: cartManager.taxAmount.formattedCurrency)
+                            SummaryRow(label: L.subtotal, value: cartManager.subtotal.formattedCurrency)
+                            SummaryRow(label: L.deliveryFee, value: cartManager.deliveryFee.formattedCurrency)
+                            SummaryRow(label: L.tax15, value: cartManager.taxAmount.formattedCurrency)
                             Divider()
-                            SummaryRow(label: "Total", value: cartManager.total.formattedCurrency, isBold: true)
+                            SummaryRow(label: L.total, value: cartManager.total.formattedCurrency, isBold: true)
                         }
                         .padding()
                         .background(Color.surfaceSecondary)
@@ -53,7 +53,7 @@ struct CartView: View {
                         }
                     } label: {
                         HStack {
-                            Text("Proceed to Payment")
+                            Text(L.proceedToPayment)
                                 .font(.body.bold())
                             Spacer()
                             Text(cartManager.total.formattedCurrency)
@@ -69,11 +69,11 @@ struct CartView: View {
                 }
             }
         }
-        .navigationTitle("Cart")
+        .navigationTitle(L.cart)
         .toolbar {
             if !cartManager.isEmpty {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Clear") {
+                    Button(L.clear) {
                         withAnimation { cartManager.clear() }
                     }
                     .foregroundColor(.red)
@@ -117,7 +117,7 @@ struct CartItemRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.productName)
+                Text(item.localizedProductName)
                     .font(.subheadline.bold())
                     .foregroundColor(.textPrimary)
                     .lineLimit(1)

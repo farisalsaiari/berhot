@@ -13,7 +13,7 @@ struct OrderDetailView: View {
     var body: some View {
         Group {
             if viewModel.isLoading {
-                LoadingView(message: "Loading order...")
+                LoadingView(message: L.loadingOrder)
             } else if let order = viewModel.order {
                 ScrollView {
                     VStack(spacing: 20) {
@@ -23,7 +23,7 @@ struct OrderDetailView: View {
                         // Order info
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text("Order #\(order.orderNumber)")
+                                Text(L.orderNumber(order.orderNumber))
                                     .font(.title3.bold())
                                 Spacer()
                                 StatusBadge(status: order.status)
@@ -51,7 +51,7 @@ struct OrderDetailView: View {
 
                         // Items
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Items")
+                            Text(L.itemsLabel)
                                 .font(.headline)
 
                             if let items = order.items {
@@ -62,7 +62,7 @@ struct OrderDetailView: View {
                                                 Text(item.displayName)
                                                     .font(.subheadline)
                                                     .foregroundColor(.textPrimary)
-                                                Text("x\(item.quantity) · \(item.unitPrice.formattedCurrency) each")
+                                                Text("x\(item.quantity) · \(item.unitPrice.formattedCurrency) \(L.each)")
                                                     .font(.caption)
                                                     .foregroundColor(.textSecondary)
                                             }
@@ -93,15 +93,15 @@ struct OrderDetailView: View {
 
                         // Totals
                         VStack(spacing: 8) {
-                            SummaryRow(label: "Subtotal", value: order.subtotal.formattedCurrency)
+                            SummaryRow(label: L.subtotal, value: order.subtotal.formattedCurrency)
                             if order.taxAmount > 0 {
-                                SummaryRow(label: "Tax", value: order.taxAmount.formattedCurrency)
+                                SummaryRow(label: L.tax, value: order.taxAmount.formattedCurrency)
                             }
                             if let disc = order.discountAmount, disc > 0 {
-                                SummaryRow(label: "Discount", value: "-\(disc.formattedCurrency)")
+                                SummaryRow(label: L.discount, value: "-\(disc.formattedCurrency)")
                             }
                             Divider()
-                            SummaryRow(label: "Total", value: order.resolvedTotal.formattedCurrency, isBold: true)
+                            SummaryRow(label: L.total, value: order.resolvedTotal.formattedCurrency, isBold: true)
                         }
                         .padding()
                         .background(Color.surfaceSecondary)
@@ -109,7 +109,7 @@ struct OrderDetailView: View {
 
                         if let notes = order.notes, !notes.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Notes").font(.headline)
+                                Text(L.notes).font(.headline)
                                 Text(notes)
                                     .font(.subheadline)
                                     .foregroundColor(.textSecondary)
@@ -127,7 +127,7 @@ struct OrderDetailView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "star.fill")
-                                    Text("Rate Your Experience")
+                                    Text(L.rateYourExperience)
                                         .font(.body.bold())
                                 }
                                 .frame(maxWidth: .infinity)
@@ -146,7 +146,7 @@ struct OrderDetailView: View {
                 }
             }
         }
-        .navigationTitle("Order Details")
+        .navigationTitle(L.orderDetails)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadOrder()

@@ -22,12 +22,12 @@ struct ProductCardView: View {
 
                 // Info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(product.name)
+                    Text(product.localizedName)
                         .font(.subheadline.bold())
                         .foregroundColor(.textPrimary)
                         .lineLimit(1)
 
-                    if let desc = product.description, !desc.isEmpty {
+                    if let desc = product.localizedDescription, !desc.isEmpty {
                         Text(desc)
                             .font(.caption)
                             .foregroundColor(.textSecondary)

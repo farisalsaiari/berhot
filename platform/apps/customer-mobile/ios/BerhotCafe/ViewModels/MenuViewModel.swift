@@ -14,8 +14,10 @@ class MenuViewModel: ObservableObject {
         products.filter { product in
             let matchCategory = selectedCategory == nil || product.categoryId == selectedCategory
             let matchSearch = searchText.isEmpty ||
-                product.name.localizedCaseInsensitiveContains(searchText) ||
-                (product.description?.localizedCaseInsensitiveContains(searchText) ?? false)
+                product.localizedName.localizedCaseInsensitiveContains(searchText) ||
+                (product.nameEn?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                (product.nameAr?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                (product.localizedDescription?.localizedCaseInsensitiveContains(searchText) ?? false)
             return matchCategory && matchSearch && product.isAvailable
         }
     }

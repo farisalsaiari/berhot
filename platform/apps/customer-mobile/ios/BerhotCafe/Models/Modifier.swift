@@ -11,14 +11,35 @@ struct ModifierGroup: Codable, Identifiable {
     let sortOrder: Int?
     let items: [ModifierItem]
 
+    // Bilingual fields
+    let nameEn: String?
+    let nameAr: String?
+    let displayNameEn: String?
+    let displayNameAr: String?
+
     var isSingleSelect: Bool { selectionType == "single" }
 
+    /// Returns localized display name for the modifier group header.
+    var localizedName: String {
+        if LanguageManager.shared.currentLanguage == .arabic {
+            return (nameAr?.isEmpty == false) ? nameAr! : name
+        }
+        return (nameEn?.isEmpty == false) ? nameEn! : name
+    }
+
+    var localizedDisplayName: String {
+        if LanguageManager.shared.currentLanguage == .arabic {
+            return (displayNameAr?.isEmpty == false) ? displayNameAr! : (displayName ?? name)
+        }
+        return (displayNameEn?.isEmpty == false) ? displayNameEn! : (displayName ?? name)
+    }
+
     var headerText: String {
-        displayName ?? "Choose \(name)"
+        localizedDisplayName
     }
 
     var requirementText: String? {
-        if isRequired { return "Required" }
+        if isRequired { return L.required }
         return nil
     }
 }
@@ -29,6 +50,18 @@ struct ModifierItem: Codable, Identifiable {
     let priceAdjustment: Double
     let isDefault: Bool
     let sortOrder: Int?
+
+    // Bilingual fields
+    let nameEn: String?
+    let nameAr: String?
+
+    /// Returns the localized modifier item name.
+    var localizedName: String {
+        if LanguageManager.shared.currentLanguage == .arabic {
+            return (nameAr?.isEmpty == false) ? nameAr! : name
+        }
+        return (nameEn?.isEmpty == false) ? nameEn! : name
+    }
 
     var priceText: String? {
         if priceAdjustment == 0 { return nil }

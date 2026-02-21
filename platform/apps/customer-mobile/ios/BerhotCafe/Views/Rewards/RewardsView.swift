@@ -9,11 +9,11 @@ struct RewardsView: View {
                 .font(.system(size: 56))
                 .foregroundColor(Color(hex: "FFD300"))
 
-            Text("Rewards")
+            Text(L.rewards)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(.textPrimary)
 
-            Text("Earn points with every order.\nComing soon!")
+            Text(L.rewardsComingSoon)
                 .font(.system(size: 15))
                 .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)
@@ -22,6 +22,6 @@ struct RewardsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
-        .navigationTitle("Rewards")
+        .navigationTitle(L.rewards)
     }
 }

@@ -19,10 +19,10 @@ struct RateOrderView: View {
         case items, overall, tags
     }
 
-    private let quickTags = [
-        "Great food", "Fast delivery", "Friendly staff",
-        "Good packaging", "Fresh & hot", "Value for money"
-    ]
+    private var quickTags: [String] {[
+        L.tagGreatFood, L.tagFastDelivery, L.tagFriendlyStaff,
+        L.tagGoodPackaging, L.tagFreshHot, L.tagValueForMoney
+    ]}
 
     // Get unique items by productId
     private var uniqueItems: [OrderItem] {
@@ -127,10 +127,10 @@ struct RateOrderView: View {
         VStack(spacing: 20) {
             // Header
             VStack(spacing: 6) {
-                Text("Rate Your Items")
+                Text(L.rateYourItems)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.textPrimary)
-                Text("How did each item taste?")
+                Text(L.howDidEachItemTaste)
                     .font(.system(size: 15))
                     .foregroundColor(.textSecondary)
             }
@@ -176,10 +176,10 @@ struct RateOrderView: View {
             }
 
             VStack(spacing: 6) {
-                Text("Overall Experience")
+                Text(L.overallExperience)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.textPrimary)
-                Text("How was the overall order?")
+                Text(L.howWasOverallOrder)
                     .font(.system(size: 15))
                     .foregroundColor(.textSecondary)
             }
@@ -221,7 +221,7 @@ struct RateOrderView: View {
             // Item ratings summary (if items were rated)
             if !itemRatings.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Item Ratings")
+                    Text(L.itemRatings)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.textTertiary)
                         .textCase(.uppercase)
@@ -276,10 +276,10 @@ struct RateOrderView: View {
             .cornerRadius(12)
 
             VStack(spacing: 6) {
-                Text("What stood out?")
+                Text(L.whatStoodOut)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.textPrimary)
-                Text("Pick tags that describe your experience")
+                Text(L.pickTagsDescribe)
                     .font(.system(size: 15))
                     .foregroundColor(.textSecondary)
             }
@@ -317,12 +317,12 @@ struct RateOrderView: View {
 
             // Comment
             VStack(alignment: .leading, spacing: 8) {
-                Text("Additional Comments")
+                Text(L.additionalComments)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.textTertiary)
                     .textCase(.uppercase)
 
-                TextField("Share your thoughts (optional)", text: $comment, axis: .vertical)
+                TextField(L.shareYourThoughts, text: $comment, axis: .vertical)
                     .lineLimit(3...6)
                     .padding(14)
                     .background(Color.white)
@@ -360,11 +360,11 @@ struct RateOrderView: View {
             }
             .animation(.spring(response: 0.6, dampingFraction: 0.6), value: showThankYou)
 
-            Text("Thank You!")
+            Text(L.thankYou)
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.textPrimary)
 
-            Text("Your feedback helps us improve")
+            Text(L.feedbackHelpsImprove)
                 .font(.system(size: 16))
                 .foregroundColor(.textSecondary)
 
@@ -426,7 +426,7 @@ struct RateOrderView: View {
                         Task { await submitReview() }
                     }
                 } label: {
-                    Text(currentStep == .items ? "Skip Item Ratings" : "Skip & Submit")
+                    Text(currentStep == .items ? L.skipItemRatings : L.skipAndSubmit)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.textTertiary)
                 }
@@ -452,9 +452,9 @@ struct RateOrderView: View {
 
     private var actionButtonTitle: String {
         switch currentStep {
-        case .items: return "Continue to Overall Rating"
-        case .overall: return "Continue"
-        case .tags: return isSubmitting ? "Submitting..." : "Submit Review"
+        case .items: return L.continueToOverall
+        case .overall: return L.continueBtn
+        case .tags: return isSubmitting ? L.submitting : L.submitReview
         }
     }
 
@@ -489,11 +489,11 @@ struct RateOrderView: View {
 
     private var ratingLabel: String {
         switch overallRating {
-        case 1: return "Poor"
-        case 2: return "Fair"
-        case 3: return "Good"
-        case 4: return "Very Good"
-        case 5: return "Excellent!"
+        case 1: return L.ratingPoor
+        case 2: return L.ratingFair
+        case 3: return L.ratingGood
+        case 4: return L.ratingVeryGood
+        case 5: return L.ratingExcellent
         default: return ""
         }
     }
@@ -628,11 +628,11 @@ struct ItemRatingCard: View {
 
     private func itemRatingLabel(_ r: Int) -> String {
         switch r {
-        case 1: return "Not good"
-        case 2: return "Could be better"
-        case 3: return "It was okay"
-        case 4: return "Really liked it!"
-        case 5: return "Absolutely loved it!"
+        case 1: return L.itemRatingNotGood
+        case 2: return L.itemRatingCouldBeBetter
+        case 3: return L.itemRatingOkay
+        case 4: return L.itemRatingLikedIt
+        case 5: return L.itemRatingLovedIt
         default: return ""
         }
     }

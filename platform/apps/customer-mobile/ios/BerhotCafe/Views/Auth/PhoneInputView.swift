@@ -17,11 +17,11 @@ struct PhoneInputView: View {
                             .font(.system(size: 50))
                             .foregroundColor(.brand)
 
-                        Text("Berhot Cafe")
+                        Text(L.berhotCafe)
                             .font(.title.bold())
                             .foregroundColor(.textPrimary)
 
-                        Text("Sign in to order and track your food")
+                        Text(L.signInSubtitle)
                             .font(.subheadline)
                             .foregroundColor(.textSecondary)
                     }
@@ -63,7 +63,7 @@ struct PhoneInputView: View {
                     .background(Color.surfaceSecondary)
                     .cornerRadius(12)
 
-                TextField("5XX XXX XXX", text: $viewModel.phone)
+                TextField(L.phonePlaceholder, text: $viewModel.phone)
                     .font(.body)
                     .keyboardType(.phonePad)
                     .padding(14)
@@ -88,7 +88,7 @@ struct PhoneInputView: View {
                         ProgressView()
                             .tint(.white)
                     }
-                    Text("Continue")
+                    Text(L.continueBtn)
                         .font(.body.bold())
                 }
                 .frame(maxWidth: .infinity)

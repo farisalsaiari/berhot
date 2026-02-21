@@ -43,7 +43,7 @@ struct LocationPermissionView: View {
             Spacer().frame(height: 40)
 
             // Title
-            Text("Find cafes and shops\nnear you!")
+            Text(L.findCafesNearYou)
                 .font(.system(size: 24, weight: .bold))
                 .multilineTextAlignment(.center)
                 .foregroundColor(.textPrimary)
@@ -51,7 +51,7 @@ struct LocationPermissionView: View {
             Spacer().frame(height: 14)
 
             // Description
-            Text("By allowing location access, you can search\nfor cafes and shops near you and\nreceive more accurate delivery.")
+            Text(L.locationExplanation)
                 .font(.system(size: 15))
                 .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)
@@ -69,7 +69,7 @@ struct LocationPermissionView: View {
                         showMap = true
                     }
                 } label: {
-                    Text("Share my current location")
+                    Text(L.shareMyLocation)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -82,7 +82,7 @@ struct LocationPermissionView: View {
                 Button {
                     showManualEntry = true
                 } label: {
-                    Text("Enter address manually")
+                    Text(L.enterAddressManually)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(Color(hex: "E91E63"))
                         .frame(maxWidth: .infinity)

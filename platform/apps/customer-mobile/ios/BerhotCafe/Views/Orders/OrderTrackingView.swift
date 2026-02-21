@@ -17,7 +17,7 @@ struct OrderTrackingView: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2)
                     .foregroundColor(.red)
-                Text("Order Cancelled")
+                Text(L.orderCancelled)
                     .font(.headline)
                     .foregroundColor(.red)
             }
@@ -96,11 +96,11 @@ struct OrderTrackingView: View {
 
     private func stepLabel(_ step: String) -> String {
         switch step {
-        case "pending": return "Pending"
-        case "accepted": return "Accepted"
-        case "preparing": return "Preparing"
-        case "ready": return "Ready"
-        case "completed": return "Done"
+        case "pending": return L.pending
+        case "accepted": return L.accepted
+        case "preparing": return L.preparing
+        case "ready": return L.ready
+        case "completed": return L.done
         default: return step.capitalized
         }
     }
@@ -118,11 +118,11 @@ struct OrderTrackingView: View {
 
     private var statusMessage: String {
         switch status.lowercased() {
-        case "pending": return "Your order has been received and is waiting for confirmation"
-        case "accepted": return "Your order has been accepted by the cafe"
-        case "preparing": return "Your order is being prepared right now"
-        case "ready": return "Your order is ready for pickup!"
-        case "completed": return "Order completed. Enjoy your meal!"
+        case "pending": return L.trackingPending
+        case "accepted": return L.trackingAccepted
+        case "preparing": return L.trackingPreparing
+        case "ready": return L.trackingReady
+        case "completed": return L.trackingDone
         default: return ""
         }
     }

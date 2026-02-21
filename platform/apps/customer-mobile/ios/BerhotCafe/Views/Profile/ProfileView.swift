@@ -2,8 +2,10 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var showEditProfile = false
     @State private var showLogoutConfirm = false
+    @State private var showLanguageSheet = false
 
     var body: some View {
         ScrollView {
@@ -21,7 +23,7 @@ struct ProfileView: View {
                         }
 
                     VStack(spacing: 4) {
-                        Text(authManager.currentUser?.fullName ?? "User")
+                        Text(authManager.currentUser?.fullName ?? L.user)
                             .font(.title3.bold())
                             .foregroundColor(.textPrimary)
 
@@ -42,23 +44,51 @@ struct ProfileView: View {
 
                 // Menu items
                 VStack(spacing: 2) {
-                    ProfileMenuItem(icon: "person", title: "Edit Profile") {
+                    ProfileMenuItem(icon: "person", title: L.editProfile) {
                         showEditProfile = true
                     }
 
-                    ProfileMenuItem(icon: "list.clipboard", title: "Order History") {
+                    // Language Switcher
+                    Button {
+                        showLanguageSheet = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                                .font(.body)
+                                .foregroundColor(.brand)
+                                .frame(width: 28)
+
+                            Text(L.language)
+                                .font(.body)
+                                .foregroundColor(.textPrimary)
+
+                            Spacer()
+
+                            Text(languageManager.currentLanguage.displayName)
+                                .font(.subheadline)
+                                .foregroundColor(.textSecondary)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.textTertiary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                    }
+
+                    ProfileMenuItem(icon: "list.clipboard", title: L.orderHistory) {
                         // Navigation handled by tab
                     }
 
-                    ProfileMenuItem(icon: "bell", title: "Notifications") {
+                    ProfileMenuItem(icon: "bell", title: L.notifications) {
                         // Future
                     }
 
-                    ProfileMenuItem(icon: "questionmark.circle", title: "Help & Support") {
+                    ProfileMenuItem(icon: "questionmark.circle", title: L.helpSupport) {
                         // Future
                     }
 
-                    ProfileMenuItem(icon: "info.circle", title: "About") {
+                    ProfileMenuItem(icon: "info.circle", title: L.about) {
                         // Future
                     }
                 }
@@ -72,7 +102,7 @@ struct ProfileView: View {
                 } label: {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("Sign Out")
+                        Text(L.signOut)
                     }
                     .font(.body.weight(.medium))
                     .foregroundColor(.red)
@@ -84,23 +114,33 @@ struct ProfileView: View {
                 .padding(.horizontal)
 
                 // Version
-                Text("Berhot Cafe v1.0.0")
+                Text(L.appVersion)
                     .font(.caption)
                     .foregroundColor(.textTertiary)
                     .padding(.top, 10)
             }
         }
-        .navigationTitle("Profile")
+        .navigationTitle(L.profile)
         .sheet(isPresented: $showEditProfile) {
             EditProfileView()
         }
-        .alert("Sign Out", isPresented: $showLogoutConfirm) {
-            Button("Sign Out", role: .destructive) {
+        .confirmationDialog(L.selectLanguage, isPresented: $showLanguageSheet, titleVisibility: .visible) {
+            ForEach(LanguageManager.Language.allCases, id: \.self) { lang in
+                Button(lang.displayName) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        languageManager.currentLanguage = lang
+                    }
+                }
+            }
+            Button(L.cancel, role: .cancel) {}
+        }
+        .alert(L.signOut, isPresented: $showLogoutConfirm) {
+            Button(L.signOut, role: .destructive) {
                 authManager.signOut()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L.cancel, role: .cancel) {}
         } message: {
-            Text("Are you sure you want to sign out?")
+            Text(L.signOutConfirm)
         }
     }
 }

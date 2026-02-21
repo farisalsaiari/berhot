@@ -42,6 +42,24 @@ func main() {
 	log.Println("POS Engine connected to database")
 
 	// Auto-migrate: ensure tables and columns exist
+	// Bilingual columns for categories
+	db.Exec(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)`)
+	db.Exec(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_ar VARCHAR(255)`)
+	// Bilingual columns for products
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS name_ar VARCHAR(255)`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS description_en TEXT`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS description_ar TEXT`)
+	// Bilingual columns for modifier_groups
+	db.Exec(`ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)`)
+	db.Exec(`ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS name_ar VARCHAR(255)`)
+	db.Exec(`ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS display_name_en VARCHAR(255)`)
+	db.Exec(`ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS display_name_ar VARCHAR(255)`)
+	// Bilingual columns for modifier_items
+	db.Exec(`ALTER TABLE modifier_items ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)`)
+	db.Exec(`ALTER TABLE modifier_items ADD COLUMN IF NOT EXISTS name_ar VARCHAR(255)`)
+	log.Println("POS Engine: bilingual columns migrated")
+
 	db.Exec(`CREATE TABLE IF NOT EXISTS app_settings (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		tenant_id UUID NOT NULL UNIQUE,
@@ -202,7 +220,10 @@ func listProducts(c *gin.Context) {
 		`SELECT p.id, p.name, p.sku, p.price, p.currency, p.product_type, p.is_active,
 		        COALESCE(p.description, ''), COALESCE(p.barcode, ''),
 		        COALESCE(c.name, '') as category_name, p.category_id,
-		        COALESCE(p.image_url, ''), p.created_at
+		        COALESCE(p.image_url, ''), p.created_at,
+		        COALESCE(p.name_en, ''), COALESCE(p.name_ar, ''),
+		        COALESCE(p.description_en, ''), COALESCE(p.description_ar, ''),
+		        COALESCE(c.name_en, ''), COALESCE(c.name_ar, '')
 		 FROM products p
 		 LEFT JOIN categories c ON c.id = p.category_id
 		 WHERE p.tenant_id = $1
@@ -216,15 +237,20 @@ func listProducts(c *gin.Context) {
 	products := []gin.H{}
 	for rows.Next() {
 		var id, name, sku, currency, ptype, desc, barcode, catName, imageUrl string
+		var nameEn, nameAr, descEn, descAr, catNameEn, catNameAr string
 		var catID sql.NullString
 		var price float64
 		var active bool
 		var createdAt time.Time
-		rows.Scan(&id, &name, &sku, &price, &currency, &ptype, &active, &desc, &barcode, &catName, &catID, &imageUrl, &createdAt)
+		rows.Scan(&id, &name, &sku, &price, &currency, &ptype, &active, &desc, &barcode, &catName, &catID, &imageUrl, &createdAt,
+			&nameEn, &nameAr, &descEn, &descAr, &catNameEn, &catNameAr)
 		p := gin.H{
 			"id": id, "name": name, "sku": sku, "price": price, "currency": currency,
 			"type": ptype, "isActive": active, "description": desc, "barcode": barcode,
 			"categoryName": catName, "categoryId": catID.String, "imageUrl": imageUrl, "createdAt": createdAt,
+			"nameEn": nameEn, "nameAr": nameAr,
+			"descriptionEn": descEn, "descriptionAr": descAr,
+			"categoryNameEn": catNameEn, "categoryNameAr": catNameAr,
 		}
 		var hasRequired bool
 		db.QueryRow("SELECT EXISTS(SELECT 1 FROM product_modifier_groups pmg JOIN modifier_groups mg ON mg.id = pmg.modifier_group_id WHERE pmg.product_id = $1 AND mg.is_required = true)", id).Scan(&hasRequired)
@@ -237,14 +263,18 @@ func listProducts(c *gin.Context) {
 func createProduct(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	var req struct {
-		Name        string  `json:"name" binding:"required"`
-		SKU         string  `json:"sku"`
-		Price       float64 `json:"price" binding:"required"`
-		CategoryID  string  `json:"categoryId"`
-		Description string  `json:"description"`
-		ProductType string  `json:"type"`
-		TaxRate     float64 `json:"taxRate"`
-		ImageUrl    string  `json:"imageUrl"`
+		Name          string  `json:"name" binding:"required"`
+		NameEn        string  `json:"nameEn"`
+		NameAr        string  `json:"nameAr"`
+		SKU           string  `json:"sku"`
+		Price         float64 `json:"price" binding:"required"`
+		CategoryID    string  `json:"categoryId"`
+		Description   string  `json:"description"`
+		DescriptionEn string  `json:"descriptionEn"`
+		DescriptionAr string  `json:"descriptionAr"`
+		ProductType   string  `json:"type"`
+		TaxRate       float64 `json:"taxRate"`
+		ImageUrl      string  `json:"imageUrl"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -264,37 +294,43 @@ func createProduct(c *gin.Context) {
 	}
 
 	_, err := db.Exec(
-		`INSERT INTO products (id, tenant_id, category_id, sku, name, description, price, currency, tax_rate, product_type, is_active, image_url)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, 'SAR', $8, $9, true, $10)`,
-		id, tenantID, catID, req.SKU, req.Name, req.Description, req.Price, req.TaxRate, req.ProductType, req.ImageUrl,
+		`INSERT INTO products (id, tenant_id, category_id, sku, name, name_en, name_ar, description, description_en, description_ar, price, currency, tax_rate, product_type, is_active, image_url)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'SAR', $12, $13, true, $14)`,
+		id, tenantID, catID, req.SKU, req.Name, req.NameEn, req.NameAr, req.Description, req.DescriptionEn, req.DescriptionAr, req.Price, req.TaxRate, req.ProductType, req.ImageUrl,
 	)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(201, gin.H{"id": id, "name": req.Name, "sku": req.SKU, "price": req.Price, "imageUrl": req.ImageUrl})
+	c.JSON(201, gin.H{"id": id, "name": req.Name, "nameEn": req.NameEn, "nameAr": req.NameAr, "sku": req.SKU, "price": req.Price, "imageUrl": req.ImageUrl})
 }
 
 func getProduct(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	id := c.Param("id")
 	var name, sku, currency, ptype, desc, imageUrl string
+	var nameEn, nameAr, descEn, descAr string
 	var price, taxRate float64
 	var active bool
 	var catID sql.NullString
 	err := db.QueryRow(
 		`SELECT name, sku, price, currency, product_type, COALESCE(tax_rate,0), is_active,
-		        COALESCE(description,''), COALESCE(image_url,''), category_id
+		        COALESCE(description,''), COALESCE(image_url,''), category_id,
+		        COALESCE(name_en,''), COALESCE(name_ar,''),
+		        COALESCE(description_en,''), COALESCE(description_ar,'')
 		 FROM products WHERE id = $1 AND tenant_id = $2`, id, tenantID,
-	).Scan(&name, &sku, &price, &currency, &ptype, &taxRate, &active, &desc, &imageUrl, &catID)
+	).Scan(&name, &sku, &price, &currency, &ptype, &taxRate, &active, &desc, &imageUrl, &catID,
+		&nameEn, &nameAr, &descEn, &descAr)
 	if err != nil {
 		c.JSON(404, gin.H{"error": "Product not found"})
 		return
 	}
 	c.JSON(200, gin.H{
-		"id": id, "name": name, "sku": sku, "price": price, "currency": currency,
+		"id": id, "name": name, "nameEn": nameEn, "nameAr": nameAr,
+		"sku": sku, "price": price, "currency": currency,
 		"type": ptype, "taxRate": taxRate, "isActive": active,
-		"description": desc, "imageUrl": imageUrl, "categoryId": catID.String,
+		"description": desc, "descriptionEn": descEn, "descriptionAr": descAr,
+		"imageUrl": imageUrl, "categoryId": catID.String,
 	})
 }
 
@@ -302,11 +338,15 @@ func updateProduct(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	id := c.Param("id")
 	var req struct {
-		Name        string   `json:"name"`
-		Price       *float64 `json:"price"`
-		IsActive    *bool    `json:"isActive"`
-		Description string   `json:"description"`
-		ImageUrl    string   `json:"imageUrl"`
+		Name          string   `json:"name"`
+		NameEn        string   `json:"nameEn"`
+		NameAr        string   `json:"nameAr"`
+		Price         *float64 `json:"price"`
+		IsActive      *bool    `json:"isActive"`
+		Description   string   `json:"description"`
+		DescriptionEn string   `json:"descriptionEn"`
+		DescriptionAr string   `json:"descriptionAr"`
+		ImageUrl      string   `json:"imageUrl"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -318,9 +358,14 @@ func updateProduct(c *gin.Context) {
 			price = COALESCE($2, price),
 			is_active = COALESCE($3, is_active),
 			description = COALESCE(NULLIF($4,''), description),
-			image_url = COALESCE(NULLIF($5,''), image_url)
+			image_url = COALESCE(NULLIF($5,''), image_url),
+			name_en = COALESCE(NULLIF($8,''), name_en),
+			name_ar = COALESCE(NULLIF($9,''), name_ar),
+			description_en = COALESCE(NULLIF($10,''), description_en),
+			description_ar = COALESCE(NULLIF($11,''), description_ar)
 		 WHERE id = $6 AND tenant_id = $7`,
 		req.Name, req.Price, req.IsActive, req.Description, req.ImageUrl, id, tenantID,
+		req.NameEn, req.NameAr, req.DescriptionEn, req.DescriptionAr,
 	)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -338,7 +383,9 @@ func getProductModifiers(c *gin.Context) {
 	productID := c.Param("id")
 	rows, err := db.Query(
 		`SELECT mg.id, mg.name, COALESCE(mg.display_name, mg.name), mg.selection_type,
-		        mg.min_selections, mg.max_selections, mg.is_required, mg.sort_order
+		        mg.min_selections, mg.max_selections, mg.is_required, mg.sort_order,
+		        COALESCE(mg.name_en, ''), COALESCE(mg.name_ar, ''),
+		        COALESCE(mg.display_name_en, ''), COALESCE(mg.display_name_ar, '')
 		 FROM modifier_groups mg
 		 JOIN product_modifier_groups pmg ON pmg.modifier_group_id = mg.id
 		 WHERE pmg.product_id = $1 AND mg.tenant_id = $2 AND mg.is_active = true
@@ -352,29 +399,34 @@ func getProductModifiers(c *gin.Context) {
 	groups := []gin.H{}
 	for rows.Next() {
 		var gid, gname, displayName, selType string
+		var nameEn, nameAr, displayNameEn, displayNameAr string
 		var minSel, maxSel, sortOrder int
 		var required bool
-		rows.Scan(&gid, &gname, &displayName, &selType, &minSel, &maxSel, &required, &sortOrder)
+		rows.Scan(&gid, &gname, &displayName, &selType, &minSel, &maxSel, &required, &sortOrder,
+			&nameEn, &nameAr, &displayNameEn, &displayNameAr)
 
 		itemRows, _ := db.Query(
-			`SELECT id, name, price_adjustment, is_default, sort_order
+			`SELECT id, name, price_adjustment, is_default, sort_order,
+			        COALESCE(name_en, ''), COALESCE(name_ar, '')
 			 FROM modifier_items WHERE modifier_group_id = $1 AND tenant_id = $2 AND is_active = true
 			 ORDER BY sort_order`, gid, tenantID)
 		items := []gin.H{}
 		if itemRows != nil {
 			for itemRows.Next() {
-				var iid, iname string
+				var iid, iname, inameEn, inameAr string
 				var priceAdj float64
 				var isDef bool
 				var iSort int
-				itemRows.Scan(&iid, &iname, &priceAdj, &isDef, &iSort)
-				items = append(items, gin.H{"id": iid, "name": iname, "priceAdjustment": priceAdj, "isDefault": isDef, "sortOrder": iSort})
+				itemRows.Scan(&iid, &iname, &priceAdj, &isDef, &iSort, &inameEn, &inameAr)
+				items = append(items, gin.H{"id": iid, "name": iname, "nameEn": inameEn, "nameAr": inameAr,
+					"priceAdjustment": priceAdj, "isDefault": isDef, "sortOrder": iSort})
 			}
 			itemRows.Close()
 		}
 
 		groups = append(groups, gin.H{
-			"id": gid, "name": gname, "displayName": displayName,
+			"id": gid, "name": gname, "nameEn": nameEn, "nameAr": nameAr,
+			"displayName": displayName, "displayNameEn": displayNameEn, "displayNameAr": displayNameAr,
 			"selectionType": selType, "minSelections": minSel, "maxSelections": maxSel,
 			"isRequired": required, "sortOrder": sortOrder, "items": items,
 		})
@@ -408,7 +460,8 @@ func linkModifierGroup(c *gin.Context) {
 func listCategories(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	rows, err := db.Query(
-		`SELECT id, name, slug, sort_order, is_active, COALESCE(image_url, '')
+		`SELECT id, name, slug, sort_order, is_active, COALESCE(image_url, ''),
+		        COALESCE(name_en, ''), COALESCE(name_ar, '')
 		 FROM categories WHERE tenant_id = $1 ORDER BY sort_order`, tenantID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -418,11 +471,11 @@ func listCategories(c *gin.Context) {
 
 	cats := []gin.H{}
 	for rows.Next() {
-		var id, name, slug, imageUrl string
+		var id, name, slug, imageUrl, nameEn, nameAr string
 		var sortOrder int
 		var active bool
-		rows.Scan(&id, &name, &slug, &sortOrder, &active, &imageUrl)
-		cats = append(cats, gin.H{"id": id, "name": name, "slug": slug, "sortOrder": sortOrder, "isActive": active, "imageUrl": imageUrl})
+		rows.Scan(&id, &name, &slug, &sortOrder, &active, &imageUrl, &nameEn, &nameAr)
+		cats = append(cats, gin.H{"id": id, "name": name, "nameEn": nameEn, "nameAr": nameAr, "slug": slug, "sortOrder": sortOrder, "isActive": active, "imageUrl": imageUrl})
 	}
 	c.JSON(200, gin.H{"categories": cats, "total": len(cats)})
 }
@@ -431,6 +484,8 @@ func createCategory(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	var req struct {
 		Name      string `json:"name" binding:"required"`
+		NameEn    string `json:"nameEn"`
+		NameAr    string `json:"nameAr"`
 		Slug      string `json:"slug"`
 		SortOrder int    `json:"sortOrder"`
 		ImageUrl  string `json:"imageUrl"`
@@ -443,13 +498,13 @@ func createCategory(c *gin.Context) {
 		req.Slug = strings.ToLower(strings.ReplaceAll(req.Name, " ", "-"))
 	}
 	id := uuid.New().String()
-	_, err := db.Exec("INSERT INTO categories (id, tenant_id, name, slug, sort_order, image_url) VALUES ($1,$2,$3,$4,$5,$6)",
-		id, tenantID, req.Name, req.Slug, req.SortOrder, req.ImageUrl)
+	_, err := db.Exec("INSERT INTO categories (id, tenant_id, name, name_en, name_ar, slug, sort_order, image_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+		id, tenantID, req.Name, req.NameEn, req.NameAr, req.Slug, req.SortOrder, req.ImageUrl)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(201, gin.H{"id": id, "name": req.Name, "slug": req.Slug, "imageUrl": req.ImageUrl})
+	c.JSON(201, gin.H{"id": id, "name": req.Name, "nameEn": req.NameEn, "nameAr": req.NameAr, "slug": req.Slug, "imageUrl": req.ImageUrl})
 }
 
 // ── Modifier Groups ─────────────────────────────────────────
@@ -457,7 +512,9 @@ func createCategory(c *gin.Context) {
 func listModifierGroups(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	rows, err := db.Query(
-		`SELECT id, name, COALESCE(display_name, name), selection_type, min_selections, max_selections, is_required, sort_order
+		`SELECT id, name, COALESCE(display_name, name), selection_type, min_selections, max_selections, is_required, sort_order,
+		        COALESCE(name_en, ''), COALESCE(name_ar, ''),
+		        COALESCE(display_name_en, ''), COALESCE(display_name_ar, '')
 		 FROM modifier_groups WHERE tenant_id = $1 AND is_active = true ORDER BY sort_order`, tenantID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -468,29 +525,34 @@ func listModifierGroups(c *gin.Context) {
 	groups := []gin.H{}
 	for rows.Next() {
 		var gid, gname, displayName, selType string
+		var nameEn, nameAr, displayNameEn, displayNameAr string
 		var minSel, maxSel, sortOrder int
 		var required bool
-		rows.Scan(&gid, &gname, &displayName, &selType, &minSel, &maxSel, &required, &sortOrder)
+		rows.Scan(&gid, &gname, &displayName, &selType, &minSel, &maxSel, &required, &sortOrder,
+			&nameEn, &nameAr, &displayNameEn, &displayNameAr)
 
 		itemRows, _ := db.Query(
-			`SELECT id, name, price_adjustment, is_default, sort_order
+			`SELECT id, name, price_adjustment, is_default, sort_order,
+			        COALESCE(name_en, ''), COALESCE(name_ar, '')
 			 FROM modifier_items WHERE modifier_group_id = $1 AND tenant_id = $2 AND is_active = true
 			 ORDER BY sort_order`, gid, tenantID)
 		items := []gin.H{}
 		if itemRows != nil {
 			for itemRows.Next() {
-				var iid, iname string
+				var iid, iname, inameEn, inameAr string
 				var priceAdj float64
 				var isDef bool
 				var iSort int
-				itemRows.Scan(&iid, &iname, &priceAdj, &isDef, &iSort)
-				items = append(items, gin.H{"id": iid, "name": iname, "priceAdjustment": priceAdj, "isDefault": isDef, "sortOrder": iSort})
+				itemRows.Scan(&iid, &iname, &priceAdj, &isDef, &iSort, &inameEn, &inameAr)
+				items = append(items, gin.H{"id": iid, "name": iname, "nameEn": inameEn, "nameAr": inameAr,
+					"priceAdjustment": priceAdj, "isDefault": isDef, "sortOrder": iSort})
 			}
 			itemRows.Close()
 		}
 
 		groups = append(groups, gin.H{
-			"id": gid, "name": gname, "displayName": displayName,
+			"id": gid, "name": gname, "nameEn": nameEn, "nameAr": nameAr,
+			"displayName": displayName, "displayNameEn": displayNameEn, "displayNameAr": displayNameAr,
 			"selectionType": selType, "minSelections": minSel, "maxSelections": maxSel,
 			"isRequired": required, "sortOrder": sortOrder, "items": items,
 		})
@@ -501,15 +563,21 @@ func listModifierGroups(c *gin.Context) {
 func createModifierGroup(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 	var req struct {
-		Name          string `json:"name" binding:"required"`
-		DisplayName   string `json:"displayName"`
-		SelectionType string `json:"selectionType"`
-		MinSelections int    `json:"minSelections"`
-		MaxSelections int    `json:"maxSelections"`
-		IsRequired    bool   `json:"isRequired"`
-		SortOrder     int    `json:"sortOrder"`
-		Items         []struct {
+		Name            string `json:"name" binding:"required"`
+		NameEn          string `json:"nameEn"`
+		NameAr          string `json:"nameAr"`
+		DisplayName     string `json:"displayName"`
+		DisplayNameEn   string `json:"displayNameEn"`
+		DisplayNameAr   string `json:"displayNameAr"`
+		SelectionType   string `json:"selectionType"`
+		MinSelections   int    `json:"minSelections"`
+		MaxSelections   int    `json:"maxSelections"`
+		IsRequired      bool   `json:"isRequired"`
+		SortOrder       int    `json:"sortOrder"`
+		Items           []struct {
 			Name            string  `json:"name" binding:"required"`
+			NameEn          string  `json:"nameEn"`
+			NameAr          string  `json:"nameAr"`
 			PriceAdjustment float64 `json:"priceAdjustment"`
 			IsDefault       bool    `json:"isDefault"`
 			SortOrder       int     `json:"sortOrder"`
@@ -531,9 +599,10 @@ func createModifierGroup(c *gin.Context) {
 
 	groupID := uuid.New().String()
 	_, err := db.Exec(
-		`INSERT INTO modifier_groups (id, tenant_id, name, display_name, selection_type, min_selections, max_selections, is_required, sort_order)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		groupID, tenantID, req.Name, req.DisplayName, req.SelectionType, req.MinSelections, req.MaxSelections, req.IsRequired, req.SortOrder)
+		`INSERT INTO modifier_groups (id, tenant_id, name, name_en, name_ar, display_name, display_name_en, display_name_ar, selection_type, min_selections, max_selections, is_required, sort_order)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		groupID, tenantID, req.Name, req.NameEn, req.NameAr, req.DisplayName, req.DisplayNameEn, req.DisplayNameAr,
+		req.SelectionType, req.MinSelections, req.MaxSelections, req.IsRequired, req.SortOrder)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -543,13 +612,14 @@ func createModifierGroup(c *gin.Context) {
 	for _, item := range req.Items {
 		itemID := uuid.New().String()
 		db.Exec(
-			`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, price_adjustment, is_default, sort_order)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-			itemID, tenantID, groupID, item.Name, item.PriceAdjustment, item.IsDefault, item.SortOrder)
-		items = append(items, gin.H{"id": itemID, "name": item.Name, "priceAdjustment": item.PriceAdjustment, "isDefault": item.IsDefault})
+			`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, name_en, name_ar, price_adjustment, is_default, sort_order)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+			itemID, tenantID, groupID, item.Name, item.NameEn, item.NameAr, item.PriceAdjustment, item.IsDefault, item.SortOrder)
+		items = append(items, gin.H{"id": itemID, "name": item.Name, "nameEn": item.NameEn, "nameAr": item.NameAr,
+			"priceAdjustment": item.PriceAdjustment, "isDefault": item.IsDefault})
 	}
 
-	c.JSON(201, gin.H{"id": groupID, "name": req.Name, "items": items})
+	c.JSON(201, gin.H{"id": groupID, "name": req.Name, "nameEn": req.NameEn, "nameAr": req.NameAr, "items": items})
 }
 
 // ── Locations ───────────────────────────────────────────────
@@ -1320,7 +1390,7 @@ func getTopProducts(c *gin.Context) {
 func seedCafeMenu(c *gin.Context) {
 	tenantID := c.GetString("tenantId")
 
-	// Ensure app_banners table exists
+	// Ensure supporting tables exist
 	db.Exec(`CREATE TABLE IF NOT EXISTS app_banners (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		tenant_id UUID NOT NULL,
@@ -1337,12 +1407,10 @@ func seedCafeMenu(c *gin.Context) {
 		created_at TIMESTAMPTZ DEFAULT NOW(),
 		updated_at TIMESTAMPTZ DEFAULT NOW()
 	)`)
-	// Add columns if they don't exist (migration for existing tables)
 	db.Exec(`ALTER TABLE app_banners ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''`)
 	db.Exec(`ALTER TABLE app_banners ADD COLUMN IF NOT EXISTS show_overlay BOOLEAN NOT NULL DEFAULT false`)
 	db.Exec(`ALTER TABLE app_banners ADD COLUMN IF NOT EXISTS overlay_title TEXT NOT NULL DEFAULT ''`)
 	db.Exec(`ALTER TABLE app_banners ADD COLUMN IF NOT EXISTS overlay_description TEXT NOT NULL DEFAULT ''`)
-	// Ensure app_settings table exists
 	db.Exec(`CREATE TABLE IF NOT EXISTS app_settings (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		tenant_id UUID NOT NULL UNIQUE,
@@ -1351,8 +1419,6 @@ func seedCafeMenu(c *gin.Context) {
 		auto_slide_interval INTEGER NOT NULL DEFAULT 5,
 		updated_at TIMESTAMPTZ DEFAULT NOW()
 	)`)
-
-	// Ensure item_ratings table exists
 	db.Exec(`CREATE TABLE IF NOT EXISTS item_ratings (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		tenant_id UUID NOT NULL,
@@ -1380,105 +1446,164 @@ func seedCafeMenu(c *gin.Context) {
 
 	// Update store info
 	db.Exec(`UPDATE tenants SET
-		name = 'Berhot Cafe',
+		name = 'Sedav Coffee',
 		hero_image_url = 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&q=80',
 		logo_url = 'https://images.unsplash.com/photo-1559305616-3f99cd43e353?w=200&q=80',
 		delivery_time_min = 15, delivery_time_max = 30,
-		delivery_fee = 5, minimum_order = 25, cuisine_type = 'Specialty Coffee & Pastries'
+		delivery_fee = 5, minimum_order = 15, cuisine_type = 'Specialty Coffee & Desserts'
 		WHERE id = $1`, tenantID)
 
-	type catDef struct{ id, name, slug, image string; sort int }
+	// ══════════════════════════════════════════════════════════
+	// REAL MENU: Sedav / Berhot Cafe — Bilingual (EN/AR)
+	// ══════════════════════════════════════════════════════════
+
+	type catDef struct {
+		id, name, nameEn, nameAr, slug, image string
+		sort                                  int
+	}
 	cats := []catDef{
-		{uuid.New().String(), "Hot Drinks", "hot-drinks", "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80", 1},
-		{uuid.New().String(), "Iced Drinks", "iced-drinks", "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80", 2},
-		{uuid.New().String(), "Pastries", "pastries", "https://images.unsplash.com/photo-1555507036-ab1f4038024a?w=400&q=80", 3},
-		{uuid.New().String(), "Desserts", "desserts", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 4},
-		{uuid.New().String(), "Snacks", "snacks", "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&q=80", 5},
-		{uuid.New().String(), "Specials", "specials", "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80", 6},
+		{uuid.New().String(), "Hot Drinks", "Hot Drinks", "المشروبات الساخنة", "hot-drinks", "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80", 1},
+		{uuid.New().String(), "Cold Drinks", "Cold Drinks", "المشروبات الباردة", "cold-drinks", "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80", 2},
+		{uuid.New().String(), "Hot Drip & Black Coffee", "Hot Drip & Black Coffee", "المقطرة وقهوة اليوم ساخن", "drip-black-hot", "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80", 3},
+		{uuid.New().String(), "Cold Drip & Black Coffee", "Cold Drip & Black Coffee", "المقطرة وقهوة اليوم بارد", "drip-black-cold", "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=400&q=80", 4},
+		{uuid.New().String(), "Desserts & Cake", "Desserts & Cake", "الحلويات والكيك", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 5},
+		{uuid.New().String(), "Bakeries", "Bakeries", "المخبوزات", "bakeries", "https://images.unsplash.com/photo-1555507036-ab1f4038024a?w=400&q=80", 6},
+		{uuid.New().String(), "Others", "Others", "اخرى", "others", "", 7},
 	}
 	catMap := map[string]string{}
 	for _, cat := range cats {
-		db.Exec("INSERT INTO categories (id, tenant_id, name, slug, sort_order, image_url, is_active) VALUES ($1,$2,$3,$4,$5,$6,true)",
-			cat.id, tenantID, cat.name, cat.slug, cat.sort, cat.image)
+		db.Exec("INSERT INTO categories (id, tenant_id, name, name_en, name_ar, slug, sort_order, image_url, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)",
+			cat.id, tenantID, cat.nameEn, cat.nameEn, cat.nameAr, cat.slug, cat.sort, cat.image)
 		catMap[cat.slug] = cat.id
 	}
 
-	type prodDef struct{ name, desc, catSlug, image string; price float64 }
+	type prodDef struct {
+		nameEn, nameAr, descEn, descAr, catSlug, image string
+		price                                          float64
+	}
 	products := []prodDef{
-		{"Espresso", "Rich and bold single-origin espresso shot", "hot-drinks", "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80", 12},
-		{"Cappuccino", "Classic Italian espresso with steamed milk foam", "hot-drinks", "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80", 18},
-		{"Flat White", "Velvety micro-foam espresso with rich crema", "hot-drinks", "https://images.unsplash.com/photo-1577968897966-3d4325b36b61?w=400&q=80", 20},
-		{"Cafe Latte", "Smooth espresso with steamed milk and light foam", "hot-drinks", "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80", 18},
-		{"Hot Chocolate", "Premium Belgian chocolate with steamed milk", "hot-drinks", "https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=400&q=80", 16},
-		{"Arabic Coffee", "Traditional Saudi qahwa with cardamom", "hot-drinks", "https://images.unsplash.com/photo-1578899544060-9ba4a7e46929?w=400&q=80", 14},
-		{"Iced Latte", "Double shot espresso over ice with cold milk", "iced-drinks", "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=400&q=80", 22},
-		{"Cold Brew", "Slow-steeped 18-hour cold brew, smooth and bold", "iced-drinks", "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80", 20},
-		{"Iced Mocha", "Espresso, chocolate, and cold milk over ice", "iced-drinks", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80", 24},
-		{"Caramel Frappe", "Blended espresso with caramel and whipped cream", "iced-drinks", "https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?w=400&q=80", 28},
-		{"Matcha Iced Latte", "Ceremonial grade matcha with oat milk over ice", "iced-drinks", "https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=400&q=80", 24},
-		{"Butter Croissant", "Flaky, golden French-style butter croissant", "pastries", "https://images.unsplash.com/photo-1555507036-ab1f4038024a?w=400&q=80", 14},
-		{"Chocolate Muffin", "Moist double chocolate chip muffin", "pastries", "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?w=400&q=80", 16},
-		{"Cinnamon Roll", "Warm cinnamon swirl with cream cheese glaze", "pastries", "https://images.unsplash.com/photo-1509365390695-33aee754301f?w=400&q=80", 18},
-		{"Almond Croissant", "Butter croissant filled with almond cream", "pastries", "https://images.unsplash.com/photo-1530610476181-d83430b64dcd?w=400&q=80", 18},
-		{"Cheesecake Slice", "New York-style creamy cheesecake", "desserts", "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80", 24},
-		{"Tiramisu", "Classic Italian coffee-soaked mascarpone layers", "desserts", "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&q=80", 26},
-		{"Chocolate Brownie", "Rich fudgy brownie with walnuts", "desserts", "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=400&q=80", 18},
-		{"Granola Bowl", "Greek yogurt with house-made granola and berries", "snacks", "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&q=80", 22},
-		{"Avocado Toast", "Sourdough with smashed avocado, poached egg and chili", "snacks", "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=400&q=80", 28},
-		{"Lavender Latte", "House-made lavender syrup with espresso and oat milk", "specials", "https://images.unsplash.com/photo-1514432324607-a09d9b4aefda?w=400&q=80", 26},
-		{"Spanish Latte", "Sweetened condensed milk with double espresso", "specials", "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80", 24},
+		// ── Drip & Black (Hot) ──
+		{"V60", "قهوة مقطرة", "Pour-over V60 drip coffee — choose your origin", "قهوة مقطرة بطريقة V60 — اختر نوع الحبوب", "drip-black-hot", "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80", 14},
+		{"Black Coffee", "قهوة اليوم", "Today's fresh brewed black coffee — choose your origin", "قهوة اليوم الطازجة — اختر نوع الحبوب", "drip-black-hot", "https://images.unsplash.com/photo-1559496417-e7f25cb247f3?w=400&q=80", 7},
+
+		// ── Drip & Black (Cold) ──
+		{"Iced V60", "قهوة مقطرة باردة", "Iced pour-over V60 drip coffee — choose your origin", "قهوة مقطرة باردة بطريقة V60 — اختر نوع الحبوب", "drip-black-cold", "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=400&q=80", 15},
+		{"Cold Black Coffee", "قهوة اليوم باردة", "Chilled black coffee over ice — choose your origin", "قهوة اليوم باردة ومثلجة — اختر نوع الحبوب", "drip-black-cold", "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80", 7},
+
+		// ── Hot Drinks (includes Saudi Coffee) ──
+		{"Saudi Coffee", "قهوة سعودية", "Traditional Saudi coffee with cardamom and saffron", "قهوة سعودية تقليدية بالهيل والزعفران", "hot-drinks", "https://images.unsplash.com/photo-1578899544060-9ba4a7e46929?w=400&q=80", 5},
+		{"Espresso", "إسبريسو", "Rich and bold espresso shot", "شوت إسبريسو غني ومركز", "hot-drinks", "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80", 8},
+		{"Americano", "أمريكانو", "Espresso with hot water", "إسبريسو مع ماء ساخن", "hot-drinks", "https://images.unsplash.com/photo-1521302080334-4bebac2763a6?w=400&q=80", 10},
+		{"Latte", "لاتيه", "Espresso with steamed milk", "إسبريسو مع حليب مبخر", "hot-drinks", "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80", 12},
+		{"Cappuccino", "كابتشينو", "Espresso with steamed milk foam", "إسبريسو مع رغوة الحليب المبخر", "hot-drinks", "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80", 14},
+		{"Cortado", "كورتادو", "Equal parts espresso and warm milk", "إسبريسو مع حليب دافئ بنسب متساوية", "hot-drinks", "https://images.unsplash.com/photo-1577968897966-3d4325b36b61?w=400&q=80", 10},
+		{"Flat White", "فلات وايت", "Velvety micro-foam espresso", "إسبريسو مع رغوة حليب ناعمة", "hot-drinks", "https://images.unsplash.com/photo-1577968897966-3d4325b36b61?w=400&q=80", 12},
+		{"Macchiato", "ماكياتو", "Espresso marked with a dash of foam", "إسبريسو مع القليل من رغوة الحليب", "hot-drinks", "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80", 12},
+		{"Caramel Macchiato", "كراميل ماكياتو", "Espresso with vanilla and caramel drizzle", "إسبريسو مع الفانيلا وصوص الكراميل", "hot-drinks", "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80", 14},
+		{"Mocha", "موكا", "Espresso with chocolate and steamed milk", "إسبريسو مع الشوكولاتة والحليب المبخر", "hot-drinks", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80", 14},
+		{"Pistachio Latte", "بيستاشيو لاتيه", "Latte with premium pistachio flavor", "لاتيه بنكهة الفستق الفاخرة", "hot-drinks", "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80", 16},
+		{"Spanish Latte", "سبانيش لاتيه", "Espresso with sweetened condensed milk", "إسبريسو مع الحليب المكثف المحلى", "hot-drinks", "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80", 15},
+		{"Hot Chocolate", "هوت شوكلت", "Premium hot chocolate with steamed milk", "شوكولاتة ساخنة فاخرة مع الحليب المبخر", "hot-drinks", "https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=400&q=80", 15},
+		{"Italian Coffee", "قهوة إيطالية", "Traditional Italian-style coffee", "قهوة على الطريقة الإيطالية التقليدية", "hot-drinks", "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80", 14},
+
+		// ── Cold Drinks ──
+		{"Iced Americano", "آيس أمريكانو", "Espresso with cold water over ice", "إسبريسو مع ماء بارد ومثلج", "cold-drinks", "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=400&q=80", 12},
+		{"Iced Latte", "آيس لاتيه", "Espresso with cold milk over ice", "إسبريسو مع حليب بارد ومثلج", "cold-drinks", "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=400&q=80", 14},
+		{"Iced Shaken White Mocha", "شيكن وايت موكا", "Shaken espresso with white chocolate and milk", "إسبريسو مخفوق مع الشوكولاتة البيضاء والحليب", "cold-drinks", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80", 17},
+		{"Iced Mocha", "آيس موكا", "Iced espresso with chocolate and cold milk", "إسبريسو مثلج مع الشوكولاتة والحليب البارد", "cold-drinks", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80", 14},
+		{"Iced Spanish Latte", "آيس سبانيش لاتيه", "Iced espresso with condensed milk", "إسبريسو مثلج مع الحليب المكثف المحلى", "cold-drinks", "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80", 16},
+		{"Iced Pistachio Latte", "آيس بيستاشيو لاتيه", "Iced latte with pistachio flavor", "لاتيه مثلج بنكهة الفستق", "cold-drinks", "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80", 17},
+		{"Iced Caramel Macchiato", "آيس كراميل ماكياتو", "Iced espresso with vanilla and caramel", "إسبريسو مثلج مع الفانيلا وصوص الكراميل", "cold-drinks", "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80", 17},
+
+		// ── Bakeries ──
+		{"Croissant", "كروسان", "Flaky butter croissant", "كروسان زبدة مقرمش", "bakeries", "https://images.unsplash.com/photo-1555507036-ab1f4038024a?w=400&q=80", 5},
+		{"Croissant Zaatar", "كروسان الزعتر", "Croissant with zaatar and cheese", "كروسان بالزعتر والجبن", "bakeries", "https://images.unsplash.com/photo-1555507036-ab1f4038024a?w=400&q=80", 7},
+
+		// ── Desserts & Cake ──
+		{"Cheesecake Blueberry", "تشيز كيك التوت", "Creamy blueberry cheesecake", "تشيز كيك كريمي بالتوت الأزرق", "desserts-cake", "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80", 17},
+		{"Cheesecake Nutella", "تشيز كيك نوتيلا", "Rich Nutella cheesecake", "تشيز كيك غني بالنوتيلا", "desserts-cake", "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80", 17},
+		{"Tiramisu Chocolate", "تيراميسو الشوكولاته", "Classic tiramisu with chocolate twist", "تيراميسو كلاسيكي بلمسة شوكولاتة", "desserts-cake", "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&q=80", 19},
+		{"Honey Cake", "كيكة العسل", "Soft layered honey cake", "كيكة عسل طبقات ناعمة", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 17},
+		{"San Sebastian", "سان سباستيان", "Basque-style burnt cheesecake", "تشيز كيك باسكي محمص", "desserts-cake", "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80", 18},
+		{"Delluci Cake", "دولتشي كيك", "Premium Italian-style cake", "كيكة فاخرة على الطريقة الإيطالية", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 19},
+		{"Pecan Date Cake", "كيكة بيكان التمر", "Pecan cake with Saudi dates", "كيكة البيكان مع التمر السعودي", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 19},
+		{"French Toast", "فرنش توست", "Classic French toast with syrup", "فرنش توست كلاسيكي مع الشراب", "desserts-cake", "https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=400&q=80", 18},
+		{"Matilda Cake Chocolate", "كيك ماتيلدا شوكلت", "Rich chocolate Matilda cake", "كيكة ماتيلدا بالشوكولاتة الغنية", "desserts-cake", "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=400&q=80", 19},
+		{"Red Velvet Cake", "كيك رد فلفت", "Classic red velvet with cream cheese frosting", "كيكة رد فلفت كلاسيكية مع كريمة الجبن", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 18},
+		{"Cinnabon", "سينابون", "Warm cinnamon roll with cream cheese glaze", "سينابون دافئ مع صوص كريمة الجبن", "desserts-cake", "https://images.unsplash.com/photo-1509365390695-33aee754301f?w=400&q=80", 19},
+		{"Pudding Chocolate", "بودينغ", "Smooth chocolate pudding", "بودينغ شوكولاتة ناعم", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 15},
+		{"Swiss Roll Strawberry", "سويس رول فراولة", "Strawberry cream swiss roll", "سويس رول بكريمة الفراولة", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 12},
+		{"Marble Cake", "كيك ماربل", "Classic marble cake", "كيكة ماربل كلاسيكية", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 7},
+		{"Basbosa", "بسبوسه", "Traditional semolina cake with syrup", "بسبوسة تقليدية بالسميد والقطر", "desserts-cake", "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80", 12},
+		{"Chocolate Cookies", "كوكيز", "Fresh baked chocolate cookies", "كوكيز شوكولاتة طازجة", "desserts-cake", "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&q=80", 8},
+
+		// ── Others ──
+		{"Bottle Water 330ml", "ماء 330 مل", "Bottled water 330ml", "مياه معبأة 330 مل", "others", "", 0.50},
 	}
 
 	drinkIDs := []string{}
+	dripBlackIDs := []string{} // V60 / Black Coffee products that need origin modifier
 	for _, p := range products {
 		pid := uuid.New().String()
-		sku := strings.ToUpper(strings.ReplaceAll(p.name, " ", "-"))
+		sku := strings.ToUpper(strings.ReplaceAll(p.nameEn, " ", "-"))
 		if len(sku) > 20 {
 			sku = sku[:20]
 		}
-		db.Exec(`INSERT INTO products (id, tenant_id, category_id, sku, name, description, price, currency, tax_rate, product_type, is_active, image_url)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,'SAR',15,'simple',true,$8)`,
-			pid, tenantID, catMap[p.catSlug], sku, p.name, p.desc, p.price, p.image)
-		if p.catSlug == "hot-drinks" || p.catSlug == "iced-drinks" || p.catSlug == "specials" {
+		db.Exec(`INSERT INTO products (id, tenant_id, category_id, sku, name, name_en, name_ar, description, description_en, description_ar, price, currency, tax_rate, product_type, is_active, image_url)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'SAR',15,'simple',true,$12)`,
+			pid, tenantID, catMap[p.catSlug], sku, p.nameEn, p.nameEn, p.nameAr, p.descEn, p.descEn, p.descAr, p.price, p.image)
+		if p.catSlug == "hot-drinks" || p.catSlug == "cold-drinks" || p.catSlug == "drip-black-hot" || p.catSlug == "drip-black-cold" {
 			drinkIDs = append(drinkIDs, pid)
+		}
+		if p.catSlug == "drip-black-hot" || p.catSlug == "drip-black-cold" {
+			dripBlackIDs = append(dripBlackIDs, pid)
 		}
 	}
 
-	// Modifier groups
+	// Modifier groups — bilingual
 	sizeID := uuid.New().String()
 	milkID := uuid.New().String()
 	sugarID := uuid.New().String()
 	extrasID := uuid.New().String()
+	originID := uuid.New().String()
 
-	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, display_name, selection_type, min_selections, max_selections, is_required, sort_order)
-	         VALUES ($1, $2, 'Size', 'Choose Size', 'single', 1, 1, true, 1)`, sizeID, tenantID)
-	for i, s := range []struct{ n string; p float64; d bool }{{"Small", 0, true}, {"Medium", 4, false}, {"Large", 8, false}} {
-		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			uuid.New().String(), tenantID, sizeID, s.n, s.p, s.d, i)
+	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, name_en, name_ar, display_name, display_name_en, display_name_ar, selection_type, min_selections, max_selections, is_required, sort_order)
+	         VALUES ($1, $2, 'Size', 'Size', 'الحجم', 'Choose Size', 'Choose Size', 'اختر الحجم', 'single', 1, 1, true, 1)`, sizeID, tenantID)
+	for i, s := range []struct{ en, ar string; p float64; d bool }{{"Small", "صغير", 0, true}, {"Medium", "وسط", 4, false}, {"Large", "كبير", 8, false}} {
+		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, name_en, name_ar, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			uuid.New().String(), tenantID, sizeID, s.en, s.en, s.ar, s.p, s.d, i)
 	}
 
-	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, display_name, selection_type, min_selections, max_selections, is_required, sort_order)
-	         VALUES ($1, $2, 'Milk Type', 'Choose Milk', 'single', 1, 1, false, 2)`, milkID, tenantID)
-	for i, s := range []struct{ n string; p float64; d bool }{{"Regular Milk", 0, true}, {"Oat Milk", 5, false}, {"Almond Milk", 5, false}, {"Soy Milk", 4, false}, {"Skim Milk", 0, false}} {
-		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			uuid.New().String(), tenantID, milkID, s.n, s.p, s.d, i)
+	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, name_en, name_ar, display_name, display_name_en, display_name_ar, selection_type, min_selections, max_selections, is_required, sort_order)
+	         VALUES ($1, $2, 'Milk Type', 'Milk Type', 'نوع الحليب', 'Choose Milk', 'Choose Milk', 'اختر نوع الحليب', 'single', 1, 1, false, 2)`, milkID, tenantID)
+	for i, s := range []struct{ en, ar string; p float64; d bool }{{"Regular Milk", "حليب عادي", 0, true}, {"Oat Milk", "حليب الشوفان", 5, false}, {"Almond Milk", "حليب اللوز", 5, false}, {"Soy Milk", "حليب الصويا", 4, false}, {"Skim Milk", "حليب خالي الدسم", 0, false}} {
+		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, name_en, name_ar, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			uuid.New().String(), tenantID, milkID, s.en, s.en, s.ar, s.p, s.d, i)
 	}
 
-	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, display_name, selection_type, min_selections, max_selections, is_required, sort_order)
-	         VALUES ($1, $2, 'Sugar Level', 'Sugar Preference', 'single', 1, 1, false, 3)`, sugarID, tenantID)
-	for i, s := range []struct{ n string; d bool }{{"Regular Sugar", true}, {"Less Sugar", false}, {"No Sugar", false}, {"Extra Sweet", false}} {
-		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,0,$5,$6)`,
-			uuid.New().String(), tenantID, sugarID, s.n, s.d, i)
+	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, name_en, name_ar, display_name, display_name_en, display_name_ar, selection_type, min_selections, max_selections, is_required, sort_order)
+	         VALUES ($1, $2, 'Sugar Level', 'Sugar Level', 'مستوى السكر', 'Sugar Preference', 'Sugar Preference', 'تفضيل السكر', 'single', 1, 1, false, 3)`, sugarID, tenantID)
+	for i, s := range []struct{ en, ar string; d bool }{{"Regular Sugar", "سكر عادي", true}, {"Less Sugar", "سكر أقل", false}, {"No Sugar", "بدون سكر", false}, {"Extra Sweet", "سكر زيادة", false}} {
+		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, name_en, name_ar, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,$6,0,$7,$8)`,
+			uuid.New().String(), tenantID, sugarID, s.en, s.en, s.ar, s.d, i)
 	}
 
-	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, display_name, selection_type, min_selections, max_selections, is_required, sort_order)
-	         VALUES ($1, $2, 'Extras', 'Add Extras', 'multiple', 0, 3, false, 4)`, extrasID, tenantID)
-	for i, s := range []struct{ n string; p float64 }{{"Extra Shot", 6}, {"Whipped Cream", 4}, {"Caramel Drizzle", 3}, {"Vanilla Syrup", 3}, {"Hazelnut Syrup", 3}} {
-		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,false,$6)`,
-			uuid.New().String(), tenantID, extrasID, s.n, s.p, i)
+	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, name_en, name_ar, display_name, display_name_en, display_name_ar, selection_type, min_selections, max_selections, is_required, sort_order)
+	         VALUES ($1, $2, 'Extras', 'Extras', 'إضافات', 'Add Extras', 'Add Extras', 'أضف إضافات', 'multiple', 0, 3, false, 4)`, extrasID, tenantID)
+	for i, s := range []struct{ en, ar string; p float64 }{{"Extra Shot Espresso", "شوت اسبريسو اضافي", 3}, {"Whipped Cream", "كريمة مخفوقة", 4}, {"Caramel Drizzle", "صوص كراميل", 3}, {"Vanilla Syrup", "شراب الفانيلا", 3}, {"Hazelnut Syrup", "شراب البندق", 3}} {
+		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, name_en, name_ar, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,false,$8)`,
+			uuid.New().String(), tenantID, extrasID, s.en, s.en, s.ar, s.p, i)
 	}
 
-	// Link modifiers to all drinks
+	// Coffee Origin modifier — required for drip & black products (Ethiopian, Brazilian, Colombian)
+	db.Exec(`INSERT INTO modifier_groups (id, tenant_id, name, name_en, name_ar, display_name, display_name_en, display_name_ar, selection_type, min_selections, max_selections, is_required, sort_order)
+	         VALUES ($1, $2, 'Coffee Origin', 'Coffee Origin', 'نوع الحبوب', 'Choose Origin', 'Choose Origin', 'اختر نوع الحبوب', 'single', 1, 1, true, 0)`, originID, tenantID)
+	for i, s := range []struct{ en, ar string; d bool }{{"Ethiopian", "إثيوبي", true}, {"Brazilian", "برازيلي", false}, {"Colombian", "كولومبي", false}} {
+		db.Exec(`INSERT INTO modifier_items (id, tenant_id, modifier_group_id, name, name_en, name_ar, price_adjustment, is_default, sort_order) VALUES ($1,$2,$3,$4,$5,$6,0,$7,$8)`,
+			uuid.New().String(), tenantID, originID, s.en, s.en, s.ar, s.d, i)
+	}
+
+	// Link modifiers to all drink products
 	for _, pid := range drinkIDs {
 		db.Exec("INSERT INTO product_modifier_groups (product_id, modifier_group_id, sort_order) VALUES ($1,$2,1) ON CONFLICT DO NOTHING", pid, sizeID)
 		db.Exec("INSERT INTO product_modifier_groups (product_id, modifier_group_id, sort_order) VALUES ($1,$2,2) ON CONFLICT DO NOTHING", pid, milkID)
@@ -1486,7 +1611,12 @@ func seedCafeMenu(c *gin.Context) {
 		db.Exec("INSERT INTO product_modifier_groups (product_id, modifier_group_id, sort_order) VALUES ($1,$2,4) ON CONFLICT DO NOTHING", pid, extrasID)
 	}
 
-	c.JSON(200, gin.H{"message": "Cafe menu seeded successfully", "categories": len(cats), "products": len(products), "modifiers": 4})
+	// Link Coffee Origin modifier ONLY to drip & black products
+	for _, pid := range dripBlackIDs {
+		db.Exec("INSERT INTO product_modifier_groups (product_id, modifier_group_id, sort_order) VALUES ($1,$2,0) ON CONFLICT DO NOTHING", pid, originID)
+	}
+
+	c.JSON(200, gin.H{"message": "Sedav Coffee menu seeded successfully", "categories": len(cats), "products": len(products), "modifiers": 5})
 }
 
 func min(a, b int) int {
